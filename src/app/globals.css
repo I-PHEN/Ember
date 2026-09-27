@@ -1,0 +1,238 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-mk-white: var(--mk-white);
+  --color-mk-blue: var(--mk-blue);
+  --color-mk-green: var(--mk-green);
+  --color-mk-orange: var(--mk-orange);
+  --color-mk-pink: var(--mk-pink);
+  --color-mk-yellow: var(--mk-yellow);
+  --color-mk-purple: var(--mk-purple);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ---------------------------------------------------------------
+   Chalkcast — always a dark "blackboard studio" app
+---------------------------------------------------------------- */
+
+:root {
+  --radius: 0.75rem;
+
+  --board: #16181d;
+  --board-deep: #0f1114;
+  --board-edge: #262932;
+
+  /* marker palette (OCT-style) */
+  --mk-white: #f4f6fa;
+  --mk-blue: #74b9ff;
+  --mk-green: #7ce38b;
+  --mk-orange: #ffb86c;
+  --mk-pink: #ff7b9c;
+  --mk-yellow: #ffd66e;
+  --mk-purple: #c8a2ff;
+
+  --background: var(--board-deep);
+  --foreground: #e8eaf0;
+  --card: #1c1f26;
+  --card-foreground: #e8eaf0;
+  --popover: #1c1f26;
+  --popover-foreground: #e8eaf0;
+  --primary: #ffb86c;
+  --primary-foreground: #14161b;
+  --secondary: #262a33;
+  --secondary-foreground: #e8eaf0;
+  --muted: #232730;
+  --muted-foreground: #9aa1af;
+  --accent: #2b2f3a;
+  --accent-foreground: #f4f6fa;
+  --destructive: #ff6b6b;
+  --border: #2b2f3a;
+  --input: #2b2f3a;
+  --ring: #ffb86c55;
+  --chart-1: #ffb86c;
+  --chart-2: #7ce38b;
+  --chart-3: #74b9ff;
+  --chart-4: #ff7b9c;
+  --chart-5: #ffd66e;
+  --sidebar: #1c1f26;
+  --sidebar-foreground: #e8eaf0;
+  --sidebar-primary: #ffb86c;
+  --sidebar-primary-foreground: #14161b;
+  --sidebar-accent: #2b2f3a;
+  --sidebar-accent-foreground: #f4f6fa;
+  --sidebar-border: #2b2f3a;
+  --sidebar-ring: #ffb86c55;
+}
+
+.dark {
+  --background: var(--board-deep);
+  --foreground: #e8eaf0;
+}
+
+/* handwriting font for the board */
+@font-face {
+  font-family: "BoardHand";
+  src: url("/fonts/board-hand.woff2") format("woff2");
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: block;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  ::selection {
+    background: #ffb86c44;
+  }
+}
+
+.font-hand {
+  font-family: "BoardHand", "Segoe Print", "Comic Sans MS", cursive;
+}
+
+/* the blackboard surface: deep charcoal + vignette + faint tooth */
+.board-surface {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.028), transparent 55%),
+    radial-gradient(140% 110% at 50% 110%, rgba(0, 0, 0, 0.5), transparent 60%),
+    linear-gradient(180deg, #171a20 0%, #14161b 45%, #101216 100%);
+  box-shadow:
+    inset 0 0 120px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* thin, quiet scrollbar for the board */
+.board-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #333845 transparent;
+}
+.board-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.board-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.board-scroll::-webkit-scrollbar-thumb {
+  background: #2c313c;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.board-scroll::-webkit-scrollbar-thumb:hover {
+  background: #3a4050;
+  background-clip: content-box;
+  border: 2px solid transparent;
+}
+
+/* handwriting glyph spans are measured by the engine; never let
+   the browser paint them before the timeline starts */
+.glyph {
+  display: inline-block;
+  white-space: pre;
+  will-change: clip-path;
+}
+
+/* subtle grain for the studio chrome (not the writing area) */
+.studio-grain {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@keyframes pen-idle-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* pen states (engine toggles these) */
+.pen-art {
+  transition: transform 0.18s ease;
+}
+[data-pen].resting .pen-art {
+  animation: pen-idle-bob 2.4s ease-in-out infinite;
+}
+[data-pen].writing .pen-dot {
+  opacity: 0.65;
+}
+[data-pen].travel .pen-art {
+  transition: transform 0.12s ease;
+}
+
+/* word wrapper so handwriting wraps at word boundaries */
+.word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+@keyframes float-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-float-in {
+  animation: float-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* keyboard hint chips on the watch page */
+.kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.85);
+}
