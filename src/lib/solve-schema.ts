@@ -192,19 +192,29 @@ const AUDIENCE_QUESTION =
 const PROSE_CONNECTIVE =
   /\b(because|since|so that|which means|that means|notice|remember|make sure|we can|we should|we need|we want|we get|we're going|we are going|let's|in order|the reason|this is why|that's why|it turns out|as you can see|keep in mind|now we|then we|first we|next we|so we|if we|when we|here's|here is|this gives|works for|applies to|is valid|holds when|is true|depends on)\b/i;
 
-/** does this write beat look like spoken explanation, not board work? */
+/** does this write beat look like spoken explanation, not board work?
+    Order matters: audience questions and short labels always survive;
+    prose connectives are tested BEFORE the equation-like escape so a
+    sentence can't smuggle itself in with one equals sign; medium-length
+    article-heavy lines with no math are prose; the Reviewer (Phase B)
+    is the real judge — this stays the conservative safety net. */
 export function isBoardProse(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
   if (AUDIENCE_QUESTION.test(t)) return false; // pause-and-predict moments
   const words = t.split(/\s+/).filter(Boolean).length;
   if (words < 5) return false; // short labels are always fine
+  // sentence connectives are prose even if the line contains math
+  if (PROSE_CONNECTIVE.test(t)) return true;
   // equation-like lines are board work by definition
   const eqLike =
     /[=≤≥≠≈]/.test(t) ||
     (t.match(/[0-9+−×÷±√∫∑∆^_]/g)?.length ?? 0) / Math.max(1, t.length) > 0.15;
   if (eqLike) return false;
-  if (PROSE_CONNECTIVE.test(t)) return true;
+  // medium lines written as English (articles/linking verbs), no math → prose
+  if (words >= 6 && /\b(the|a|an|is|are|was|this|that|it|stays|gets)\b/i.test(t)) {
+    return true;
+  }
   return words >= 10; // long wordy line with no math → it's a paragraph
 }
 

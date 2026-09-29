@@ -62,7 +62,6 @@ server.log
 /scripts/
 /research/
 /examples/
-/tests/
 /mini-services/
 /.zscripts/
 /db/
