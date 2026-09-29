@@ -468,8 +468,13 @@ function buildTitle(ctx: Ctx, beat: Extract<Beat, { type: "title" }>): void {
     { gap: 0.05, speedCap: cap, settle: 0.22 }
   );
   groupSinceBeatStart(ctx, beat.text);
-  ctx.cursor = { x: MARGIN_X, y: 104 + LINE_H.title };
-  ctx.lastBottom = uy + 6;
+  /* advance the flow from the title's ACTUAL rendered bottom — a long
+   * title wraps to a second line, and a fixed one-line step would land
+   * the next write straight through it (caught by the layout audit on
+   * the first live Gemini generation). */
+  const bottom = Math.max(laid.bbox.y + laid.bbox.h, uy + 6);
+  ctx.cursor = { x: MARGIN_X, y: bottom + LINE_H.md * 0.92 };
+  ctx.lastBottom = bottom;
 }
 
 const CONT_CHARS = new Set([
