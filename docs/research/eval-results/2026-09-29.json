@@ -1,0 +1,59 @@
+{
+  "ranAt": "2026-09-29T22:43:51.718Z",
+  "results": [
+    {
+      "id": "alg-linear",
+      "passed": true,
+      "ms": 298535,
+      "scenes": 6,
+      "proseBeats": 0,
+      "sayCoverage": 0.8823529411764706,
+      "overlapPct": 9,
+      "stats": {
+        "directorMs": 60475,
+        "plannerMs": null,
+        "writerMs": [
+          6283,
+          6332,
+          7323,
+          1886,
+          6503,
+          7090
+        ],
+        "voiceMs": [
+          10792,
+          8945,
+          9105,
+          17402,
+          9915
+        ],
+        "firstVoiceReadyMs": 216448,
+        "proseDropped": 0,
+        "overlapPct": 9,
+        "layoutViolations": 0
+      },
+      "checks": [
+        {
+          "ok": true,
+          "detail": "scenes=6"
+        },
+        {
+          "ok": true,
+          "detail": "proseBeats=0"
+        },
+        {
+          "ok": true,
+          "detail": "sayCoverage=0.88"
+        },
+        {
+          "ok": true,
+          "detail": "overlapPct=9"
+        },
+        {
+          "ok": true,
+          "detail": "layoutViolations=0"
+        }
+      ]
+    }
+  ]
+}
