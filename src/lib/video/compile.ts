@@ -46,9 +46,10 @@ import { normSpeechKey } from "../solve-schema";
 const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
-  // px/second — a calm teacher's writing speed (this is a lecture video,
-  // not a race: the pen is deliberately unhurried)
-  return 265 * (0.8 + (0.2 * cap) / 38);
+  // px/second — a real professor's chalk pace (~4 characters/second at
+  // md size). This is a lecture, not a race: the pen is unhurried, and
+  // it is the single strongest "a person is teaching me" signal.
+  return 165 * (0.8 + (0.2 * cap) / 38);
 }
 
 function polyLen(pts: Pt[]): { cum: number[]; len: number } {
@@ -1287,7 +1288,7 @@ function buildGraph(ctx: Ctx, beat: Extract<Beat, { type: "graph" }>): void {
   }
   if (cur.length > 1) curveRaw.push({ pts: cur, color: curveColor, width: 3.4 });
   // draw the curve a bit faster than handwriting, like a practiced sweep
-  const curveTimed = addPaths(ctx, curveRaw, { gap: 0.16, speedCap: 400, settle: 0.15 });
+  const curveTimed = addPaths(ctx, curveRaw, { gap: 0.16, speedCap: 220, settle: 0.15 });
   for (const s of curveTimed) if (s.dur < 0.85) s.dur = 0.85;
 
   if (beat.label) {
@@ -1442,7 +1443,7 @@ function buildNumberLine(
     const hopTimed = addPaths(
       ctx,
       [{ pts: jitterPolyline(arc, 1, rngFor("hop", hop.from, hop.to)), color, width: 3 }],
-      { gap: 0.1, speedCap: 400, settle: 0.08 }
+      { gap: 0.1, speedCap: 220, settle: 0.08 }
     );
     for (const s of hopTimed) if (s.dur < 0.55) s.dur = 0.55;
     if (hop.label) {
@@ -1646,7 +1647,7 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
    segment of the words they decorate. */
 
 const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.7; // never rush ink beyond this factor
+const SAY_SCALE_MIN = 0.8; // never rush ink beyond this factor — professor pace wins
 const SAY_SCALE_MAX = 2.4; // never drag ink slower than this factor
 /** speech windows start here — the opening words play over the pen's
  *  approach to the board, exactly like a professor starting to talk
@@ -1974,7 +1975,10 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
     const base = s.pacedFor ?? estimateNarration(s.narration);
     let k = (audioDur + 0.9 - HEAD) / (base + 0.9 - HEAD);
     if (Number.isFinite(k) && k > 0 && Math.abs(k - 1) > 0.01) {
-      k = Math.max(0.55, Math.min(2.3, k));
+      /* audio shorter than planned → do NOT rush the pen past ~0.8×;
+       * the scene simply runs a touch longer than the voice (a real
+       * professor finishing a line in silence). Rushing reads as AI. */
+      k = Math.max(0.8, Math.min(2.3, k));
       const anchor = (t: number) => HEAD + (t - HEAD) * k;
       for (const st of s.strokes) {
         st.t0 = anchor(st.t0);
