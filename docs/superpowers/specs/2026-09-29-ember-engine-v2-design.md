@@ -169,6 +169,45 @@ Output: flags + metrics only. Never mutates the script.
 If thinking mode blows the budget, director keeps it and planner drops it
 (planner words are reviewable; director structure errors are not).
 
+## 7b. Speed & token engineering (research-grounded)
+
+Findings that shape the implementation:
+
+- **Prompt caching** (arXiv 2601.06007; Anthropic/Redis guides): 41–80% cost
+  reduction, 13–31% faster time-to-first-token — but only when prompts keep
+  **stable prefixes** with dynamic content at the end. Our SDK exposes no
+  explicit cache API, but provider-side prefix caching rewards the same
+  discipline. → **Restructure writer/director/planner prompts: the entire
+  static contract (persona, rules, beat-type reference) FIRST, dynamic
+  content (outline, scene slice) LAST.** Today `writerPrompt` interleaves
+  the outline into the middle — fix in Phase A. All N writer calls then
+  share an identical multi-KB prefix.
+- **Model routing / cascades** (FrugalGPT 4–98× cost reduction; COREA,
+  RouteLLM): route easy work to cheap/fast models, escalate on confidence.
+  → Build a **per-role routing table** into the orchestrator (config, not
+  hardcoded): director/planner/solver = reasoning tier (thinking on);
+  writers/reviewer = speed tier. The SDK accepts a `model` param; which
+  models the account exposes gets probed in Phase 0 before we rely on it.
+- **Structured output reliability** (production postmortems; repair-layer
+  literature): JSON mode alone doesn't guarantee schema conformance;
+  **repair-before-retry beats naive retries** — we already have a strong
+  repair layer (`extractJson`: fence stripping, bracket matching,
+  truncation closing) plus coercion normalizers. → Formalize the ladder:
+  repair → normalize → retry with reminder suffix (current behavior, now
+  specified as a rule).
+- **Context minimization**: every agent gets exactly what its job needs —
+  writers: outline + own scene slice; reviewer: own scene ONLY (no
+  outline); solver: question only. No agent ever sees another's full
+  output. (Already the design; restated as a rule.)
+- **Token budgets** (enforced by prompts, measured by evals): outline
+  ≤3.5KB; transcript ≤9KB; scene beats ≤3KB; reviewer output ≤3KB. The
+  eval harness records actual in/out tokens per stage per fixture.
+- **SDK capabilities confirmed** (from the .d.ts): `model` param,
+  `thinking` toggle, `stream`, **`createVision` (multimodal — the path for
+  the future image-upload phase)**, built-in `web_search`/`page_reader`
+  functions (noted for solver's factual lookups later — not core for
+  math), TTS voice/speed.
+
 ## 8. External tools — decisions
 
 - **Nerdamer**: in-process JS CAS for symbolic equivalence (Solver compare,
@@ -186,6 +225,13 @@ If thinking mode blows the budget, director keeps it and planner drops it
   abstraction without adding streaming overlap, EWMA ETAs, or degradation.
 
 ## 9. Phase plan (each independently shippable, user checks after each)
+
+**0 — Capability probe (half a day, no product change)**
+One-off script: which models the account can call via `model` param (and
+their speed/thinking behavior); whether any implicit prefix caching is
+observable (timing repeated stable-prefix calls). Output: the routing
+table's real values. Everything below degrades gracefully to
+single-model if the probe finds only one.
 
 **A — Discipline & measurement**
 `isBoardProse` hardening; honest drop logging + `stats.proseDropped`;
