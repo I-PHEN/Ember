@@ -919,6 +919,26 @@ function buildArrow(ctx: Ctx, beat: Extract<Beat, { type: "arrow" }>): void {
    block label, and the force list, so every diagram comes out
    pristine. */
 
+/** A block label must MEASURE against the block it annotates — the
+ *  reported defect was "5 kg" at cap 21 overflowing a 48×32 block.
+ *  Shrink first (a professor writes small inside a small box); labels
+ *  that cannot fit even shrunk are written beside the block instead. */
+export function fitBlockLabel(
+  label: string,
+  hw: number,
+  hh: number
+): { mode: "inside"; cap: number } | { mode: "outside" } {
+  if (label.length > 6) return { mode: "outside" };
+  const maxW = hw * 2 * 0.92;
+  const maxH = hh * 2 * 0.78;
+  for (const cap of [20, 18, 16, 14, 12]) {
+    if (cap <= maxH && measureText(label, cap) <= maxW) {
+      return { mode: "inside", cap };
+    }
+  }
+  return { mode: "outside" };
+}
+
 function fbDirVec(dir: string, th: number): Pt {
   switch (dir) {
     case "down":
@@ -1041,10 +1061,11 @@ function buildFreebody(ctx: Ctx, beat: Extract<Beat, { type: "freebody" }>): voi
     { gap: 0.06, speedCap: 34, settle: 0.14 }
   );
   const blockLabel = beat.block ?? "m";
-  if (blockLabel.length <= 4) {
-    const lw = measureText(blockLabel, 21);
-    const laid = layoutText(blockLabel, c.x - lw / 2, c.y + 7, {
-      cap: 21,
+  const fit = fitBlockLabel(blockLabel, hw, hh);
+  if (fit.mode === "inside") {
+    const lw = measureText(blockLabel, fit.cap);
+    const laid = layoutText(blockLabel, c.x - lw / 2, c.y + fit.cap * 0.34, {
+      cap: fit.cap,
       color: ink,
       jitter: false,
       seed: `fbbl${ctx.sceneIdx}${ctx.beatNo}`,
