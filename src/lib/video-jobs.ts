@@ -1,6 +1,7 @@
 import ZAI from "z-ai-web-dev-sdk";
 import { extractJson, sanitizeScript, cleanNarration } from "./solve-schema";
 import { compileTimeline } from "./video/compile";
+import { scriptOverlap } from "./video/overlap";
 import { speak } from "./tts-queue";
 import {
   DIRECTOR_PROMPT,
@@ -110,6 +111,7 @@ interface Job {
     voiceMs: number[];
     firstVoiceReadyMs: number | null;
     proseDropped: number;
+    overlapPct: number | null;
   };
 }
 
@@ -170,6 +172,7 @@ export function createJob(question: string): string {
       voiceMs: [],
       firstVoiceReadyMs: null,
       proseDropped: 0,
+      overlapPct: null,
     },
   };
   jobs.set(id, job);
@@ -577,6 +580,7 @@ async function runJob(job: Job): Promise<void> {
       return;
     }
     compileTimeline(script); // server-side smoke test — must never crash a client
+    job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
     job.script = script;
     job.mergedAt = Date.now();
     job.phase = "voicing";
