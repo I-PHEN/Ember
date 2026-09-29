@@ -646,7 +646,7 @@ export function extractJson(text: string): unknown {
 
 /* --------------------------- misc helpers -------------------------- */
 
-const THEME_KEY = "chalkcast.theme";
+const THEME_KEY = "ember.theme";
 const LEGACY_THEME_KEY = "livetutor.theme";
 
 export function defaultTheme(): BoardThemeId {

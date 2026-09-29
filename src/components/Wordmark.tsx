@@ -1,8 +1,4 @@
-/* ------------------------------------------------------------------
-   Wordmark — the Chalkcast mark (a piece of chalk drawing its own
-   underline swash) next to the name. One mark everywhere: headers,
-   overlay, footer.
-------------------------------------------------------------------- */
+/* Ember is both the learning environment and the teaching voice. */
 
 import { cn } from "@/lib/utils";
 
@@ -14,30 +10,30 @@ interface Props {
 
 export default function Wordmark({ className, chip }: Props) {
   return (
-    <span className={cn("flex items-center gap-2.5", className)}>
-      <svg
-        viewBox="0 0 64 64"
-        className="h-8 w-8 shrink-0"
-        aria-hidden="true"
-        fill="none"
-      >
-        <g transform="rotate(-42 30 28)">
-          <rect x="12" y="22" width="26" height="11" rx="5.5" fill="#f4f6fa" />
-          <rect x="38" y="22" width="9" height="11" rx="4.5" fill="#ffd66e" />
-        </g>
-        <path
-          d="M15 50 Q 32 43.5 49 49"
-          stroke="#ffd66e"
-          strokeWidth="4.5"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="text-lg font-semibold tracking-tight">
-        Chalkcast
-        <span className="sr-only"> — every problem, a lesson</span>
+    <span className={cn("flex items-center", className)}>
+      <span className="flex flex-col">
+        <span className="text-2xl font-semibold tracking-tight text-[#f1eee7]">
+          Ember
+          <span className="sr-only"> — every problem, a lesson</span>
+        </span>
+        {/* the stroke that raises a spark */}
+        <svg
+          viewBox="0 0 120 17"
+          aria-hidden="true"
+          className="mt-[5px] h-[8px] w-[84px] text-[#e6b784]"
+        >
+          <path
+            d="M4 12 C 30 9.6, 68 9.2, 92 9.8 C 102 10.1, 108.5 8.2, 110.5 4.8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3.4"
+            strokeLinecap="round"
+          />
+          <circle cx="109" cy="2.4" r="2" fill="currentColor" />
+        </svg>
       </span>
       {chip && (
-        <span className="hidden rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground sm:inline">
+        <span className="ml-3 hidden rounded-full border border-[#e6b784]/25 bg-[#e6b784]/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-[#e6b784] sm:inline">
           {chip}
         </span>
       )}

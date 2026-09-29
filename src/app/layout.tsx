@@ -20,8 +20,8 @@ export const metadata: Metadata = {
   title,
   description: BRAND.description,
   keywords: [
-    "Chalkcast",
-    "Professor Ada",
+    "Ember",
+    "Ember tutor",
     "AI tutor",
     "solve videos",
     "lecture videos",
@@ -33,12 +33,13 @@ export const metadata: Metadata = {
     "blackboard",
   ],
   icons: {
-    icon: "/chalkcast.svg",
+    icon: "/ember.svg",
+    apple: "/ember-touch.png",
   },
   openGraph: {
     title,
     description:
-      "Paste any question. Professor Ada plans the lecture, a marker hand-writes the board, and you watch a real solve video.",
+      "Paste any question. Ember plans the lesson, hand-writes the board, and you watch a real solve video.",
     siteName: BRAND.name,
     type: "website",
   },

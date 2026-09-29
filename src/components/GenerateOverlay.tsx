@@ -20,7 +20,6 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import ChalkAvatar from "@/components/ChalkAvatar";
 import type { VideoJobStatus } from "@/lib/use-video-job";
 
 function fmtLeft(ms: number): string {
@@ -77,34 +76,34 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
       aria-modal="true"
       aria-label="Making your solve video"
     >
-      <div className="relative w-full max-w-md rounded-2xl border border-white/8 bg-[#15181f] p-6 shadow-2xl">
+      <div className="relative w-full max-w-md rounded-2xl border border-[#34383c] bg-[#171b1d] p-6 shadow-2xl">
         <button
           onClick={onLeave}
           aria-label="Keep it running in the background"
-          className="absolute right-3.5 top-3.5 rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
+          className="absolute right-3.5 top-3.5 rounded-lg p-1.5 text-muted-foreground transition hover:bg-[#23262a] hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* header */}
         <div className="mb-5 flex items-center gap-3 pr-8">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-mk-orange/10 ring-1 ring-mk-orange/30">
-            <ChalkAvatar size={34} className="animate-pulse-soft" />
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e6b784]/10 ring-1 ring-[#e6b784]/25">
+            <Clapperboard className="h-5 w-5 text-[#e6b784]" />
           </span>
           <div className="min-w-0">
             <div className="text-sm font-semibold">
-              Professor Ada is making your video
+              Ember is making your lesson
             </div>
-            <div className="truncate font-hand text-[15px] text-mk-orange">
+            <div className="truncate font-hand text-[15px] text-[#e6b784]">
               {status.question.slice(0, 48) || status.title}
             </div>
           </div>
         </div>
 
         {/* progress bar */}
-        <div className="mb-5 h-2 w-full overflow-hidden rounded-full bg-white/6">
+        <div className="mb-5 h-2 w-full overflow-hidden rounded-full bg-[#23262a]">
           <div
-            className="h-full rounded-full bg-mk-orange transition-all duration-700 ease-out"
+            className="h-full rounded-full bg-[#e6b784] transition-all duration-700 ease-out"
             style={{ width: `${Math.round(overall * 100)}%` }}
           />
         </div>
@@ -116,18 +115,18 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
             <span
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition ${
                 directing
-                  ? "animate-pulse-soft bg-mk-orange/15 ring-mk-orange/40"
-                  : "bg-mk-green/12 ring-mk-green/35"
+                  ? "animate-pulse-soft bg-[#e6b784]/15 ring-[#e6b784]/40"
+                  : "bg-[#f1eee7]/6 ring-[#f1eee7]/15"
               }`}
             >
               {directing ? (
-                <Clapperboard className="h-4 w-4 text-mk-orange" />
+                <Clapperboard className="h-4 w-4 text-[#e6b784]" />
               ) : (
-                <Check className="h-4 w-4 text-mk-green" />
+                <Check className="h-4 w-4 text-[#f1eee7]/85" />
               )}
             </span>
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-medium">Professor Ada</div>
+              <div className="text-[13px] font-medium">Ember</div>
               <div className="truncate text-xs text-muted-foreground">
                 {directing
                   ? "reading the question, shaping the lecture arc…"
@@ -141,16 +140,16 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
             <span
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition ${
                 scripting
-                  ? "animate-pulse-soft bg-mk-blue/15 ring-mk-blue/40"
+                  ? "animate-pulse-soft bg-[#e6b784]/15 ring-[#e6b784]/40"
                   : directing
-                    ? "bg-white/4 ring-white/10"
-                    : "bg-mk-green/12 ring-mk-green/35"
+                    ? "bg-[#f1eee7]/4 ring-[#f1eee7]/10"
+                    : "bg-[#f1eee7]/6 ring-[#f1eee7]/15"
               }`}
             >
               {scripting ? (
-                <BookOpenText className="h-4 w-4 text-mk-blue" />
+                <BookOpenText className="h-4 w-4 text-[#e6b784]" />
               ) : (
-                <Check className="h-4 w-4 text-mk-green" />
+                <Check className="h-4 w-4 text-[#f1eee7]/85" />
               )}
             </span>
             <div className="min-w-0 flex-1">
@@ -170,16 +169,16 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
             <span
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition ${
                 boarding
-                  ? "animate-pulse-soft bg-mk-yellow/12 ring-mk-yellow/35"
+                  ? "animate-pulse-soft bg-[#e6b784]/15 ring-[#e6b784]/40"
                   : directing
-                    ? "bg-white/4 ring-white/10"
-                    : "bg-mk-green/12 ring-mk-green/35"
+                    ? "bg-[#f1eee7]/4 ring-[#f1eee7]/10"
+                    : "bg-[#f1eee7]/6 ring-[#f1eee7]/15"
               }`}
             >
               {boarding ? (
-                <PenLine className="h-4 w-4 text-mk-yellow" />
+                <PenLine className="h-4 w-4 text-[#e6b784]" />
               ) : (
-                <Check className="h-4 w-4 text-mk-green" />
+                <Check className="h-4 w-4 text-[#f1eee7]/85" />
               )}
             </span>
             <div className="min-w-0 flex-1">
@@ -206,10 +205,10 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
                       key={i}
                       className={`h-2.5 w-5 rounded-[3px] transition-all duration-500 ${
                         done
-                          ? "bg-mk-green/80"
+                          ? "bg-[#e6b784]/80"
                           : boarding
-                            ? "animate-pulse-soft bg-white/14"
-                            : "bg-white/8"
+                            ? "animate-pulse-soft bg-[#f1eee7]/14"
+                            : "bg-[#f1eee7]/8"
                       }`}
                     />
                   );
@@ -228,11 +227,11 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
             <span
               className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1 transition ${
                 status.voicesDone > 0 || boarding
-                  ? "animate-pulse-soft bg-mk-green/10 ring-mk-green/30"
-                  : "bg-white/4 ring-white/10"
+                  ? "animate-pulse-soft bg-[#e6b784]/12 ring-[#e6b784]/30"
+                  : "bg-[#f1eee7]/4 ring-[#f1eee7]/10"
               }`}
             >
-              <AudioLines className="h-4 w-4 text-mk-green" />
+              <AudioLines className="h-4 w-4 text-[#e6b784]" />
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-[13px] font-medium">
@@ -243,9 +242,9 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
                     : "— starts right after the plan"}
                 </span>
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/6">
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#23262a]">
                 <div
-                  className="h-full rounded-full bg-mk-green/80 transition-all duration-700"
+                  className="h-full rounded-full bg-[#e6b784]/80 transition-all duration-700"
                   style={{ width: `${Math.round(voicePct * 100)}%` }}
                 />
               </div>
@@ -255,12 +254,12 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
 
         {/* ETA */}
         <div
-          className="mt-5 rounded-xl border border-mk-orange/20 bg-mk-orange/8 px-4 py-3"
+          className="mt-5 rounded-xl border border-[#e6b784]/20 bg-[#e6b784]/8 px-4 py-3"
           aria-live="polite"
         >
-          <div className="text-[13.5px] font-semibold text-mk-orange">
+          <div className="text-[13.5px] font-semibold text-[#e6b784]">
             {directing
-              ? "Professor Ada is planning the lecture…"
+              ? "Ember is planning the lesson…"
               : scripting
                 ? "Writing every word of the lecture…"
                 : `Your video starts in ${fmtLeft(etaWatch)}`}

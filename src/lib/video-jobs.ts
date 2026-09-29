@@ -8,7 +8,6 @@ import {
   plannerUserPrompt,
   writerPrompt,
 } from "./prompts";
-import { INTRO_NARRATION, introScene } from "./intro";
 import type { SolveScript } from "./video/types";
 
 /* ------------------------------------------------------------------
@@ -438,25 +437,6 @@ async function writeScene(
 
 async function runJob(job: Job): Promise<void> {
   try {
-    /* 0 ─ trademark intro: its narration is FIXED, so it can be recorded
-       right now — first in the queue, in playback order. After the first
-       video ever made this is a permanent cache hit (zero latency).
-       The limiter is often hottest exactly at job start (the burst that
-       created this job may have tripped it), so pre-warm patiently —
-       fire-and-forget, it never blocks the pipeline. */
-    void (async () => {
-      const gaps = [0, 10000, 20000, 40000];
-      for (const g of gaps) {
-        if (g) await sleep(g);
-        try {
-          await speak(INTRO_NARRATION, "jam", 1);
-          return;
-        } catch {
-          /* keep trying — the trademark must have its voice */
-        }
-      }
-    })();
-
     /* 1 ─ the director plans the lesson */
     lastChatWas429 = false;
     const outline = await callDirector(job);
@@ -593,9 +573,6 @@ async function runJob(job: Job): Promise<void> {
       job.error = "The storyboard came back incomplete — try again in a moment.";
       return;
     }
-    /* prepend the fixed trademark intro (brand bumper) — not AI content,
-       so it is added AFTER sanitization, untouched */
-    script.scenes = [introScene(), ...script.scenes];
     compileTimeline(script); // server-side smoke test — must never crash a client
     job.script = script;
     job.mergedAt = Date.now();

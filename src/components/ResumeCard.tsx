@@ -45,14 +45,14 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
 
   return (
     <div
-      className="relative mb-6 w-full max-w-xl rounded-2xl border border-mk-orange/25 bg-mk-orange/[0.06] p-4"
+      className="relative mb-6 w-full max-w-xl rounded-2xl border border-[#e6b784]/30 bg-[#e6b784]/[0.07] p-4"
       role="status"
       aria-live="polite"
     >
       <button
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="absolute right-2.5 top-2.5 rounded-lg p-1.5 text-muted-foreground transition hover:bg-white/8 hover:text-foreground"
+        className="absolute right-2.5 top-2.5 rounded-lg p-1.5 text-muted-foreground transition hover:bg-[#23262a] hover:text-foreground"
       >
         <X className="h-3.5 w-3.5" />
       </button>
@@ -61,19 +61,19 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
         <span
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${
             ready
-              ? "bg-mk-green/12 ring-mk-green/35"
-              : "animate-pulse-soft bg-mk-orange/15 ring-mk-orange/35"
+              ? "bg-[#e6b784]/12 ring-[#e6b784]/35"
+              : "animate-pulse-soft bg-[#e6b784]/15 ring-[#e6b784]/35"
           }`}
         >
           {ready ? (
-            <Play className="h-4 w-4 text-mk-green" />
+            <Play className="h-4 w-4 text-[#e6b784]" />
           ) : (
-            <Clapperboard className="h-4 w-4 text-mk-orange" />
+            <Clapperboard className="h-4 w-4 text-[#e6b784]" />
           )}
         </span>
         <div className="min-w-0 flex-1">
           <div className="text-[13.5px] font-semibold">
-            {ready ? "Your Chalkcast is ready" : "Professor Ada is still at the board"}
+            {ready ? "Your Ember lesson is ready" : "Ember is still at the board"}
           </div>
           <div className="truncate text-xs text-muted-foreground">
             {ready ? (
@@ -86,7 +86,7 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
                   voices recorded
                 </span>
                 {" · "}
-                <span className="text-mk-orange/90">
+                <span className="text-[#e6b784]">
                   plays in {fmtLeft(etaWatch)}
                 </span>
               </>
@@ -98,7 +98,7 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
             <Button
               size="sm"
               onClick={onWatch}
-              className="rounded-lg bg-mk-green text-[#101410] hover:bg-mk-green/90"
+              className="rounded-lg bg-[#e6b784] text-[#191816] hover:bg-[#f2ca9e]"
             >
               <Play className="h-3.5 w-3.5" />
               Watch now
@@ -108,7 +108,7 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
               size="sm"
               variant="outline"
               onClick={onReopen}
-              className="gap-1.5 rounded-lg border-white/15 bg-white/4 hover:bg-white/8"
+              className="gap-1.5 rounded-lg border-[#414449] bg-[#1a1d20] hover:bg-[#23262a]"
             >
               <RefreshCw className="h-3.5 w-3.5 animate-[spin_3s_linear_infinite]" />
               Watch progress
@@ -118,7 +118,7 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
       </div>
 
       {!ready && (
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/6 pt-2.5">
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-[#2b2f33] pt-2.5">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             Leave anytime — the studio keeps working, and your video waits
             here. Full voice finishes in {fmtLeft(etaVoice)}.

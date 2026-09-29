@@ -44,14 +44,19 @@ detached dot — the spark it flicked off. Flat solid amber, no gradients, no
 glow. Standalone glyph (stroke + dot) is the favicon/app icon. Must read at
 16px.
 
-### Background — layered atmosphere, not flat
-Three layers behind content, all CSS/SVG:
-1. Environmental light: charcoal gradient, light pooling near the hero
-   (`#141518` → `#0e0f11` at edges). Lighting, not effects.
-2. Material: the board's faint tooth/grain, studio-wide.
-3. Ghost lessons: scattered BoardHand symbols (∫, Σ, π, F=ma, …) at 3–5%
-   opacity, slow drift (60s+ loop), frozen under `prefers-reduced-motion`.
-Watch page: layers 1–2 only — no ghost glyphs; the video is the star.
+### Background — layered atmosphere, not flat (revised after review)
+All surface quality, never objects on top of content. User-rejected: floating
+ghost-glyph text (looked like decoration over the hero — removed).
+Chosen direction: cinematic light + physical material + slow life, register
+"barely there", hero-focused. Base color #111315 never changes.
+1. Material (static): multi-octave SVG turbulence film grain (warm speckles
+   ≤4%), board dot-tooth at 2%, side vignette.
+2. Cinematic light (static): wide structural pool centered on the hero, page
+   fading to quiet below the fold.
+3. Slow life: one warm lamp layer on a 26s breath, in `.ember-home::before`
+   at `z-index:-1` — above the surface, beneath the content. Frozen under
+   `prefers-reduced-motion`.
+Watch page: same base light + material, quieter — the video is the star.
 
 ### Hero — ownable copy, living board
 - Eyebrow (mono): the method.

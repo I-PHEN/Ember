@@ -45,7 +45,7 @@ export interface VideoJobStatus {
   at: number;
 }
 
-const ACTIVE_JOB_KEY = "chalkcast.activeJob";
+const ACTIVE_JOB_KEY = "ember.activeJob";
 const LEGACY_JOB_KEY = "livetutor.activeJob";
 const POLL_MS = 1000;
 const MAX_NET_FAILURES = 8;

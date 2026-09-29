@@ -70,3 +70,6 @@ server.log
 Caddyfile
 /public/font-preview/
 agent-ctx/
+
+# local sqlite dev database
+prisma/db/

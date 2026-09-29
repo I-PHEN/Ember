@@ -1,11 +1,11 @@
 {
-  "name": "chalkcast",
+  "name": "ember",
   "version": "1.0.0",
   "description": "Type any problem. Professor Ada plans the lecture, a marker pen hand-writes the board, and a calm voice teaches it — a real seekable video.",
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev -p 3000 2>&1 | tee dev.log",
+    "dev": "next dev -p 3000",
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
@@ -90,6 +90,7 @@
     "bun-types": "^1.3.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.1",
+    "puppeteer-core": "^25.12.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"

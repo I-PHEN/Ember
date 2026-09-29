@@ -11,7 +11,6 @@
 ------------------------------------------------------------------- */
 
 import type { SolveScript } from "./video/types";
-import { introScene } from "./intro";
 
 /** The flagship sample: solve 2x + 5 = 13 like a real class would. */
 export const SAMPLE_SOLVE: SolveScript = {
@@ -19,7 +18,6 @@ export const SAMPLE_SOLVE: SolveScript = {
   subject: "Algebra",
   question: "Solve for x: 2x + 5 = 13",
   scenes: [
-    introScene(),
     {
       chapter: "Understanding the problem",
       narration:
@@ -215,6 +213,118 @@ export const HERO_SCRIPT: SolveScript = {
     },
   ],
 };
+
+export const SAMPLE_PHYSICS: SolveScript = {
+  title: "Block on a 30° Incline with Friction",
+  subject: "Mechanics",
+  question: "A 5 kg block slides down a 30° incline with μₖ = 0.2. Find its acceleration.",
+  scenes: [
+    {
+      chapter: "Understanding the problem",
+      narration:
+        "Let's read this physics problem carefully. A block of mass five kilograms is on a ramp tilted at thirty degrees, sliding downhill with kinetic friction coefficient point two. We want to find its acceleration down the plane. Before calculating anything, let's gather what is given: mass m is five kilograms, angle theta is thirty degrees, and mu k is point two.",
+      beats: [
+        { type: "title", text: "Incline with Friction", color: "yellow", say: "Let's read this physics problem carefully" },
+        { type: "write", text: "m = 5 kg,  θ = 30°,  μₖ = 0.2", color: "blue", size: "md", say: "mass m is five kilograms, angle theta is thirty degrees" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "Find: a (downslope)", color: "white", size: "md", say: "We want to find its acceleration down the plane" },
+        { type: "underline", target: "last", color: "orange" },
+      ],
+    },
+    {
+      chapter: "Free-Body Diagram",
+      narration:
+        "A proper free body diagram is our compass here. Gravity pulls straight down with magnitude m times g. The surface pushes perpendicular with normal force N. And friction opposes motion, pointing directly upslope. Let's draw this on the board.",
+      beats: [
+        {
+          type: "freebody",
+          angle: 30,
+          block: "5kg",
+          forces: [
+            { label: "mg", dir: "down" },
+            { label: "N", dir: "normal" },
+            { label: "fₖ", dir: "upslope" },
+          ],
+          color: "yellow",
+          say: "A proper free body diagram is our compass here",
+        },
+      ],
+    },
+    {
+      chapter: "Newton's Second Law",
+      narration:
+        "Along the incline, Newton's second law says net force equals mass times acceleration. The downslope component of gravity is m g sine theta, and friction is mu k times the normal force N. Since perpendicular forces balance, N equals m g cosine theta.",
+      beats: [
+        { type: "erase" },
+        { type: "write", text: "ΣF = m·g·sin(θ) − fₖ = m·a", color: "white", size: "md", say: "Newton's second law says net force equals mass times acceleration" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "N = m·g·cos(θ)", color: "blue", size: "md", say: "N equals m g cosine theta" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "fₖ = μₖ · N = μₖ · m·g·cos(θ)", color: "orange", size: "md", say: "friction is mu k times the normal force" },
+      ],
+    },
+    {
+      chapter: "Isolating Acceleration",
+      narration:
+        "Notice something beautiful: the mass m appears in every single term, so it cancels out completely! The block's acceleration does not depend on whether it weighs five grams or five tons: a equals g times the quantity sine theta minus mu k cosine theta. Substituting our values gives 3.2 meters per second squared.",
+      beats: [
+        { type: "newline", n: 1 },
+        { type: "write", text: "a = g·(sin(30°) − 0.2·cos(30°))", color: "white", size: "md", say: "a equals g times the quantity sine theta minus mu k cosine theta" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "a = 9.8 · (0.500 − 0.173) = 3.2 m/s²", color: "green", size: "lg", keep: true, say: "Substituting our values gives 3.2 meters per second squared" },
+        { type: "box", target: "last", color: "yellow" },
+      ],
+    },
+  ],
+};
+
+export const SAMPLE_CALCULUS: SolveScript = {
+  title: "Integration by Parts: ∫ x·e^(2x) dx",
+  subject: "Calculus",
+  question: "Evaluate the indefinite integral ∫ x · e^(2x) dx using integration by parts.",
+  scenes: [
+    {
+      chapter: "Understanding the integral",
+      narration:
+        "We need to evaluate the integral of x times e to the two x dx. Because we have a product of a polynomial x and an exponential function, simple substitution won't work on its own. This calls for integration by parts.",
+      beats: [
+        { type: "title", text: "Integration by Parts", color: "yellow", say: "We need to evaluate the integral of x times e to the two x" },
+        { type: "write", text: "∫ x · e^(2x) dx", color: "blue", size: "lg", say: "integral of x times e to the two x dx" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "Formula: ∫ u dv = u·v − ∫ v du", color: "yellow", size: "md", say: "This calls for integration by parts" },
+        { type: "underline", target: "last", color: "orange" },
+      ],
+    },
+    {
+      chapter: "Choosing u and dv",
+      narration:
+        "Using the LIATE rule, algebraic comes before exponential. So we pick u equals x, which differentiates cleanly to du equals dx. That leaves dv equals e to the two x dx, which integrates to v equals one half e to the two x.",
+      beats: [
+        { type: "write", text: "u = x        →  du = dx", color: "white", size: "md", say: "we pick u equals x, which differentiates cleanly" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "dv = e^(2x)dx →  v = ½ e^(2x)", color: "orange", size: "md", say: "v equals one half e to the two x" },
+      ],
+    },
+    {
+      chapter: "Applying the formula",
+      narration:
+        "Now substitute into u times v minus integral of v du: we get x times one half e to the two x, minus the integral of one half e to the two x dx. Evaluating the final integral leaves one half x e to the two x minus one fourth e to the two x plus C.",
+      beats: [
+        { type: "erase" },
+        { type: "write", text: "= ½ x · e^(2x) − ∫ ½ e^(2x) dx", color: "white", size: "md", say: "substitute into u times v minus integral of v du" },
+        { type: "newline", n: 1 },
+        { type: "write", text: "= ½ x · e^(2x) − ¼ e^(2x) + C", color: "green", size: "lg", keep: true, say: "minus one fourth e to the two x plus C" },
+        { type: "box", target: "last", color: "yellow" },
+      ],
+    },
+  ],
+};
+
+export const SAMPLE_LESSONS: SolveScript[] = [
+  SAMPLE_SOLVE,
+  SAMPLE_PHYSICS,
+  SAMPLE_CALCULUS,
+];
 
 export const EXAMPLE_QUESTIONS = [
   "Differentiate f(x) = x³ · sin x",

@@ -24,7 +24,7 @@ export default function ChalkAvatar({ size = 40, className }: Props) {
       viewBox="0 0 96 96"
       fill="none"
       role="img"
-      aria-label="Professor Ada"
+      aria-label="Professor Ember"
       className={className}
     >
       {/* chalk-dust disc so the strokes always sit on their own panel */}

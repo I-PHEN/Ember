@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Ember mark: the stroke that raises a spark -->
+  <path d="M4 22 C 10 19.8, 17 19.4, 21.5 20 C 24.5 20.4, 26.5 18, 27.5 14"
+        fill="none" stroke="#e6b784" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="26.5" cy="7.5" r="3" fill="#e6b784"/>
+</svg>

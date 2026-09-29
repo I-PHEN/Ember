@@ -50,9 +50,8 @@ import { cn } from "@/lib/utils";
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
 /** how long the player will buffer at a scene boundary waiting for a
- *  late voice before it plays that scene silent (the narration store
- *  keeps retrying in the background either way) */
-const VOICE_HOLD_MS = 25000;
+ *  late voice before it plays that scene silent (0 = start writing immediately) */
+const VOICE_HOLD_MS = 0;
 
 /** split narration into caption-sized sentences (merge tiny ones so a
  *  caption never flashes for a fraction of a second) */
@@ -308,7 +307,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
              narration store keeps retrying — capped, then the scene
              plays silent rather than freezing forever */
           let holding = false;
-          if (needsVoice) {
+          if (needsVoice && VOICE_HOLD_MS > 0) {
             const atSceneEntry = c.t <= sceneStart(tl, idx) + 0.06;
             if (atEnd || atSceneEntry) {
               if (holdSinceRef.current[idx] === undefined) {
