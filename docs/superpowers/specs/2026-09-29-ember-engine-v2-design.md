@@ -233,12 +233,16 @@ observable (timing repeated stable-prefix calls). Output: the routing
 table's real values. Everything below degrades gracefully to
 single-model if the probe finds only one.
 
-**A — Discipline & measurement**
+**A — Discipline & measurement** (+A2 canvas integrity)
 `isBoardProse` hardening; honest drop logging + `stats.proseDropped`;
 overlap metric in Checker-lite form (no equation checks yet); eval harness
-with 5 solve + 1 explain fixture questions.
+with 5 solve + 1 explain fixture questions. A2, from user-reported
+defects: freebody block labels measure against their blocks (the "5 kg
+bigger than the box" bug); fraction/table/numberline gain collision
+clearance; a post-compile layout audit reports overlaps/overflow into
+`stats.layoutViolations` (PFLP literature: measure, displace, verify).
 *Done when:* fixtures run green; fixture transcripts show zero prose beats
-and overlap under threshold; logs/stats honest.
+and overlap under threshold; logs/stats honest; `layoutViolations === 0`.
 
 **B — Reviewer**
 Review-and-fix agent per scene, async dispatch, collect at merge; fallback

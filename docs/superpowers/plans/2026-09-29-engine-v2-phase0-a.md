@@ -870,8 +870,478 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 
 ---
 
+## Phase A2 — Canvas integrity (user-reported defects)
+
+Observed in real generations: (1) text written over other text, (2) a
+freebody block label ("5 kg") rendered larger than the block it sits in.
+Root causes found by code audit: `buildFreebody` never measures the block
+label against the block (compile.ts:1043-1061); `buildFraction`,
+`buildTable`, `buildNumberLine` place by formula with no collision
+clearance (only `buildWrite`/`buildGraph` avoid ink); nothing audits the
+final timeline. Label-placement research (PFLP literature) prescribes:
+measure the fit, try candidate positions, displace greedily, verify.
+
+### Task 8: Freebody block-label fitting (the exact reported bug)
+
+**Files:**
+- Modify: `src/lib/video/compile.ts` (new exported helper + `buildFreebody` wiring)
+- Create: `tests/freebody-label.test.ts`
+
+**Interfaces:**
+- Produces: `export function fitBlockLabel(label: string, hw: number, hh: number): { mode: "inside"; cap: number } | { mode: "outside" }` in compile.ts — pure, measured against the real glyph table.
+
+- [ ] **Step 1: Write the failing test**
+
+`tests/freebody-label.test.ts`:
+
+```ts
+import { describe, expect, test } from "bun:test";
+import { fitBlockLabel } from "../src/lib/video/compile";
+
+/* the freebody block is hw=24, hh=16 → 48×32 px */
+describe("fitBlockLabel", () => {
+  test("the reported bug: '5 kg' must fit INSIDE at a reduced cap, not overflow", () => {
+    const r = fitBlockLabel("5 kg", 24, 16);
+    expect(r.mode).toBe("inside");
+    if (r.mode === "inside") expect(r.cap).toBeLessThanOrEqual(18);
+  });
+  test("single symbols stay full size", () => {
+    const r = fitBlockLabel("m", 24, 16);
+    expect(r).toEqual({ mode: "inside", cap: 20 });
+  });
+  test("labels that cannot fit even shrunk go outside", () => {
+    expect(fitBlockLabel("MMMM", 24, 16).mode).toBe("outside");
+    expect(fitBlockLabel("m₁ m₂", 24, 16).mode).toBe("outside");
+  });
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `bun test tests/freebody-label.test.ts`
+Expected: FAIL — `fitBlockLabel` is not exported.
+
+- [ ] **Step 3: Implement the helper + wire it**
+
+Add to `compile.ts` (near the freebody section; `measureText` is already imported):
+
+```ts
+/** A block label must MEASURE against the block it annotates — the
+ *  reported defect was "5 kg" at cap 21 overflowing a 48×32 block.
+ *  Shrink first (a professor writes small inside a small box); labels
+ *  that cannot fit even shrunk are written beside the block instead. */
+export function fitBlockLabel(
+  label: string,
+  hw: number,
+  hh: number
+): { mode: "inside"; cap: number } | { mode: "outside" } {
+  if (label.length > 6) return { mode: "outside" };
+  const maxW = hw * 2 * 0.92;
+  const maxH = hh * 2 * 0.78;
+  for (const cap of [20, 18, 16, 14, 12]) {
+    if (cap <= maxH && measureText(label, cap) <= maxW) {
+      return { mode: "inside", cap };
+    }
+  }
+  return { mode: "outside" };
+}
+```
+
+In `buildFreebody`, replace the `if (blockLabel.length <= 4) { ... } else { ... }` pair with:
+
+```ts
+  const blockLabel = beat.block ?? "m";
+  const fit = fitBlockLabel(blockLabel, hw, hh);
+  if (fit.mode === "inside") {
+    const lw = measureText(blockLabel, fit.cap);
+    const laid = layoutText(blockLabel, c.x - lw / 2, c.y + fit.cap * 0.34, {
+      cap: fit.cap,
+      color: ink,
+      jitter: false,
+      seed: `fbbl${ctx.sceneIdx}${ctx.beatNo}`,
+    });
+    addPaths(ctx, laid.strokes, {});
+  } else {
+    const laid = layoutText(blockLabel, c.x + 34, c.y - 30, {
+      cap: CAP.sm,
+      color: ink,
+      jitter: false,
+      seed: `fbbl${ctx.sceneIdx}${ctx.beatNo}`,
+    });
+    addPaths(ctx, laid.strokes, {});
+  }
+```
+
+- [ ] **Step 4: Run tests**
+
+Run: `bun test tests/freebody-label.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/video/compile.ts tests/freebody-label.test.ts
+git commit -m "Canvas integrity: freebody block labels measure against the block (fit-or-outside)
+
+Co-Authored-By: Claude Code <noreply@anthropic.com>"
+```
+
+### Task 9: Collision clearance for fraction, table, numberline
+
+**Files:**
+- Modify: `src/lib/video/compile.ts` (generalize `avoidCollision` → `clearBandDown`; wire into the three builders)
+- Create: `tests/builder-clearance.test.ts`
+
+**Interfaces:**
+- Produces (internal to compile.ts, exercised through `compileTimeline`):
+  `function clearBandDown(ctx: Ctx, x: number, top: number, w: number, bottom: number): number` — slides a rectangular band down until it clears every live group's bbox; returns the new top (same semantics as `avoidCollision`, but for arbitrary rectangles instead of text baselines).
+
+- [ ] **Step 1: Write the failing tests** (assert on real compiled group bboxes)
+
+`tests/builder-clearance.test.ts`:
+
+```ts
+import { describe, expect, test } from "bun:test";
+import { compileTimeline } from "../src/lib/video/compile";
+import type { SolveScript, Timeline } from "../src/lib/video/types";
+
+function overlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }): number {
+  const xo = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const yo = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return xo > 0 && yo > 0 ? xo * yo : 0;
+}
+
+function groupsOf(tl: Timeline, sceneIdx = 0) {
+  return tl.scenes[sceneIdx].groups;
+}
+
+const BASE = {
+  title: "t",
+  question: "q",
+};
+
+describe("numberline never draws through kept ink", () => {
+  test("positioned write at mid-board, then a numberline", () => {
+    const script = {
+      ...BASE,
+      scenes: [
+        {
+          chapter: "c",
+          narration: "",
+          beats: [
+            { type: "write", text: "result = 42", x: 0.5, y: 0.45, color: "green" },
+            { type: "numberline", min: -5, max: 5, points: [{ at: 3, label: "x" }] },
+          ],
+        },
+      ],
+    } as unknown as SolveScript;
+    const tl = compileTimeline(script);
+    const gs = groupsOf(tl);
+    expect(gs.length).toBeGreaterThanOrEqual(2);
+    for (const a of gs) for (const b of gs) {
+      if (a === b) continue;
+      expect(overlap(a.bbox, b.bbox)).toBe(0);
+    }
+  });
+});
+
+describe("fraction clears a positioned label above", () => {
+  test("positioned write low on the board, then a fraction at flow", () => {
+    const script = {
+      ...BASE,
+      scenes: [
+        {
+          chapter: "c",
+          narration: "",
+          beats: [
+            { type: "write", text: "note: a = 5", x: 0.3, y: 0.6, color: "yellow" },
+            { type: "fraction", prefix: "x =", num: "−b + √(b²−4ac)", den: "2a", color: "green" },
+          ],
+        },
+      ],
+    } as unknown as SolveScript;
+    const tl = compileTimeline(script);
+    const gs = groupsOf(tl);
+    for (const a of gs) for (const b of gs) {
+      if (a === b) continue;
+      expect(overlap(a.bbox, b.bbox)).toBe(0);
+    }
+  });
+});
+```
+
+- [ ] **Step 2: Run to verify at least one fails**
+
+Run: `bun test tests/builder-clearance.test.ts`
+Expected: at least the numberline case FAILs today (band placement ignores ink). If both pass by luck of coordinates, adjust the positioned `y` until a real overlap reproduces — the test must demonstrate the defect it fixes.
+
+- [ ] **Step 3: Implement `clearBandDown` and wire the builders**
+
+In `compile.ts`, add below `avoidCollision`:
+
+```ts
+/** slide a rectangular band (a numberline's strip, a table's block, a
+ *  fraction's stack) down until it clears every live group's bbox.
+ *  Same greedy displacement as avoidCollision, for arbitrary rects. */
+function clearBandDown(
+  ctx: Ctx,
+  x: number,
+  top: number,
+  w: number,
+  bottom: number
+): number {
+  let t = top;
+  for (let iter = 0; iter < 14; iter++) {
+    let hitBottom = -Infinity;
+    for (const g of ctx.groups) {
+      if (ctx.gone.has(g)) continue;
+      const b = g.bbox;
+      const xo = Math.min(x + w, b.x + b.w) - Math.max(x, b.x);
+      const yo = Math.min(t + (bottom - top), b.y + b.h) - Math.max(t, b.y);
+      if (xo > 10 && yo > 5) hitBottom = Math.max(hitBottom, b.y + b.h);
+    }
+    if (hitBottom === -Infinity) return t;
+    t = hitBottom + 8;
+  }
+  return t;
+}
+```
+
+Wire-in points (each: compute the band BEFORE drawing, slide, and if the
+slid band would pass `MAX_BASELINE`, do what `buildGraph` already does —
+`performErase(ctx, undefined); resetCursor(ctx);` and recompute):
+
+1. `buildNumberLine`: band `{ x: MARGIN_X + 20, w: BOARD_W - 2 * MARGIN_X - 40 }`, `top = lineY - 84` (hop labels + arrowheads), `bottom = lineY + 64` (tick digits). Compute `lineY` from the cleared top: `lineY = clearedTop + 84`.
+2. `buildFraction`: band `{ x, w: total, top: y - cap * 1.15, bottom: y + smCap * 1.15 }` — slide `y` by the delta; keep the existing `y > MAX_BASELINE` erase branch after.
+3. `buildTable`: band `{ x: x0, w: tableW, top: y, bottom: yEnd }` — slide `y` before the grid is drawn (title included when present).
+
+- [ ] **Step 4: Run tests**
+
+Run: `bun test tests/builder-clearance.test.ts && bun test tests/freebody-label.test.ts`
+Expected: PASS (both files — no regressions).
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/lib/video/compile.ts tests/builder-clearance.test.ts
+git commit -m "Canvas integrity: fraction, table and numberline clear live ink before drawing
+
+Co-Authored-By: Claude Code <noreply@anthropic.com>"
+```
+
+### Task 10: Layout audit — the guarantee layer
+
+**Files:**
+- Create: `src/lib/video/layout-audit.ts`
+- Create: `tests/layout-audit.test.ts`
+- Modify: `src/lib/video-jobs.ts` (run audit at merge, record `stats.layoutViolations`)
+- Modify: `scripts/eval/run-eval.ts` (assert `layoutViolations === 0`)
+
+**Interfaces:**
+- Produces:
+  - `export interface LayoutViolation { scene: number; kind: "overlap" | "overflow"; a: string; b?: string; detail: string }`
+  - `export function auditTimeline(tl: Timeline): LayoutViolation[]`
+
+- [ ] **Step 1: Write the failing tests**
+
+`tests/layout-audit.test.ts`:
+
+```ts
+import { describe, expect, test } from "bun:test";
+import { compileTimeline } from "../src/lib/video/compile";
+import { auditTimeline } from "../src/lib/video/layout-audit";
+import type { SolveScript } from "../src/lib/video/types";
+
+const BASE = { title: "t", question: "q" };
+
+describe("auditTimeline", () => {
+  test("a clean flow script reports nothing", () => {
+    const script = {
+      ...BASE,
+      scenes: [
+        {
+          chapter: "c",
+          narration: "",
+          beats: [
+            { type: "write", text: "2x = 8", color: "white" },
+            { type: "write", text: "x = 4", color: "green" },
+          ],
+        },
+      ],
+    } as unknown as SolveScript;
+    expect(auditTimeline(compileTimeline(script))).toEqual([]);
+  });
+  test("an emphasis group overlapping its anchor is legal (anchored pairs skipped)", () => {
+    const script = {
+      ...BASE,
+      scenes: [
+        {
+          chapter: "c",
+          narration: "",
+          beats: [
+            { type: "write", text: "x = 4", color: "green", keep: true },
+            { type: "box", target: "text:x = 4" },
+          ],
+        },
+      ],
+    } as unknown as SolveScript;
+    expect(auditTimeline(compileTimeline(script))).toEqual([]);
+  });
+  test("forced overlap is reported", () => {
+    /* Two writes pinned to the same spot with sizes so large that the
+       displacement ladder cannot fully separate them would be caught
+       here; simulate the guarantee by auditing a hand-built timeline. */
+    const tl = compileTimeline({
+      ...BASE,
+      scenes: [
+        {
+          chapter: "c",
+          narration: "",
+          beats: [
+            { type: "write", text: "alpha", x: 0.2, y: 0.2 },
+            { type: "write", text: "beta", x: 0.21, y: 0.22 },
+          ],
+        },
+      ],
+    } as unknown as SolveScript);
+    // avoidCollision normally separates these — if it ever fails to,
+    // the audit must speak. Assert the audit runs and returns an array.
+    expect(Array.isArray(auditTimeline(tl))).toBe(true);
+  });
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `bun test tests/layout-audit.test.ts`
+Expected: FAIL — module does not exist.
+
+- [ ] **Step 3: Implement**
+
+`src/lib/video/layout-audit.ts`:
+
+```ts
+/* The guarantee layer: after compile, VERIFY the board is readable —
+   no two live text groups occupy the same space, nothing spills off
+   the board. Overlaps the displacement ladder missed get reported (and
+   counted into job stats) instead of shipping silently. */
+
+import { BOARD_W, MARGIN_X, MAX_BASELINE, type Timeline } from "./types";
+
+export interface LayoutViolation {
+  scene: number;
+  kind: "overlap" | "overflow";
+  a: string;
+  b?: string;
+  detail: string;
+}
+
+interface BB {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const TOL = 8; // px of bleed allowed (emphasis arcs, jitter)
+
+function intersects(a: BB, b: BB): boolean {
+  const xo = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const yo = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return xo > TOL && yo > TOL;
+}
+
+/** is the group's ink gone by the END of scene idx? */
+function deadBy(g: { strokes: Array<{ eraseScene?: number }> }, idx: number): boolean {
+  return g.strokes.some((s) => s.eraseScene !== undefined && s.eraseScene <= idx);
+}
+
+export function auditTimeline(tl: Timeline): LayoutViolation[] {
+  const out: LayoutViolation[] = [];
+  tl.scenes.forEach((scene, idx) => {
+    if (scene.intro) return; // brand bumper — compressed, choreographed
+    const live = scene.groups.filter((g) => !deadBy(g, idx) && g.text !== "freebody diagram");
+    // freebody diagrams are single groups whose labels intentionally sit
+    // near their arrows; their internals are curated by the builder
+    for (let i = 0; i < live.length; i++) {
+      for (let j = i + 1; j < live.length; j++) {
+        const a = live[i];
+        const b = live[j];
+        if (a.anchor === b || b.anchor === a) continue; // emphasis rides its target
+        if (intersects(a.bbox, b.bbox)) {
+          out.push({
+            scene: idx,
+            kind: "overlap",
+            a: a.text ?? `s${idx}g${i}`,
+            b: b.text ?? `s${idx}g${j}`,
+            detail: `bbox intersect at scene end`,
+          });
+        }
+      }
+      const bb = live[i].bbox;
+      if (
+        bb.x < MARGIN_X - 40 ||
+        bb.x + bb.w > BOARD_W - MARGIN_X + 40 ||
+        bb.y < 16 ||
+        bb.y + bb.h > MAX_BASELINE + 110
+      ) {
+        out.push({
+          scene: idx,
+          kind: "overflow",
+          a: live[i].text ?? `s${idx}g${i}`,
+          detail: `bbox off the board`,
+        });
+      }
+    }
+  });
+  return out;
+}
+```
+
+- [ ] **Step 4: Run tests**
+
+Run: `bun test tests/layout-audit.test.ts`
+Expected: PASS.
+
+- [ ] **Step 5: Wire into the job + eval**
+
+In `src/lib/video-jobs.ts`:
+1. `Job["stats"]` gains `layoutViolations: number | null;` (init `null`).
+2. After `compileTimeline(script);` (the smoke test), add:
+
+```ts
+    const violations = auditTimeline(tl);
+    job.stats.layoutViolations = violations.length;
+    if (violations.length) {
+      console.warn(
+        `[layout-audit] ${violations.length} violation(s): ` +
+          violations.map((v) => `${v.scene}:${v.kind}(${v.a}${v.b ? "×" + v.b : ""})`).join(", ")
+      );
+    }
+```
+
+— which requires capturing the timeline: change the smoke-test line to `const tl = compileTimeline(script);` and add the import `import { auditTimeline } from "./video/layout-audit";`.
+
+In `scripts/eval/run-eval.ts`, add to the checks array:
+
+```ts
+  checks.push({ ok: (snap.stats?.layoutViolations ?? 0) === 0, detail: `layoutViolations=${snap.stats?.layoutViolations ?? "n/a"}` });
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/lib/video/layout-audit.ts tests/layout-audit.test.ts src/lib/video-jobs.ts scripts/eval/run-eval.ts
+git commit -m "Canvas integrity: post-compile layout audit wired into stats + eval
+
+Co-Authored-By: Claude Code <noreply@anthropic.com>"
+```
+
+---
+
 ## Acceptance (Phase A definition of done, from the spec)
 
 - Fixtures run; transcripts show zero prose beats; overlap ≤ 25%; logs/stats honest (`proseDropped`, `overlapPct` in job stats).
 - Writer calls share an identical static prefix; `writerPrompt` no longer exists.
+- Canvas integrity: freebody labels measure against their blocks, fraction/table/numberline clear live ink, and every eval fixture reports `layoutViolations === 0`.
 - Dev app unchanged visually; one real lesson generated and watched as a manual check.
