@@ -1,0 +1,55 @@
+{
+  "probedAt": "2026-09-29T22:22:35.646Z",
+  "provider": "gemini",
+  "results": [
+    {
+      "model": "gemini-3.8-flash",
+      "thinking": "off",
+      "ok": false,
+      "ms": 2219,
+      "reply": "HTTP 503: {\n  \"error\": {\n    \"code\": 503,\n    \"message\": \"This model is currently experien"
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "thinking": "on",
+      "ok": false,
+      "ms": 1125,
+      "reply": "HTTP 503: {\n  \"error\": {\n    \"code\": 503,\n    \"message\": \"This model is currently experien"
+    },
+    {
+      "model": "gemini-3.8-flash-lite",
+      "thinking": "off",
+      "ok": false,
+      "ms": 214,
+      "reply": "HTTP 404: {\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"models/gemini-3.8-flash-lite is "
+    },
+    {
+      "model": "gemini-3.8-flash-lite",
+      "thinking": "on",
+      "ok": false,
+      "ms": 202,
+      "reply": "HTTP 404: {\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"models/gemini-3.8-flash-lite is "
+    },
+    {
+      "model": "gemini-2.5-flash-lite",
+      "thinking": "off",
+      "ok": false,
+      "ms": 222,
+      "reply": "HTTP 404: {\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"This model models/gemini-2.5-fla"
+    },
+    {
+      "model": "gemini-2.5-flash-lite",
+      "thinking": "on",
+      "ok": false,
+      "ms": 210,
+      "reply": "HTTP 404: {\n  \"error\": {\n    \"code\": 404,\n    \"message\": \"This model models/gemini-2.5-fla"
+    },
+    {
+      "model": "gemini-3.8-flash-lite-tts",
+      "thinking": "-",
+      "ok": true,
+      "ms": 2338,
+      "reply": "audio 58KB b64"
+    }
+  ]
+}

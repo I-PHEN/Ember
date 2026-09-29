@@ -1,4 +1,4 @@
-import ZAI from "z-ai-web-dev-sdk";
+import { geminiTTS } from "./ai/gemini";
 
 /* ------------------------------------------------------------------
    The global TTS pipeline. Upstream speech is strictly rate-limited,
@@ -37,30 +37,15 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-async function ttsOnce(
-  zai: Awaited<ReturnType<typeof ZAI.create>>,
-  input: string,
-  voice: string,
-  speed: number
-): Promise<Buffer> {
-  const response = await zai.audio.tts.create({
-    input,
-    voice,
-    speed,
-    response_format: "wav",
-    stream: false,
-  });
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(new Uint8Array(arrayBuffer));
-  if (!buffer.length) throw new Error("empty audio");
-  return buffer;
+async function ttsOnce(input: string, voice: string): Promise<Buffer> {
+  /* Gemini TTS (voice is normalized to a prebuilt Gemini voice — the
+     legacy "jam" the client sends maps to the configured Ember voice) */
+  return geminiTTS(input, voice);
 }
 
 async function ttsWithRetry(
-  zai: Awaited<ReturnType<typeof ZAI.create>>,
   input: string,
-  voice: string,
-  speed: number
+  voice: string
 ): Promise<Buffer> {
   const delays = [0, 1800, 4000, 8000, 14000];
   let lastErr: unknown = null;
@@ -71,7 +56,7 @@ async function ttsWithRetry(
     if (wait > 0) await sleep(wait);
     lastCallAt = Date.now();
     try {
-      const buf = await ttsOnce(zai, input, voice, speed);
+      const buf = await ttsOnce(input, voice);
       gapMs = Math.max(MIN_GAP_MS, Math.round(gapMs * 0.7));
       return buf;
     } catch (e) {
@@ -102,8 +87,7 @@ export function speak(
     const hit = cache.get(key);
     if (hit) return { buffer: hit, ms: Date.now() - t0, cached: true };
 
-    const zai = await ZAI.create();
-    const buffer = await ttsWithRetry(zai, text.slice(0, MAX_TEXT), voice, speed);
+    const buffer = await ttsWithRetry(text.slice(0, MAX_TEXT), voice);
     if (cache.size >= MAX_CACHED) {
       const first = cache.keys().next().value;
       if (first !== undefined) cache.delete(first);

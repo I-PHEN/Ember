@@ -1,4 +1,4 @@
-import ZAI from "z-ai-web-dev-sdk";
+import { geminiChat } from "./ai/gemini";
 import { extractJson, sanitizeScript, cleanNarration } from "./solve-schema";
 import { compileTimeline } from "./video/compile";
 import { scriptOverlap } from "./video/overlap";
@@ -267,22 +267,18 @@ function snapshot(job: Job): JobSnapshot {
    when the upstream API is rate-limiting the account */
 let lastChatWas429 = false;
 
-async function chatJson(system: string, user: string): Promise<string> {
-  /* the chat API rate-limits bursts (429) — exponential backoff */
+async function chatJson(
+  system: string,
+  user: string,
+  tier: "reason" | "fast" = "reason"
+): Promise<string> {
+  /* the chat API rate-limits bursts (429/503) — exponential backoff */
   const delays = [0, 3000, 7000, 12000, 20000];
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < delays.length; attempt++) {
     if (delays[attempt]) await sleep(delays[attempt]);
     try {
-      const zai = await ZAI.create();
-      const completion = await zai.chat.completions.create({
-        messages: [
-          { role: "assistant", content: system },
-          { role: "user", content: user },
-        ],
-        thinking: { type: "disabled" },
-      });
-      return completion.choices[0]?.message?.content ?? "";
+      return await geminiChat(system, user, { tier });
     } catch (e) {
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
@@ -419,7 +415,8 @@ async function writeScene(
           planned && planned.script.length > 40 ? planned.script : null,
           planned?.visualize,
           planned?.analogy
-        )
+        ),
+        "fast"
       );
       const parsed = extractJson(raw);
       if (parsed && typeof parsed === "object") {
