@@ -492,7 +492,10 @@ function sanitizeBeat(raw: unknown, narrationKey: string): Beat | null {
 
 /* -------------------------- script sanitizer ---------------------- */
 
-export function sanitizeScript(raw: unknown): SolveScript | null {
+export function sanitizeScript(
+  raw: unknown,
+  stats?: { proseDropped: number }
+): SolveScript | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
 
@@ -527,6 +530,7 @@ export function sanitizeScript(raw: unknown): SolveScript | null {
         if (!beat) continue;
         if (beat.type === "write" && isBoardProse(beat.text)) {
           prose.push(beat.text); // explanations are SPOKEN, never written
+          if (stats) stats.proseDropped += 1;
           continue;
         }
         beats.push(beat);
@@ -534,7 +538,7 @@ export function sanitizeScript(raw: unknown): SolveScript | null {
     }
     if (prose.length) {
       console.log(
-        `[board-discipline] scene "${chapter}" — moved to narration (dropped prose beats): ${prose
+        `[board-discipline] scene "${chapter}" — dropped ${prose.length} prose beat(s) (the planner's narration already carries these words): ${prose
           .map((p) => JSON.stringify(p))
           .join(", ")}`
       );

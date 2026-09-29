@@ -108,6 +108,7 @@ interface Job {
     writerMs: number[];
     voiceMs: number[];
     firstVoiceReadyMs: number | null;
+    proseDropped: number;
   };
 }
 
@@ -167,6 +168,7 @@ export function createJob(question: string): string {
       writerMs: [],
       voiceMs: [],
       firstVoiceReadyMs: null,
+      proseDropped: 0,
     },
   };
   jobs.set(id, job);
@@ -567,7 +569,7 @@ async function runJob(job: Job): Promise<void> {
         beats: results[i]?.beats ?? [],
       })),
     };
-    const script = sanitizeScript(rawScript);
+    const script = sanitizeScript(rawScript, job.stats);
     if (!script || script.scenes.length < 2) {
       job.phase = "error";
       job.error = "The storyboard came back incomplete — try again in a moment.";
