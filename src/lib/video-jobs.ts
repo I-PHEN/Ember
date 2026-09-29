@@ -6,7 +6,8 @@ import {
   DIRECTOR_PROMPT,
   TRANSCRIPT_PROMPT,
   plannerUserPrompt,
-  writerPrompt,
+  WRITER_SYSTEM,
+  writerUser,
 } from "./prompts";
 import type { SolveScript } from "./video/types";
 
@@ -405,14 +406,14 @@ async function writeScene(
     if (attempt) await sleep(1200 * (attempt + 1));
     try {
       const raw = await chatJson(
-        writerPrompt(
+        WRITER_SYSTEM,
+        writerUser(
           outlineJson,
           index,
           planned && planned.script.length > 40 ? planned.script : null,
           planned?.visualize,
           planned?.analogy
-        ),
-        `Choreograph the board for scene ${index + 1} now.`
+        )
       );
       const parsed = extractJson(raw);
       if (parsed && typeof parsed === "object") {
