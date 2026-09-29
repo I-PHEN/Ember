@@ -2,6 +2,7 @@ import ZAI from "z-ai-web-dev-sdk";
 import { extractJson, sanitizeScript, cleanNarration } from "./solve-schema";
 import { compileTimeline } from "./video/compile";
 import { scriptOverlap } from "./video/overlap";
+import { auditTimeline } from "./video/layout-audit";
 import { speak } from "./tts-queue";
 import {
   DIRECTOR_PROMPT,
@@ -112,6 +113,7 @@ interface Job {
     firstVoiceReadyMs: number | null;
     proseDropped: number;
     overlapPct: number | null;
+    layoutViolations: number | null;
   };
 }
 
@@ -173,6 +175,7 @@ export function createJob(question: string): string {
       firstVoiceReadyMs: null,
       proseDropped: 0,
       overlapPct: null,
+      layoutViolations: null,
     },
   };
   jobs.set(id, job);
@@ -579,8 +582,18 @@ async function runJob(job: Job): Promise<void> {
       job.error = "The storyboard came back incomplete — try again in a moment.";
       return;
     }
-    compileTimeline(script); // server-side smoke test — must never crash a client
+    const tl = compileTimeline(script); // server-side smoke test — must never crash a client
     job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
+    const violations = auditTimeline(tl);
+    job.stats.layoutViolations = violations.length;
+    if (violations.length) {
+      console.warn(
+        `[layout-audit] ${violations.length} violation(s): ` +
+          violations
+            .map((v) => `${v.scene}:${v.kind}(${v.a}${v.b ? "×" + v.b : ""})`)
+            .join(", ")
+      );
+    }
     job.script = script;
     job.mergedAt = Date.now();
     job.phase = "voicing";
