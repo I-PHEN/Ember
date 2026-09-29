@@ -508,6 +508,32 @@ function avoidCollision(
   return y;
 }
 
+/** slide a rectangular band (a numberline's strip, a table's block, a
+ *  fraction's stack) down until it clears every live group's bbox.
+ *  Same greedy displacement as avoidCollision, for arbitrary rects. */
+function clearBandDown(
+  ctx: Ctx,
+  x: number,
+  top: number,
+  w: number,
+  bottom: number
+): number {
+  let t = top;
+  for (let iter = 0; iter < 14; iter++) {
+    let hitBottom = -Infinity;
+    for (const g of ctx.groups) {
+      if (ctx.gone.has(g)) continue;
+      const b = g.bbox;
+      const xo = Math.min(x + w, b.x + b.w) - Math.max(x, b.x);
+      const yo = Math.min(t + (bottom - top), b.y + b.h) - Math.max(t, b.y);
+      if (xo > 10 && yo > 5) hitBottom = Math.max(hitBottom, b.y + b.h);
+    }
+    if (hitBottom === -Infinity) return t;
+    t = hitBottom + 8;
+  }
+  return t;
+}
+
 function buildWrite(ctx: Ctx, beat: Extract<Beat, { type: "write" }>): void {
   const cap = CAP[beat.size ?? "md"];
   const color: MarkerName = beat.color ?? "white";
@@ -693,6 +719,11 @@ function buildFraction(ctx: Ctx, beat: Extract<Beat, { type: "fraction" }>): voi
   if (x + total > BOARD_W - MARGIN_X) {
     x = MARGIN_X;
     y += LINE_H.md + 24;
+  }
+  /* the fraction's stack clears any ink at its spot */
+  {
+    const top = clearBandDown(ctx, x, y - cap * 1.15, total, y + smCap * 1.15);
+    y = top + cap * 1.15;
   }
   if (y > MAX_BASELINE) {
     performErase(ctx, undefined);
@@ -1347,7 +1378,25 @@ function buildNumberLine(
   const x1 = BOARD_W - MARGIN_X - 60;
   const { min, max } = beat;
   const map = (v: number) => x0 + ((v - min) / (max - min)) * (x1 - x0);
-  const lineY = ctx.cursor.y + 8;
+  let lineY = ctx.cursor.y + 8;
+  /* the strip (hop labels above, tick digits below) clears live ink —
+   *  a numberline spans the whole board and would otherwise draw its
+   *  line straight through kept work */
+  {
+    const top = clearBandDown(
+      ctx,
+      MARGIN_X + 20,
+      lineY - 84,
+      BOARD_W - 2 * MARGIN_X - 40,
+      lineY + 64
+    );
+    lineY = top + 84;
+    if (lineY + 64 > MAX_BASELINE) {
+      performErase(ctx, undefined);
+      resetCursor(ctx);
+      lineY = ctx.cursor.y + 8;
+    }
+  }
   const rng = rngFor("nl", ctx.sceneIdx, ctx.beatNo);
   const raw: RawPath[] = [
     {
@@ -1447,6 +1496,19 @@ function buildTable(ctx: Ctx, beat: Extract<Beat, { type: "table" }>): void {
   const tableW = cols.reduce((a, b) => a + b, 0);
   const x0 = (BOARD_W - tableW) / 2;
   const rowH = 56;
+  /* the whole table block (title included) clears live ink before drawing */
+  {
+    const titleAllow = beat.title ? 46 : 0;
+    const rows2 = rows.length + (headers.length ? 1 : 0);
+    const top = clearBandDown(
+      ctx,
+      x0,
+      ctx.cursor.y - 10,
+      tableW,
+      ctx.cursor.y - 10 + titleAllow + rows2 * rowH
+    );
+    ctx.cursor = { ...ctx.cursor, y: top + 10 };
+  }
   let y = ctx.cursor.y - 10;
   if (beat.title) {
     const tw = measureText(beat.title, cap);
