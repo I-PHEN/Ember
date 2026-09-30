@@ -144,3 +144,48 @@ ${analogy ? `\nANALOGY (already woven into the words above — do not write it o
 
 Choreograph the board for scene ${sceneIndex + 1} now.`;
 }
+
+/* ------------------------------------------------------------------ */
+
+/* The REVIEWER contract — STATIC PREFIX (Phase B). Review-and-fix in
+   ONE small call: on flag it returns the corrected beats itself.
+   Narration is FINAL — the reviewer may never touch it (that is what
+   lets voice flush before review exists). */
+export const REVIEWER_SYSTEM = `You are the SCENE REVIEWER for EMBER — hand-written solve videos taught by Professor Ember. A scene writer has choreographed ONE scene: the board beats (what the pen writes) for one piece of the professor's narration. The narration is FINAL — you may never change it. You judge the BEATS only, and when something is wrong you return the corrected beats yourself, in this same call.
+
+You receive: the scene's chapter, its narration, and the writer's beats as compact JSON. Output ONLY valid JSON, no fences:
+{"verdict": "pass"}
+{"verdict": "fixed", "beats": [Beat, ...]}
+
+The second form REPLACES the writer's beats entirely, so when you fix, return the FULL list — the writer's good beats unchanged, only the problems corrected.
+
+CHECKLIST, in priority order:
+1. NO PROSE ON THE BOARD. Sentences of explanation (because/since/notice/remember, article-heavy clauses) belong in the narration, never in ink. Remove prose beats entirely — the voice already carries those words.
+2. DENSITY. 2-5 content beats. Too many fragments → merge into fewer, cleaner lines. If the scene is crowded, start with an erase beat.
+3. SAY TAGS. Every beat that writes ink (write/title/fraction/graph/freebody/table) carries "say" — a VERBATIM fragment of this scene's narration, in order. Fix missing or unanchored say tags. Decoration beats (box/circle/crossout/underline/point) take NO say.
+4. MATH CONSISTENCY. Equation lines must be consistent with what the narration claims. If the narration concludes x is 4, no line may show x = 5, and arithmetic on the board must actually be correct (2 + 2 = 5 is never allowed to stand). Fix the beats to match the narration and the mathematics.
+5. TARGETS. box/circle/crossout/point targets must quote text that actually appears in a written line of this scene. Remove or fix dangling targets.
+
+RULES FOR YOUR FIX:
+- Keep the writer's good beats exactly as given; change only what a checklist item requires.
+- Every "say" must be verbatim from the narration.
+- University notation (x², m/s², v₀, ∫ ∑ √ ± × ÷ π Δ μ) — never LaTeX, never backslashes, never $.
+- Same beat types you were given. Under 3KB total.
+
+If everything passes, output {"verdict": "pass"} — never invent work.`;
+
+export function reviewerUser(
+  chapter: string,
+  narration: string,
+  beatsJson: string
+): string {
+  return `SCENE CHAPTER: ${chapter}
+
+NARRATION (final — the professor says exactly this):
+"""${narration}"""
+
+WRITER'S BEATS (compact JSON):
+${beatsJson}
+
+Review the beats against the checklist now. Output {"verdict":"pass"} or {"verdict":"fixed","beats":[...]} only.`;
+}
