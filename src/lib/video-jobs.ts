@@ -1,4 +1,4 @@
-import { geminiChat } from "./ai/gemini";
+import { chatComplete } from "./ai/chat";
 import { extractJson, sanitizeScript, cleanNarration } from "./solve-schema";
 import { compileTimeline } from "./video/compile";
 import { scriptOverlap } from "./video/overlap";
@@ -114,6 +114,8 @@ interface Job {
     proseDropped: number;
     overlapPct: number | null;
     layoutViolations: number | null;
+    providerHops: number;
+    watchableMs: number | null;
   };
 }
 
@@ -176,6 +178,8 @@ export function createJob(question: string): string {
       proseDropped: 0,
       overlapPct: null,
       layoutViolations: null,
+      providerHops: 0,
+      watchableMs: null,
     },
   };
   jobs.set(id, job);
@@ -270,24 +274,22 @@ let lastChatWas429 = false;
 async function chatJson(
   system: string,
   user: string,
-  tier: "reason" | "fast" = "reason"
+  tier: "reason" | "fast" = "reason",
+  hopSink?: { providerHops: number }
 ): Promise<string> {
-  /* the chat API rate-limits bursts (429/503) — exponential backoff */
-  const delays = [0, 3000, 7000, 12000, 20000];
-  let lastErr: unknown = null;
-  for (let attempt = 0; attempt < delays.length; attempt++) {
-    if (delays[attempt]) await sleep(delays[attempt]);
-    try {
-      return await geminiChat(system, user, { tier });
-    } catch (e) {
-      lastErr = e;
-      const msg = e instanceof Error ? e.message : String(e);
-      // non-retryable (bad request) — bubble immediately
-      if (/status 4[0-9]{2}/.test(msg) && !/status 429/.test(msg)) throw e;
-      if (/status 429/.test(msg)) lastChatWas429 = true;
-    }
-  }
-  throw lastErr ?? new Error("chat failed");
+  /* the ladder inside chatComplete retries 429/5xx briefly then hops
+     provider — long sleeps are gone; callers keep their JSON-attempt
+     loops (a bad parse is not a provider failure) */
+  const r = await chatComplete(system, user, {
+    tier,
+    on429: () => {
+      lastChatWas429 = true;
+    },
+    onHop: () => {
+      if (hopSink) hopSink.providerHops += 1;
+    },
+  });
+  return r.text;
 }
 
 function normalizeOutline(raw: unknown): Outline | null {
@@ -321,7 +323,9 @@ async function callDirector(job: Job): Promise<Outline | null> {
           (attempt
             ? "\n\nIMPORTANT REMINDER: Reply with the raw JSON object ONLY. No prose, no code fences. Start with { and end with }."
             : ""),
-        user
+        user,
+        "reason",
+        job.stats
       );
       const outline = normalizeOutline(extractJson(raw));
       job.directorMs = Date.now() - t0;
@@ -386,7 +390,9 @@ async function callPlanner(
           (attempt
             ? "\n\nIMPORTANT REMINDER: Reply with the raw JSON object ONLY. No prose, no code fences. Exactly one scenes entry per outline scene, same order."
             : ""),
-        plannerUserPrompt(outlineJson)
+        plannerUserPrompt(outlineJson),
+        "reason",
+        job.stats
       );
       const transcript = normalizeTranscript(extractJson(raw), sceneCount);
       job.plannerMs = Date.now() - t0;
@@ -402,7 +408,8 @@ async function callPlanner(
 async function writeScene(
   outlineJson: string,
   index: number,
-  planned: TranscriptScene | null
+  planned: TranscriptScene | null,
+  hopSink?: { providerHops: number }
 ): Promise<{ narration?: string; beats: unknown[] } | null> {
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1200 * (attempt + 1));
@@ -416,7 +423,8 @@ async function writeScene(
           planned?.visualize,
           planned?.analogy
         ),
-        "fast"
+        "fast",
+        hopSink
       );
       const parsed = extractJson(raw);
       if (parsed && typeof parsed === "object") {
@@ -535,7 +543,7 @@ async function runJob(job: Job): Promise<void> {
           const t0 = Date.now();
           const planned = transcript ? transcript[myIndex] : null;
           const r =
-            (await writeScene(outlineJson, myIndex, planned)) ?? {
+            (await writeScene(outlineJson, myIndex, planned, job.stats)) ?? {
               /* graceful degradation: a single clean line + the PLANNER'S
                  words — a writer failure no longer costs the scene its
                  voice when the transcript exists */
@@ -593,6 +601,7 @@ async function runJob(job: Job): Promise<void> {
     }
     job.script = script;
     job.mergedAt = Date.now();
+    job.stats.watchableMs = Date.now() - job.createdAt; // delivery moment
     job.phase = "voicing";
 
     /* 5 ─ let the remaining voices land, then the job is complete */

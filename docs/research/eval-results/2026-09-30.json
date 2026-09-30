@@ -1,0 +1,72 @@
+{
+  "ranAt": "2026-09-30T20:51:26.967Z",
+  "findings": "Run under a TOTAL Gemini quota outage — every chat call served by the Groq fallback (providerHops 9). The pipeline completed (yesterday the planner died silently: plannerMs null; today plannerMs 41837). Watchable 183s is provider-bound, not architecture: director 26.6s + planner 41.8s on gpt-oss-120b, then Groq free-tier TPM throttling hit the 3-concurrent qwen writers (second wave 58-65s each). With Gemini healthy the ladder adds ≤2 quick hops before failing over. layoutViolations=1 is a real content finding from the qwen-written boards — watch whether the Phase B reviewer catches this class. providerHops/watchable gates failing here = honest degraded-mode signal, not regressions.",
+  "results": [
+    {
+      "id": "alg-linear",
+      "passed": false,
+      "ms": 408142,
+      "watchableMs": 183311,
+      "scenes": 7,
+      "proseBeats": 0,
+      "sayCoverage": 0.9375,
+      "overlapPct": 6,
+      "stats": {
+        "directorMs": 26571,
+        "plannerMs": 41837,
+        "writerMs": [
+          6205,
+          6081,
+          6819,
+          5471,
+          58145,
+          64492,
+          65335
+        ],
+        "voiceMs": [
+          71768,
+          16399,
+          9007,
+          27578,
+          80123
+        ],
+        "firstVoiceReadyMs": 185039,
+        "proseDropped": 0,
+        "overlapPct": 6,
+        "layoutViolations": 1,
+        "providerHops": 9,
+        "watchableMs": 183311
+      },
+      "checks": [
+        {
+          "ok": true,
+          "detail": "scenes=7"
+        },
+        {
+          "ok": true,
+          "detail": "proseBeats=0"
+        },
+        {
+          "ok": true,
+          "detail": "sayCoverage=0.94"
+        },
+        {
+          "ok": true,
+          "detail": "overlapPct=6"
+        },
+        {
+          "ok": false,
+          "detail": "layoutViolations=1"
+        },
+        {
+          "ok": false,
+          "detail": "watchableMs=183311 (target ≤60s, gate 90s)"
+        },
+        {
+          "ok": false,
+          "detail": "providerHops=9"
+        }
+      ]
+    }
+  ]
+}

@@ -41,3 +41,14 @@ Chosen defaults (baked into `src/lib/ai/groq.ts`, env-overridable):
 
 All engine chat calls are JSON agents, so Groq calls run with
 `response_format: json_object`.
+
+## Thinking-budget probe, lite tier (2026-09-30)
+
+`scripts/probe-thinking.mjs`, gemini-3.5-flash-lite, 3 runs per budget
+(trivial 1-word call): dynamic (-1) median 1035ms; 2048 → 1091ms;
+1024 → 935ms; 512 → 818ms; 256 → 972ms; 0 → rejected (400/429), as
+before. Best case (512) is ~21% faster than dynamic — below the 30%
+adoption bar on a call that barely thinks. **No-go: the dynamic budget
+(-1) stays everywhere.** Writer latency is dominated by retries and
+rate-limit contention, not thinking — which is what the failover
+ladder fixes.
