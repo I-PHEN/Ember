@@ -1,5 +1,12 @@
 import { chatComplete } from "./ai/chat";
-import { extractJson, sanitizeScript, cleanNarration } from "./solve-schema";
+import { existsSync } from "node:fs";
+import {
+  extractJson,
+  sanitizeScript,
+  sanitizeSceneBeats,
+  cleanNarration,
+  isBoardProse,
+} from "./solve-schema";
 import { compileTimeline } from "./video/compile";
 import { scriptOverlap } from "./video/overlap";
 import { auditTimeline } from "./video/layout-audit";
@@ -10,7 +17,10 @@ import {
   plannerUserPrompt,
   WRITER_SYSTEM,
   writerUser,
+  REVIEWER_SYSTEM,
+  reviewerUser,
 } from "./prompts";
+import { normalizeReviewFix, shouldReview } from "./video/review";
 import type { SolveScript } from "./video/types";
 
 /* ------------------------------------------------------------------
@@ -58,6 +68,9 @@ const PLANNER_ATTEMPTS = 3;
 const JOB_TTL_MS = 35 * 60 * 1000;
 const MAX_JOBS = 24;
 const STAGGER_MS = 250;
+/* dev-only reviewer drill: `touch scripts/plant-bad-beat.flag` plants a
+   wrong beat into scene 2 of the next job until the file is removed */
+const PLANT_BAD_BEAT_FLAG = "scripts/plant-bad-beat.flag";
 
 /* ETA priors (ms) until first measurements arrive */
 const PRIOR_DIRECTOR_MS = 12000;
@@ -116,6 +129,9 @@ interface Job {
     layoutViolations: number | null;
     providerHops: number;
     watchableMs: number | null;
+    reviewedScenes: number;
+    unreviewedScenes: number;
+    fixedScenes: number;
   };
 }
 
@@ -180,6 +196,9 @@ export function createJob(question: string): string {
       layoutViolations: null,
       providerHops: 0,
       watchableMs: null,
+      reviewedScenes: 0,
+      unreviewedScenes: 0,
+      fixedScenes: 0,
     },
   };
   jobs.set(id, job);
@@ -270,6 +289,12 @@ function snapshot(job: Job): JobSnapshot {
 /* lets the job report "studio busy" instead of a misleading parse error
    when the upstream API is rate-limiting the account */
 let lastChatWas429 = false;
+/* REAL pressure: the fallback provider itself is throttling. Gemini
+   429s are routine (that is what the ladder hops over) and must NOT
+   starve the reviewer — only Groq 429s mean the whole ladder is
+   squeezed (found live 2026-09-30: reviews collapsed to a 30% sample
+   during a pure-Gemini outage while Groq was healthy). */
+let lastGroq429 = false;
 
 async function chatJson(
   system: string,
@@ -282,8 +307,9 @@ async function chatJson(
      loops (a bad parse is not a provider failure) */
   const r = await chatComplete(system, user, {
     tier,
-    on429: () => {
+    on429: (entry) => {
       lastChatWas429 = true;
+      if (entry.kind === "groq") lastGroq429 = true;
     },
     onHop: () => {
       if (hopSink) hopSink.providerHops += 1;
@@ -314,10 +340,10 @@ function normalizeOutline(raw: unknown): Outline | null {
 
 async function callDirector(job: Job): Promise<Outline | null> {
   const user = `Make a solve video for this question:\n\n${job.question}`;
+  const stageT0 = Date.now(); // the WHOLE stage, failed attempts included
   for (let attempt = 0; attempt < DIRECTOR_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1500);
     try {
-      const t0 = Date.now();
       const raw = await chatJson(
         DIRECTOR_PROMPT +
           (attempt
@@ -328,7 +354,7 @@ async function callDirector(job: Job): Promise<Outline | null> {
         job.stats
       );
       const outline = normalizeOutline(extractJson(raw));
-      job.directorMs = Date.now() - t0;
+      job.directorMs = Date.now() - stageT0;
       job.stats.directorMs = job.directorMs;
       if (outline) return outline;
     } catch (e) {
@@ -381,10 +407,10 @@ async function callPlanner(
   outlineJson: string,
   sceneCount: number
 ): Promise<TranscriptScene[] | null> {
+  const stageT0 = Date.now(); // the WHOLE stage, failed attempts included
   for (let attempt = 0; attempt < PLANNER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1500);
     try {
-      const t0 = Date.now();
       const raw = await chatJson(
         TRANSCRIPT_PROMPT +
           (attempt
@@ -395,7 +421,7 @@ async function callPlanner(
         job.stats
       );
       const transcript = normalizeTranscript(extractJson(raw), sceneCount);
-      job.plannerMs = Date.now() - t0;
+      job.plannerMs = Date.now() - stageT0;
       job.stats.plannerMs = job.plannerMs;
       if (transcript) return transcript;
     } catch (e) {
@@ -526,6 +552,85 @@ async function runJob(job: Job): Promise<void> {
       }
     };
 
+    /* 2b — REVIEWER (Phase B): dispatched the moment a writer lands,
+       async — voice NEVER waits for review (narration is canonical;
+       the reviewer only ever replaces beats). Collected at merge with
+       a bounded wait; anything unresolved ships as the writer left it. */
+    const REVIEW_COLLECT_MS = 8000;
+    const reviewPromises: Array<Promise<void>> = [];
+    const reviewCounters = { reviewed: 0, unreviewed: 0, fixed: 0 };
+    const dispatchReview = (
+      idx: number,
+      chapter: string,
+      narration: string,
+      beats: unknown[],
+      forceFlagged = false
+    ) => {
+      const proseFlagged =
+        forceFlagged ||
+        beats.some(
+          (b) =>
+            (b as { type?: unknown })?.type === "write" &&
+            isBoardProse(String((b as { text?: unknown }).text ?? ""))
+        );
+      if (!shouldReview(lastGroq429, proseFlagged, Math.random())) {
+        reviewCounters.unreviewed++; // cost-control skip, not a failure
+        return;
+      }
+      /* a fix may not make the board WORSE: compile the scene alone and
+         count layout violations — a fix that adds collisions is rejected
+         (found live 2026-09-30: reviewer repositioning caused them) */
+      const sceneViolations = (clean: unknown[]): number => {
+        try {
+          return auditTimeline(
+            compileTimeline({
+              title: outline.title,
+              question: outline.question,
+              scenes: [{ chapter, narration, beats: clean }],
+            } as never)
+          ).length;
+        } catch {
+          return Infinity; // a fix that crashes compile is rejected too
+        }
+      };
+      reviewPromises.push(
+        (async () => {
+          try {
+            const raw = await chatJson(
+              REVIEWER_SYSTEM,
+              reviewerUser(chapter, narration, JSON.stringify(beats)),
+              "fast",
+              job.stats
+            );
+            const outcome = normalizeReviewFix(extractJson(raw));
+            if (!outcome) {
+              reviewCounters.unreviewed++; // invalid/failed → original ships
+              return;
+            }
+            reviewCounters.reviewed++;
+            if (outcome.verdict === "fixed") {
+              const cleaned = sanitizeSceneBeats(
+                outcome.beats,
+                narration,
+                job.stats,
+                `reviewer fix, scene ${idx + 1}`
+              );
+              const origClean = sanitizeSceneBeats(beats, narration);
+              if (
+                cleaned.length &&
+                sceneViolations(cleaned) <= sceneViolations(origClean)
+              ) {
+                results[idx] = { narration: results[idx]?.narration, beats: outcome.beats };
+                reviewCounters.fixed++;
+              }
+            }
+          } catch {
+            reviewCounters.unreviewed++;
+          }
+        })()
+      );
+    };
+
     /* 3 ─ scene writers, 3 in flight, staggered to be gentle. Each
        choreographs the board for its slice of the planned transcript. */
     const results: Array<{ narration?: string; beats: unknown[] }> = [];
@@ -559,16 +664,48 @@ async function runJob(job: Job): Promise<void> {
           const ms = Date.now() - t0;
           job.writerEwma = ewma(job.writerEwma, ms);
           job.stats.writerMs.push(ms);
-          results[myIndex] = r;
+          /* the dev-only planted defect: a wrong beat the reviewer must
+             catch (checklist 4). It enters the REAL result (so the merge
+             would ship it if the reviewer failed) — active only while
+             scripts/plant-bad-beat.flag exists (touch/rm it; no server
+             restart needed, and scripts/ is gitignored). */
+          const planted = myIndex === 1 && existsSync(PLANT_BAD_BEAT_FLAG);
+          const stored = planted
+            ? { ...r, beats: [...r.beats, { type: "write", text: "2 + 2 = 5", color: "white" }] }
+            : r;
+          results[myIndex] = stored;
           /* cleaned EXACTLY like the script sanitizer cleans it, so the
              pre-warmed voice and the player's fetch are the same cache key */
-          narrations[myIndex] = r.narration ? cleanNarration(r.narration) : "";
+          narrations[myIndex] = stored.narration ? cleanNarration(stored.narration) : "";
+          dispatchReview(
+            myIndex,
+            outline.scenes[myIndex].chapter,
+            narrations[myIndex] ?? "",
+            stored.beats,
+            planted // the drill must reach the reviewer, sample or not
+          );
           job.scenesDone += 1;
           flushVoices();
         }
       }
     );
     await Promise.all(workers);
+
+    /* 3b — collect reviews: bounded. Reviews dispatched with the last
+       writer wave add ~one small call of tail; anything slower ships
+       unreviewed (counted). */
+    await Promise.race([
+      Promise.allSettled(reviewPromises),
+      sleep(REVIEW_COLLECT_MS).then(() =>
+        console.warn("[reviewer] collect cap hit — slower scenes ship unreviewed")
+      ),
+    ]);
+    const pendingReviews =
+      reviewPromises.length - reviewCounters.reviewed - reviewCounters.unreviewed;
+    job.stats.reviewedScenes = reviewCounters.reviewed;
+    job.stats.fixedScenes = reviewCounters.fixed;
+    job.stats.unreviewedScenes =
+      reviewCounters.unreviewed + Math.max(0, pendingReviews);
 
     /* 4 ─ merge → sanitize → compile-check → deliver */
     const rawScript = {
@@ -606,6 +743,11 @@ async function runJob(job: Job): Promise<void> {
 
     /* 5 ─ let the remaining voices land, then the job is complete */
     await voiceChain;
+    /* reviews that settled after the merge cap still count — refresh
+       so ready-time snapshots are exact */
+    job.stats.reviewedScenes = reviewCounters.reviewed;
+    job.stats.fixedScenes = reviewCounters.fixed;
+    job.stats.unreviewedScenes = reviewCounters.unreviewed;
     job.phase = "ready";
     job.readyAt = Date.now();
   } catch (err) {

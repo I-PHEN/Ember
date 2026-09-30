@@ -1,41 +1,242 @@
 {
-  "ranAt": "2026-09-30T20:51:26.967Z",
-  "findings": "Run under a TOTAL Gemini quota outage — every chat call served by the Groq fallback (providerHops 9). The pipeline completed (yesterday the planner died silently: plannerMs null; today plannerMs 41837). Watchable 183s is provider-bound, not architecture: director 26.6s + planner 41.8s on gpt-oss-120b, then Groq free-tier TPM throttling hit the 3-concurrent qwen writers (second wave 58-65s each). With Gemini healthy the ladder adds ≤2 quick hops before failing over. layoutViolations=1 is a real content finding from the qwen-written boards — watch whether the Phase B reviewer catches this class. providerHops/watchable gates failing here = honest degraded-mode signal, not regressions.",
+  "ranAt": "2026-09-30T21:50:40.212Z",
   "results": [
     {
       "id": "alg-linear",
       "passed": false,
-      "ms": 408142,
-      "watchableMs": 183311,
+      "ms": 468724,
+      "watchableMs": 105839,
       "scenes": 7,
       "proseBeats": 0,
-      "sayCoverage": 0.9375,
-      "overlapPct": 6,
+      "sayCoverage": 1,
+      "overlapPct": 4,
       "stats": {
-        "directorMs": 26571,
-        "plannerMs": 41837,
+        "directorMs": 18350,
+        "plannerMs": 22543,
         "writerMs": [
-          6205,
-          6081,
-          6819,
-          5471,
-          58145,
-          64492,
-          65335
+          5802,
+          6289,
+          8407,
+          4599,
+          5832,
+          7350,
+          7124
         ],
-        "voiceMs": [
-          71768,
-          16399,
-          9007,
-          27578,
-          80123
-        ],
-        "firstVoiceReadyMs": 185039,
+        "voiceMs": [],
+        "firstVoiceReadyMs": null,
         "proseDropped": 0,
-        "overlapPct": 6,
+        "overlapPct": 4,
         "layoutViolations": 1,
-        "providerHops": 9,
-        "watchableMs": 183311
+        "providerHops": 8,
+        "watchableMs": 105839,
+        "reviewedScenes": 7,
+        "unreviewedScenes": 0,
+        "fixedScenes": 5
+      },
+      "script": {
+        "title": "Solving a Simple Linear Equation",
+        "subject": "Algebra",
+        "question": "Solve 2x + 5 = 13",
+        "scenes": [
+          {
+            "chapter": "Understanding the problem",
+            "narration": "Welcome! Today we are going to solve a simple linear equation step by step. Our goal is to find the exact value of x that makes this mathematical statement true. We start by writing down what is given: two x plus five equals thirteen. Our objective is simply to isolate and find x.",
+            "beats": [
+              {
+                "type": "title",
+                "text": "Solving a Simple Linear Equation",
+                "color": "yellow",
+                "say": "Welcome! Today we are going to solve a simple linear equation step by step."
+              },
+              {
+                "type": "write",
+                "text": "2x + 5 = 13",
+                "color": "blue",
+                "size": "lg",
+                "keep": true,
+                "say": "We start by writing down what is given: two x plus five equals thirteen."
+              },
+              {
+                "type": "write",
+                "text": "Find: x",
+                "color": "white",
+                "size": "md",
+                "below": "text:2x + 5 = 13",
+                "say": "Our objective is simply to isolate and find x."
+              },
+              {
+                "type": "underline",
+                "color": "yellow",
+                "target": "text:Find: x"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "The plan",
+            "narration": "To solve this equation, our plan is simple. First, we need to isolate the term with x by subtracting five from both sides. Second, we will divide both sides by two to find the value of x. Remember the fundamental rule of equality: whatever we do to one side, we must do to the other to keep it balanced.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "Plan:",
+                "color": "yellow",
+                "size": "md",
+                "say": "To solve this equation, our plan is simple"
+              },
+              {
+                "type": "write",
+                "text": "1. Subtract 5",
+                "color": "white",
+                "size": "md",
+                "say": "First, we need to isolate the term with x by subtracting five from both sides"
+              },
+              {
+                "type": "write",
+                "text": "2. Divide by 2",
+                "color": "white",
+                "size": "md",
+                "say": "Second, we will divide both sides by two to find the value of x"
+              },
+              {
+                "type": "write",
+                "text": "If a = b then a − c = b − c",
+                "color": "blue",
+                "size": "md",
+                "say": "Remember the fundamental rule of equality: whatever we do to one side, we must do to the other to keep it balanced"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Subtract 5",
+            "narration": "To isolate the term containing x, we subtract five from both sides. On the left, adding five and subtracting five cancel out, leaving just two x. On the right, thirteen minus five equals eight. This simplifies our equation to two x equals eight.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "2x + 5 − 5 = 13 − 5",
+                "color": "white",
+                "size": "md",
+                "say": "we subtract five from both sides"
+              },
+              {
+                "type": "write",
+                "text": "2x = 8",
+                "color": "green",
+                "size": "md",
+                "say": "This simplifies our equation to two x equals eight"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Your turn",
+            "narration": "We currently have two x equals eight on the board, and our goal is to isolate x completely. What operation should we perform next to get the variable entirely by itself? Take a moment to pause and think about how we remove that coefficient before we tackle the final step together.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "2x = 8",
+                "color": "yellow",
+                "size": "md",
+                "say": "We currently have two x equals eight on the board,"
+              },
+              {
+                "type": "wait",
+                "ms": 1500
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Divide by 2",
+            "narration": "Now, to completely isolate x, we divide both sides by two. On the left, two x divided by two leaves just x. On the right, eight divided by two gives four. So our final result is x equals four.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "2x ÷ 2 = 8 ÷ 2",
+                "color": "orange",
+                "size": "md",
+                "say": "we divide both sides by two"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "x = 4",
+                "color": "green",
+                "size": "lg",
+                "keep": true,
+                "say": "x equals four"
+              },
+              {
+                "type": "box",
+                "color": "yellow"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Answer",
+            "narration": "So we arrive at our final result, x equals four. Notice that this is a pure number with no physical units attached, as we are simply solving an abstract algebraic equation. Whenever you solve for an unknown variable, always isolate it completely on the left-hand side. This clean final value tells us the exact number that satisfies our original equality.",
+            "beats": [
+              {
+                "type": "erase",
+                "keep": [
+                  "x = 4"
+                ]
+              },
+              {
+                "type": "box",
+                "color": "yellow",
+                "target": "text:x = 4"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Check",
+            "narration": "Let's verify our solution by substituting x equals 4 back into the original equation. We write two times four plus five equals thirteen. When we compute the left side, two times four is eight, plus five gives thirteen. Since thirteen equals thirteen, our equality holds. Great work, the solution checks out!",
+            "beats": [
+              {
+                "type": "write",
+                "text": "Check: 2(4) + 5 = 13",
+                "color": "white",
+                "size": "md",
+                "say": "substituting x equals 4 back into the original equation"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "8 + 5 = 13",
+                "color": "white",
+                "size": "md",
+                "say": "When we compute the left side, two times four is eight, plus five gives thirteen."
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "13 = 13",
+                "color": "green",
+                "size": "lg",
+                "keep": true,
+                "say": "Since thirteen equals thirteen, our equality holds."
+              },
+              {
+                "type": "circle",
+                "color": "yellow",
+                "target": "text:13 = 13"
+              }
+            ],
+            "intro": false
+          }
+        ]
       },
       "checks": [
         {
@@ -48,11 +249,11 @@
         },
         {
           "ok": true,
-          "detail": "sayCoverage=0.94"
+          "detail": "sayCoverage=1.00"
         },
         {
           "ok": true,
-          "detail": "overlapPct=6"
+          "detail": "overlapPct=4"
         },
         {
           "ok": false,
@@ -60,11 +261,19 @@
         },
         {
           "ok": false,
-          "detail": "watchableMs=183311 (target ≤60s, gate 90s)"
+          "detail": "watchableMs=105839 (target ≤60s, gate 90s)"
         },
         {
-          "ok": false,
-          "detail": "providerHops=9"
+          "ok": true,
+          "detail": "providerHops=8"
+        },
+        {
+          "ok": true,
+          "detail": "reviewed=7 fixed=5 unreviewed=0"
+        },
+        {
+          "ok": true,
+          "detail": "no planted-defect arithmetic on the board"
         }
       ]
     }

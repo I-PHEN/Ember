@@ -58,7 +58,7 @@ export async function chatComplete(
   opts: {
     tier?: ChatTier;
     withGroq?: boolean; // tests force this; production reads the key
-    on429?: () => void;
+    on429?: (entry: LadderEntry) => void;
     onHop?: () => void;
     transport?: (e: LadderEntry) => Promise<string>;
   } = {}
@@ -83,7 +83,7 @@ export async function chatComplete(
         return { text, provider: entry.model, hops: e };
       } catch (err) {
         lastErr = err;
-        if (err instanceof ProviderError && err.status === 429) opts.on429?.();
+        if (err instanceof ProviderError && err.status === 429) opts.on429?.(entry);
         if (!retriable(err)) throw err; // 4xx (≠429): our request is bad everywhere
       }
     }
