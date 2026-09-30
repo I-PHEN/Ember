@@ -26,3 +26,18 @@ Routing table (baked into gemini.ts):
 Key constraint discovered: the 3.x family REJECTS thinkingBudget 0 —
 every call runs thinking. Latency is acceptable (lite ≈ 1s) and matches
 the spec's intent (thinking on for reasoning steps).
+
+## Groq fallback (2026-09-30 probe, live key)
+
+`scripts/probe-groq.mjs` against the account's GROQ_API_KEY. Available
+chat models: gpt-oss-120b, gpt-oss-20b, qwen3.8-27b, allam-2-7b (+ tts/
+whisper models). `llama-3.1-8b-instant` does NOT exist on this account.
+
+Chosen defaults (baked into `src/lib/ai/groq.ts`, env-overridable):
+- **reason tier**: `openai/gpt-oss-120b` — OK, ~500ms
+- **fast tier**: `qwen/qwen3.8-27b` — OK, ~290ms (3× faster than
+  gpt-oss-20b's ~1s; writers fan out 3-concurrent on failover, so the
+  quickest capable model wins)
+
+All engine chat calls are JSON agents, so Groq calls run with
+`response_format: json_object`.
