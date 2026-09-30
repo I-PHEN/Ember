@@ -492,6 +492,39 @@ function sanitizeBeat(raw: unknown, narrationKey: string): Beat | null {
 
 /* -------------------------- script sanitizer ---------------------- */
 
+/** per-scene beat cleaning — the same rules the merge applies, runnable
+    on ONE scene's beats (the Reviewer's fix, Phase B) BEFORE they are
+    allowed to replace the writer's. An empty result rejects the fix. */
+export function sanitizeSceneBeats(
+  rawBeats: unknown,
+  narration: string,
+  stats?: { proseDropped: number },
+  label?: string
+): Beat[] {
+  if (!Array.isArray(rawBeats)) return [];
+  const narrationKey = normSpeechKey(narration);
+  const beats: Beat[] = [];
+  const prose: string[] = [];
+  for (const bRaw of rawBeats.slice(0, 22)) {
+    const beat = sanitizeBeat(bRaw, narrationKey);
+    if (!beat) continue;
+    if (beat.type === "write" && isBoardProse(beat.text)) {
+      prose.push(beat.text); // explanations are SPOKEN, never written
+      if (stats) stats.proseDropped += 1;
+      continue;
+    }
+    beats.push(beat);
+  }
+  if (prose.length) {
+    console.log(
+      `[board-discipline] ${label ?? "scene"} — dropped ${prose.length} prose beat(s) (the planner's narration already carries these words): ${prose
+        .map((p) => JSON.stringify(p))
+        .join(", ")}`
+    );
+  }
+  return beats;
+}
+
 export function sanitizeScript(
   raw: unknown,
   stats?: { proseDropped: number }
@@ -519,30 +552,9 @@ export function sanitizeScript(
     const s = sRaw as Record<string, unknown>;
     const chapter = cleanText(s.chapter ?? s.title, 42) || `Step ${scenes.length + 1}`;
     const narration = cleanNarration(s.narration);
-    const narrationKey = normSpeechKey(narration);
     let beatsRaw: unknown = s.beats;
     if (!Array.isArray(beatsRaw) && Array.isArray(s.blocks)) beatsRaw = s.blocks;
-    const beats: Beat[] = [];
-    const prose: string[] = [];
-    if (Array.isArray(beatsRaw)) {
-      for (const bRaw of beatsRaw.slice(0, 22)) {
-        const beat = sanitizeBeat(bRaw, narrationKey);
-        if (!beat) continue;
-        if (beat.type === "write" && isBoardProse(beat.text)) {
-          prose.push(beat.text); // explanations are SPOKEN, never written
-          if (stats) stats.proseDropped += 1;
-          continue;
-        }
-        beats.push(beat);
-      }
-    }
-    if (prose.length) {
-      console.log(
-        `[board-discipline] scene "${chapter}" — dropped ${prose.length} prose beat(s) (the planner's narration already carries these words): ${prose
-          .map((p) => JSON.stringify(p))
-          .join(", ")}`
-      );
-    }
+    const beats = sanitizeSceneBeats(beatsRaw, narration, stats, `"${chapter}"`);
     if (!beats.length) continue;
     scenes.push({ chapter, narration, beats, intro: s.intro === true });
   }
