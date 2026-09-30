@@ -426,19 +426,20 @@ export default function Page() {
         <a href="#lessons" className="text-sm text-muted-foreground transition-colors hover:text-white">Explore lessons ↗</a>
       </header>
 
+      {/* running/finished job — floats under the header; NEVER pushes the page */}
+      {jobStatus && !overlayOpen && jobStatus.id !== watchedJobId && jobStatus.phase !== "error" && (
+        <div className="fixed left-1/2 top-24 z-40 w-[min(92vw,600px)] -translate-x-1/2 px-4">
+          <ResumeCard
+            status={jobStatus}
+            onWatch={watchReady}
+            onReopen={reopenJob}
+            onDismiss={clearJob}
+          />
+        </div>
+      )}
+
       {/* Hero & Minimalist Chat Input */}
       <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center px-5 py-16 sm:px-6">
-        {jobStatus && !overlayOpen && jobStatus.id !== watchedJobId && jobStatus.phase !== "error" && (
-          <div className="w-full mb-8">
-            <ResumeCard
-              status={jobStatus}
-              onWatch={watchReady}
-              onReopen={reopenJob}
-              onDismiss={clearJob}
-            />
-          </div>
-        )}
-
         <div className="ember-hero-copy text-center">
           <p className="ember-eyebrow">read → given → ask → solve</p>
           <h1 className="text-5xl sm:text-7xl">

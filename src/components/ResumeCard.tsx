@@ -45,7 +45,7 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
 
   return (
     <div
-      className="relative mb-6 w-full max-w-xl rounded-2xl border border-[#e6b784]/30 bg-[#e6b784]/[0.07] p-4"
+      className="relative w-full rounded-2xl border border-[#e6b784]/30 bg-[#171b1d]/95 p-4 shadow-2xl shadow-black/50 backdrop-blur-xl"
       role="status"
       aria-live="polite"
     >
