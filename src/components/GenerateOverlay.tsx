@@ -25,11 +25,10 @@ import type { VideoJobStatus } from "@/lib/use-video-job";
 function fmtLeft(ms: number): string {
   const s = Math.max(0, Math.round(ms / 1000));
   if (s <= 4) return "any moment now";
-  if (s < 15) return `about ${s}s`;
-  if (s < 90) return `about ${s}s`;
+  if (s < 90) return `${s}s`;
   const m = Math.floor(s / 60);
   const r = s % 60;
-  return r ? `about ${m}m ${r}s` : `about ${m}min`;
+  return r ? `${m}m ${r}s` : `${m}min`;
 }
 
 /** smooth countdown between polls */
@@ -56,18 +55,8 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
   const directing = status.phase === "directing";
   const scripting = status.phase === "scripting";
   const boarding = status.phase === "boarding";
-  const writerPct =
-    status.scenesTotal > 0
-      ? status.scenesDone / status.scenesTotal
-      : 0;
   const voicePct =
     status.voicesTotal > 0 ? status.voicesDone / status.voicesTotal : 0;
-  const overall =
-    directing || scripting
-      ? directing
-        ? 0.06
-        : 0.16
-      : 0.16 + 0.54 * writerPct;
 
   return (
     <div
@@ -100,11 +89,25 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
           </div>
         </div>
 
-        {/* progress bar */}
+        {/* the honest number — server-computed, monotonic, never 100 early */}
+        <div className="mb-2 flex items-end justify-between">
+          <span className="font-mono text-2xl font-semibold tabular-nums text-[#f1eee7]">
+            {Math.floor(status.progressPct)}%
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {directing
+              ? "planning the lecture"
+              : scripting
+                ? "writing the words"
+                : boarding
+                  ? "choreographing the board"
+                  : "almost ready"}
+          </span>
+        </div>
         <div className="mb-5 h-2 w-full overflow-hidden rounded-full bg-[#23262a]">
           <div
             className="h-full rounded-full bg-[#e6b784] transition-all duration-700 ease-out"
-            style={{ width: `${Math.round(overall * 100)}%` }}
+            style={{ width: `${Math.round(status.progressPct)}%` }}
           />
         </div>
 

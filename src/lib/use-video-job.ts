@@ -41,6 +41,8 @@ export interface VideoJobStatus {
   etaVoiceMs: number;
   script: SolveScript | null;
   error: string | null;
+  /** honest monotonic progress toward ready (0-100, 100 only when ready) */
+  progressPct: number;
   /** client-added: local time the snapshot arrived (for smooth countdowns) */
   at: number;
 }
@@ -169,6 +171,7 @@ export function useVideoJob(
             etaWatchMs: 0,
             etaVoiceMs: 0,
             script: null,
+            progressPct: 0,
             error:
               "This video expired — finished videos are kept in your history, unfinished jobs for about 35 minutes.",
             at: Date.now(),

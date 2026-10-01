@@ -80,6 +80,9 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
               status.title || status.question.slice(0, 60)
             ) : (
               <>
+                <span className="mr-1.5 font-mono font-semibold tabular-nums text-[#e6b784]">
+                  {Math.floor(status.progressPct)}%
+                </span>
                 <span className="tabular-nums">
                   {status.scenesDone}/{status.scenesTotal || "–"} scenes
                   boarded · {status.voicesDone}/{status.voicesTotal || "–"}{" "}
@@ -123,6 +126,15 @@ export default function ResumeCard({ status, onWatch, onReopen, onDismiss }: Pro
             Leave anytime — the studio keeps working, and your video waits
             here. Full voice finishes in {fmtLeft(etaVoice)}.
           </p>
+        </div>
+      )}
+
+      {!ready && (
+        <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-[#23262a]">
+          <div
+            className="h-full rounded-full bg-[#e6b784]/80 transition-all duration-700"
+            style={{ width: `${Math.round(status.progressPct)}%` }}
+          />
         </div>
       )}
     </div>

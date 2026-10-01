@@ -21,6 +21,7 @@ import {
   reviewerUser,
 } from "./prompts";
 import { normalizeReviewFix, shouldReview } from "./video/review";
+import { advanceProgress, computeWatchProgress } from "./video/progress";
 import type { SolveScript } from "./video/types";
 
 /* ------------------------------------------------------------------
@@ -114,6 +115,9 @@ interface Job {
   directorMs: number | null;
   scriptStartAt: number | null;
   plannerMs: number | null;
+  boardingStartAt: number | null;
+  /* honest monotonic progress % — never 100 before ready */
+  progressPct: number;
   writerEwma: number;
   voiceEwma: number;
   mergedAt: number | null;
@@ -181,6 +185,8 @@ export function createJob(question: string): string {
     directorMs: null,
     scriptStartAt: null,
     plannerMs: null,
+    boardingStartAt: null,
+    progressPct: 0,
     writerEwma: PRIOR_WRITER_MS,
     voiceEwma: PRIOR_VOICE_MS,
     mergedAt: null,
@@ -223,6 +229,8 @@ export interface JobSnapshot {
   script: SolveScript | null;
   error: string | null;
   stats: Job["stats"];
+  /** honest monotonic progress toward ready (0-100, 100 only when ready) */
+  progressPct: number;
 }
 
 export function getJob(id: string): JobSnapshot | null {
@@ -234,6 +242,26 @@ export function getJob(id: string): JobSnapshot | null {
 
 function snapshot(job: Job): JobSnapshot {
   const now = Date.now();
+  /* honest monotonic progress — computed server-side where every phase
+     timestamp lives; the client only renders it */
+  const pct = advanceProgress(
+    job.progressPct,
+    computeWatchProgress(
+      {
+        phase: job.phase,
+        createdAt: job.createdAt,
+        scriptStartAt: job.scriptStartAt,
+        boardingStartAt: job.boardingStartAt,
+        scenesTotal: job.scenesTotal,
+        scenesDone: job.scenesDone,
+        voicesTotal: job.voicesTotal,
+        voicesDone: job.voicesDone,
+        script: job.script,
+      },
+      now
+    )
+  );
+  job.progressPct = pct;
   let etaWatchMs = 0;
   let etaVoiceMs = 0;
 
@@ -281,6 +309,7 @@ function snapshot(job: Job): JobSnapshot {
     script: job.script,
     error: job.error,
     stats: job.stats,
+    progressPct: pct,
   };
 }
 
@@ -512,6 +541,7 @@ async function runJob(job: Job): Promise<void> {
       outline.scenes.length
     );
     job.phase = "boarding";
+    job.boardingStartAt = Date.now();
 
     /* 2 ─ voices flush in PLAYBACK ORDER as writers land. The queue is
        the same global TTS pipeline the player uses, so everything the
