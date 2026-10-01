@@ -22,6 +22,7 @@ import {
 } from "./prompts";
 import { normalizeReviewFix, shouldReview } from "./video/review";
 import { advanceProgress, computeWatchProgress } from "./video/progress";
+import { checkSceneLines } from "./video/checker";
 import type { SolveScript } from "./video/types";
 
 /* ------------------------------------------------------------------
@@ -136,6 +137,8 @@ interface Job {
     reviewedScenes: number;
     unreviewedScenes: number;
     fixedScenes: number;
+    checkerChecked: number;
+    checkerFlags: number;
   };
 }
 
@@ -205,6 +208,8 @@ export function createJob(question: string): string {
       reviewedScenes: 0,
       unreviewedScenes: 0,
       fixedScenes: 0,
+      checkerChecked: 0,
+      checkerFlags: 0,
     },
   };
   jobs.set(id, job);
@@ -589,15 +594,20 @@ async function runJob(job: Job): Promise<void> {
     const REVIEW_COLLECT_MS = 8000;
     const reviewPromises: Array<Promise<void>> = [];
     const reviewCounters = { reviewed: 0, unreviewed: 0, fixed: 0 };
+    /* per-scene original checker-flag counts — a reviewer fix may not
+       introduce NEW numeric errors (spec: fix passes the Checker) */
+    const checkerFlagsOf: number[] = [];
     const dispatchReview = (
       idx: number,
       chapter: string,
       narration: string,
       beats: unknown[],
-      forceFlagged = false
+      forceFlagged = false,
+      checkerFlagged = false
     ) => {
       const proseFlagged =
         forceFlagged ||
+        checkerFlagged ||
         beats.some(
           (b) =>
             (b as { type?: unknown })?.type === "write" &&
@@ -648,7 +658,9 @@ async function runJob(job: Job): Promise<void> {
               const origClean = sanitizeSceneBeats(beats, narration);
               if (
                 cleaned.length &&
-                sceneViolations(cleaned) <= sceneViolations(origClean)
+                sceneViolations(cleaned) <= sceneViolations(origClean) &&
+                checkSceneLines(idx, outcome.beats).flags.length <=
+                  (checkerFlagsOf[idx] ?? 0)
               ) {
                 results[idx] = { narration: results[idx]?.narration, beats: outcome.beats };
                 reviewCounters.fixed++;
@@ -707,12 +719,27 @@ async function runJob(job: Job): Promise<void> {
           /* cleaned EXACTLY like the script sanitizer cleans it, so the
              pre-warmed voice and the player's fetch are the same cache key */
           narrations[myIndex] = stored.narration ? cleanNarration(stored.narration) : "";
+          /* CHECKER (Phase C): pure-Node numeric spot-check, ms — runs
+             the instant the writer lands; flags feed the reviewer's
+             pressure sampling and the fix-acceptance test. */
+          const sceneCheck = checkSceneLines(myIndex, stored.beats);
+          job.stats.checkerChecked += sceneCheck.checked;
+          job.stats.checkerFlags += sceneCheck.flags.length;
+          checkerFlagsOf[myIndex] = sceneCheck.flags.length;
+          if (sceneCheck.flags.length) {
+            console.warn(
+              `[checker] scene ${myIndex + 1}: ${sceneCheck.flags
+                .map((f) => `${f.text} (${f.detail})`)
+                .join("; ")}`
+            );
+          }
           dispatchReview(
             myIndex,
             outline.scenes[myIndex].chapter,
             narrations[myIndex] ?? "",
             stored.beats,
-            planted // the drill must reach the reviewer, sample or not
+            planted, // the drill must reach the reviewer, sample or not
+            sceneCheck.flags.length > 0
           );
           job.scenesDone += 1;
           flushVoices();
