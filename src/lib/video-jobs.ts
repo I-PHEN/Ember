@@ -19,10 +19,19 @@ import {
   writerUser,
   REVIEWER_SYSTEM,
   reviewerUser,
+  SOLVER_SYSTEM,
+  solverUser,
 } from "./prompts";
 import { normalizeReviewFix, shouldReview } from "./video/review";
 import { advanceProgress, computeWatchProgress } from "./video/progress";
 import { checkSceneLines } from "./video/checker";
+import {
+  compareAnswers,
+  extractScriptAnswer,
+  normalizeSolver,
+  type SolverAnswer,
+  type VerifyVerdict,
+} from "./video/solver";
 import type { SolveScript } from "./video/types";
 
 /* ------------------------------------------------------------------
@@ -139,6 +148,12 @@ interface Job {
     fixedScenes: number;
     checkerChecked: number;
     checkerFlags: number;
+    verification: {
+      verdict: "match" | "mismatch" | "incomparable" | "unresolved";
+      solverAnswer: string | null;
+      scriptAnswer: string | null;
+      rerun: boolean;
+    } | null;
   };
 }
 
@@ -210,6 +225,7 @@ export function createJob(question: string): string {
       fixedScenes: 0,
       checkerChecked: 0,
       checkerFlags: 0,
+      verification: null,
     },
   };
   jobs.set(id, job);
@@ -334,13 +350,15 @@ async function chatJson(
   system: string,
   user: string,
   tier: "reason" | "fast" = "reason",
-  hopSink?: { providerHops: number }
+  hopSink?: { providerHops: number },
+  thinkingBudget?: number
 ): Promise<string> {
   /* the ladder inside chatComplete retries 429/5xx briefly then hops
      provider — long sleeps are gone; callers keep their JSON-attempt
      loops (a bad parse is not a provider failure) */
   const r = await chatComplete(system, user, {
     tier,
+    thinkingBudget,
     on429: (entry) => {
       lastChatWas429 = true;
       if (entry.kind === "groq") lastGroq429 = true;
@@ -452,7 +470,12 @@ async function callPlanner(
             : ""),
         plannerUserPrompt(outlineJson),
         "reason",
-        job.stats
+        job.stats,
+        /* spec §7 demotion order: the PLANNER caps thinking before the
+           director does — its words are reviewable, structure errors are
+           not. Probed 2026-10-01: 1024 accepted, full 9KB transcript in
+           ~5s (dynamic took 30-55s when the model wasn't 503ing). */
+        1024
       );
       const transcript = normalizeTranscript(extractJson(raw), sceneCount);
       job.plannerMs = Date.now() - stageT0;
@@ -469,7 +492,7 @@ async function writeScene(
   outlineJson: string,
   index: number,
   planned: TranscriptScene | null,
-  hopSink?: { providerHops: number }
+  opts?: { note?: string; hops?: { providerHops: number } }
 ): Promise<{ narration?: string; beats: unknown[] } | null> {
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1200 * (attempt + 1));
@@ -481,10 +504,11 @@ async function writeScene(
           index,
           planned && planned.script.length > 40 ? planned.script : null,
           planned?.visualize,
-          planned?.analogy
+          planned?.analogy,
+          opts?.note
         ),
         "fast",
-        hopSink
+        opts?.hops
       );
       const parsed = extractJson(raw);
       if (parsed && typeof parsed === "object") {
@@ -511,6 +535,19 @@ async function writeScene(
 
 async function runJob(job: Job): Promise<void> {
   try {
+    /* 0 ─ BLIND SOLVER (Phase C): one parallel call from t0, from the
+       question ALONE — never sees the outline/script. Compared at merge;
+       never blocks delivery beyond a bounded wait. */
+    const SOLVER_WAIT_MS = 8000;
+    const solverPromise = (async (): Promise<SolverAnswer | null> => {
+      try {
+        const raw = await chatJson(SOLVER_SYSTEM, solverUser(job.question), "reason", job.stats);
+        return normalizeSolver(extractJson(raw));
+      } catch {
+        return null; // no verdict — the video still ships
+      }
+    })();
+
     /* 1 ─ the director plans the lesson */
     lastChatWas429 = false;
     const outline = await callDirector(job);
@@ -690,7 +727,7 @@ async function runJob(job: Job): Promise<void> {
           const t0 = Date.now();
           const planned = transcript ? transcript[myIndex] : null;
           const r =
-            (await writeScene(outlineJson, myIndex, planned, job.stats)) ?? {
+            (await writeScene(outlineJson, myIndex, planned, { hops: job.stats })) ?? {
               /* graceful degradation: a single clean line + the PLANNER'S
                  words — a writer failure no longer costs the scene its
                  voice when the transcript exists */
@@ -775,15 +812,15 @@ async function runJob(job: Job): Promise<void> {
         beats: results[i]?.beats ?? [],
       })),
     };
-    const script = sanitizeScript(rawScript, job.stats);
+    let script = sanitizeScript(rawScript, job.stats);
     if (!script || script.scenes.length < 2) {
       job.phase = "error";
       job.error = "The storyboard came back incomplete — try again in a moment.";
       return;
     }
-    const tl = compileTimeline(script); // server-side smoke test — must never crash a client
+    let tl = compileTimeline(script); // server-side smoke test — must never crash a client
     job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
-    const violations = auditTimeline(tl);
+    let violations = auditTimeline(tl);
     job.stats.layoutViolations = violations.length;
     if (violations.length) {
       console.warn(
@@ -793,9 +830,97 @@ async function runJob(job: Job): Promise<void> {
             .join(", ")
       );
     }
+
+    /* 4b — VERIFICATION (Phase C): bounded wait for the blind solver,
+       compare against the script's extracted final answer, and on a
+       high-confidence disagreement re-write the solve-chain scenes ONCE
+       with the discrepancy note. Never blocks delivery longer than the
+       caps; a still-wrong answer ships flagged. */
+    let solver: SolverAnswer | null = null;
+    try {
+      solver = await Promise.race([
+        solverPromise,
+        sleep(SOLVER_WAIT_MS).then(() => null as SolverAnswer | null),
+      ]);
+    } catch {
+      solver = null;
+    }
+    let scriptAnswer = extractScriptAnswer(script);
+    let verdict: VerifyVerdict | "unresolved" =
+      solver?.answer && scriptAnswer
+        ? compareAnswers(solver.answer, scriptAnswer.answer)
+        : "unresolved";
+    let rerun = false;
+
+    if (verdict === "mismatch" && solver?.answer && scriptAnswer) {
+      rerun = true;
+      const from = Math.min(2, scriptAnswer.scene);
+      const to = scriptAnswer.scene; // solve-chain: scenes 3..answer, inclusive
+      const note = `an independent solver got "${solver.answer}" but this lesson's final answer reads "${scriptAnswer.answer}"`;
+      console.warn(
+        `[verify] mismatch — rerunning scenes ${from + 1}..${to + 1}: ${note}`
+      );
+      await Promise.all(
+        Array.from({ length: to - from + 1 }, async (_, k) => {
+          const i = from + k;
+          const t0 = Date.now();
+          const planned = transcript ? transcript[i] : null;
+          /* narration is NEVER reassigned — voices already flushed from
+             the original narration and the cache key must not drift */
+          const r = await writeScene(outlineJson, i, planned, {
+            note,
+            hops: job.stats,
+          });
+          if (r) {
+            job.stats.writerMs.push(Date.now() - t0);
+            results[i] = { narration: results[i]?.narration, beats: r.beats };
+          }
+        })
+      );
+      const rawScript2 = {
+        title: outline.title,
+        subject: outline.subject,
+        question: outline.question,
+        scenes: outline.scenes.map((scene, i) => ({
+          chapter: scene.chapter,
+          narration: results[i]?.narration ?? "",
+          beats: results[i]?.beats ?? [],
+        })),
+      };
+      const script2 = sanitizeScript(rawScript2, job.stats);
+      if (script2 && script2.scenes.length >= 2) {
+        script = script2;
+        tl = compileTimeline(script);
+        job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
+        violations = auditTimeline(tl);
+        job.stats.layoutViolations = violations.length;
+        scriptAnswer = extractScriptAnswer(script);
+        if (solver.answer && scriptAnswer) {
+          verdict = compareAnswers(solver.answer, scriptAnswer.answer);
+        }
+      }
+    }
+
+    job.stats.verification = {
+      verdict,
+      solverAnswer: solver?.answer ?? null,
+      scriptAnswer: scriptAnswer?.answer ?? null,
+      rerun,
+    };
+    /* a late solver still lands honestly in the stats (no rerun then) */
+    void solverPromise.then((s) => {
+      if (
+        s?.answer &&
+        job.stats.verification &&
+        !job.stats.verification.solverAnswer
+      ) {
+        job.stats.verification.solverAnswer = s.answer;
+      }
+    });
+
     job.script = script;
     job.mergedAt = Date.now();
-    job.stats.watchableMs = Date.now() - job.createdAt; // delivery moment
+    job.stats.watchableMs = Date.now() - job.createdAt; // true delivery moment (post-rerun)
     job.phase = "voicing";
 
     /* 5 ─ let the remaining voices land, then the job is complete */

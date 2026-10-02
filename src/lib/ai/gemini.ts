@@ -76,6 +76,9 @@ export interface ChatOpts {
   /** "reason" = the strong tier (director/planner/solver);
    *  "fast" = the lite tier (writers/reviewer). Default "reason". */
   tier?: "reason" | "fast";
+  /** cap thinking tokens (the 3.x family rejects 0; small caps like 1024
+   *  ARE accepted and much faster — the spec's planner demotion path) */
+  thinkingBudget?: number;
 }
 
 /** one chat completion → plain text (all parts joined).
@@ -95,7 +98,7 @@ export async function geminiChat(
     contents: [{ role: "user", parts: [{ text: user }] }],
     generationConfig: {
       temperature: 0.7,
-      thinkingConfig: { thinkingBudget: -1 },
+      thinkingConfig: { thinkingBudget: opts.thinkingBudget ?? -1 },
     },
   });
   const cand = data.candidates as
