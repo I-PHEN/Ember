@@ -31,12 +31,40 @@ interface Tok {
   sup: 0 | 1 | -1; // 1 = superscript, -1 = subscript
 }
 
-/** tokenize: plain chars + ^{..} / _{..} groups + unicode super/subscripts */
+/** tokenize: plain chars + ^{..} / ^(..) / _{..} / _(..) groups + unicode super/subscripts */
 export function tokenize(text: string): Tok[] {
   const toks: Tok[] = [];
   let i = 0;
   while (i < text.length) {
     const c = text[i];
+    // Unicode vulgar fractions decomposed to sup/slash/sub
+    if (c === "½") {
+      toks.push({ ch: "1", sup: 1 }, { ch: "/", sup: 0 }, { ch: "2", sup: -1 });
+      i++;
+      continue;
+    }
+    if (c === "¼") {
+      toks.push({ ch: "1", sup: 1 }, { ch: "/", sup: 0 }, { ch: "4", sup: -1 });
+      i++;
+      continue;
+    }
+    if (c === "¾") {
+      toks.push({ ch: "3", sup: 1 }, { ch: "/", sup: 0 }, { ch: "4", sup: -1 });
+      i++;
+      continue;
+    }
+    if (c === "⅓") {
+      toks.push({ ch: "1", sup: 1 }, { ch: "/", sup: 0 }, { ch: "3", sup: -1 });
+      i++;
+      continue;
+    }
+    if (c === "⅔") {
+      toks.push({ ch: "2", sup: 1 }, { ch: "/", sup: 0 }, { ch: "3", sup: -1 });
+      i++;
+      continue;
+    }
+
+    // Form 1: ^{...} or _{...}
     if ((c === "^" || c === "_") && text[i + 1] === "{") {
       const end = text.indexOf("}", i + 2);
       if (end > i + 1) {
@@ -48,16 +76,32 @@ export function tokenize(text: string): Tok[] {
         continue;
       }
     }
-    // short forms: x^2  x_1
+
+    // Form 2: ^(...) or _(...) e.g. e^(2x), v_(0)
+    if ((c === "^" || c === "_") && text[i + 1] === "(") {
+      const end = text.indexOf(")", i + 2);
+      if (end > i + 1) {
+        const inner = text.slice(i + 2, end);
+        for (const ch of inner) {
+          toks.push({ ch, sup: c === "^" ? 1 : -1 });
+        }
+        i = end + 1;
+        continue;
+      }
+    }
+
+    // Form 3: short forms: x^2, x_1, e^x
     if (
       (c === "^" || c === "_") &&
       i + 1 < text.length &&
-      (text[i + 1] !== " " && !"()=+-*/<>".includes(text[i + 1]))
+      text[i + 1] !== " " &&
+      !"()=+-*/<>".includes(text[i + 1])
     ) {
       toks.push({ ch: text[i + 1], sup: c === "^" ? 1 : -1 });
       i += 2;
       continue;
     }
+
     toks.push({ ch: c, sup: 0 });
     i++;
   }

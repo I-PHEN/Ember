@@ -16,11 +16,11 @@
 const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 export const CHAT_MODEL =
-  process.env.GEMINI_MODEL ?? "gemini-3.8-flash";
+  process.env.GEMINI_MODEL ?? "gemini-3.5-flash";
 export const CHAT_MODEL_LITE =
   process.env.GEMINI_MODEL_LITE ?? "gemini-3.5-flash-lite";
 export const TTS_MODEL =
-  process.env.GEMINI_TTS_MODEL ?? "gemini-3.8-flash-lite-tts";
+  process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
 
 /* Gemini's prebuilt neural voices. Anything else — including the
    legacy "jam" the client still sends — maps to the Ember default. */
@@ -111,26 +111,50 @@ export async function geminiChat(
     .trim();
 }
 
+const TTS_FALLBACKS = [
+  TTS_MODEL,
+  "gemini-2.5-flash-preview-tts",
+  "gemini-3.8-flash-tts",
+  "gemini-3.1-flash-tts-preview",
+];
+
 /** Gemini TTS → a WAV buffer (PCM is returned as base64 L16 mono; we
  *  wrap it with a RIFF header so the player keeps eating audio/wav). */
 export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
-  const data = await call(TTS_MODEL, {
-    contents: [{ parts: [{ text }] }],
-    generationConfig: {
-      responseModalities: ["AUDIO"],
-      speechConfig: {
-        voiceConfig: { prebuiltVoiceConfig: { voiceName: normalizeVoice(voice) } },
-      },
-    },
-  });
-  const cand = data.candidates as
-    | Array<{ content?: { parts?: Array<{ inlineData?: { data?: string } }> } }>
-    | undefined;
-  const b64 = cand?.[0]?.content?.parts?.[0]?.inlineData?.data;
-  if (!b64) throw new Error("tts returned no audio");
-  const pcm = Buffer.from(b64, "base64");
-  if (!pcm.length) throw new Error("empty audio");
-  return pcmToWav(pcm, 24000);
+  const models = [...new Set(TTS_FALLBACKS)];
+  let lastError: unknown = null;
+
+  for (const model of models) {
+    try {
+      const data = await call(model, {
+        contents: [{ parts: [{ text }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: normalizeVoice(voice) } },
+          },
+        },
+      });
+      const cand = data.candidates as
+        | Array<{ content?: { parts?: Array<{ inlineData?: { data?: string } }> } }>
+        | undefined;
+      const b64 = cand?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (!b64) throw new Error("tts returned no audio");
+      const pcm = Buffer.from(b64, "base64");
+      if (!pcm.length) throw new Error("empty audio");
+      return pcmToWav(pcm, 24000);
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      // If it's a 404/429/503 on this model, try the next model in the fallback list
+      if (/404|429|503|UNAVAILABLE|not found|quota/i.test(msg)) {
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError ?? new Error("TTS generation failed on all models");
 }
 
 /** wrap raw signed 16-bit LE mono PCM in a WAV (RIFF) header */

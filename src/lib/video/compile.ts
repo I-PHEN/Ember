@@ -46,9 +46,9 @@ import { normSpeechKey } from "../solve-schema";
 const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
-  // px/second — a real professor's chalk pace (~4 characters/second at
-  // md size). This is a lecture, not a race: the pen is unhurried, and
-  // it is the single strongest "a person is teaching me" signal.
+  // px/second — calibrated to natural human chalkboard pace (~2.5-3 characters/second
+  // at md size: 11 chars in ~3.8s). Combined with say-pacing, ink flows smoothly
+  // and synchronously across spoken explanations.
   return 165 * (0.8 + (0.2 * cap) / 38);
 }
 
@@ -1652,8 +1652,8 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
    segment of the words they decorate. */
 
 const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.55; // allow pen to naturally brisk up when speech is quick so it never lags behind
-const SAY_SCALE_MAX = 3.2; // allow pen to stretch unhurriedly across thoughtful speech
+const SAY_SCALE_MIN = 0.45; // allow pen to naturally brisk up when speech is quick so it never lags behind
+const SAY_SCALE_MAX = 8.5; // allow pen to stretch gracefully across spoken phrases
 /** speech windows start here — the opening words play over the pen's
  *  approach to the board, exactly like a professor starting to talk
  *  while turning to the board */
@@ -1802,9 +1802,11 @@ function paceSceneToNarration(
     const old = segOld[si];
     if (old) {
       const oldDur = Math.max(0.05, old[1] - old[0]);
+      // Target writing duration: fill ~75-80% of the speech window so pen glides steadily with voice
+      const targetDur = Math.max(oldDur * 0.7, win * 0.78 - 0.2);
       const scale = Math.min(
         SAY_SCALE_MAX,
-        Math.max(SAY_SCALE_MIN, win / oldDur)
+        Math.max(SAY_SCALE_MIN, targetDur / oldDur)
       );
       const n0 = Math.max(planned, si > 0 ? prevEnd + SAY_GAP : prevEnd);
       map.push({ o0: old[0], o1: old[1], n0, scale });

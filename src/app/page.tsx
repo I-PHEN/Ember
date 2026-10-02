@@ -578,7 +578,7 @@ export default function Page() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <div className={cn("grid grid-cols-1 gap-5 w-full", SAMPLE_LESSONS.length === 1 ? "max-w-[500px] mx-auto" : "sm:grid-cols-3")}>
             {SAMPLE_LESSONS.map((item) => {
               const thumbUrl = sampleThumbs[item.title];
               const durText = sampleDurs[item.title] || "3:00";
