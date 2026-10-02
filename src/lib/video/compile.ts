@@ -1752,9 +1752,28 @@ function paceSceneToNarration(
     rawPos = rr[1];
     searchFrom = Math.max(searchFrom, at + matchedLen);
   });
-  if (!segs.some((s) => s.isSay)) return false;
-  if (rawPos < narration.length) {
-    segs.push({ r0: rawPos, r1: narration.length, isSay: false });
+  if (!segs.some((s) => s.isSay)) {
+    /* Fallback pacing: distribute marks smoothly across the speech window */
+    const validMarks = marks.filter((m) => m.t1 > m.t0);
+    if (!validMarks.length) return false;
+    const est = estimateNarration(narration);
+    const targetWriteEnd = Math.max(HEAD + 1.0, est * 0.82);
+    const rawWriteSpan = Math.max(0.5, scene.writeEnd - HEAD);
+    const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - HEAD) / rawWriteSpan));
+    for (const st of scene.strokes) {
+      st.t0 = HEAD + (st.t0 - HEAD) * k;
+      st.dur = Math.max(0.03, st.dur * k);
+    }
+    for (const g of groups) {
+      for (const st of g.strokes) {
+        if (st.eraseScene === sceneIdx && st.eraseAt !== undefined) {
+          st.eraseAt = HEAD + (st.eraseAt - HEAD) * k;
+        }
+      }
+    }
+    for (const e of scene.erases) e.at = HEAD + (e.at - HEAD) * k;
+    scene.writeEnd = HEAD + (scene.writeEnd - HEAD) * k;
+    return true;
   }
 
   /* every mark joins the segment of the nearest PRECEDING say (marks
@@ -1993,7 +2012,7 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
   /* say-paced scenes stretch their whole pen schedule to the REAL
      speech length (TTS speaks at a steady rate, so scaling the baked
      schedule keeps every beat inside its own words' window). */
-  if (s.paced && !s.locked) {
+  if (s.paced && s.pacedFor !== audioDur) {
     const base = s.pacedFor ?? estimateNarration(s.narration);
     let k = (audioDur + 0.5 - HEAD) / (base + 0.5 - HEAD);
     if (Number.isFinite(k) && k > 0 && Math.abs(k - 1) > 0.01) {

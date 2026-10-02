@@ -570,77 +570,91 @@ export default function Page() {
         </div>
 
         {/* YouTube-Style Sample Videos Below */}
-        <div id="lessons" className="mt-12 w-full scroll-mt-24">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <Sparkles className="h-4 w-4 text-[#e6b784]" />
-              A good place to start
+        {SAMPLE_LESSONS.length > 0 && (
+          <div id="lessons" className="mt-12 w-full scroll-mt-24">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <Sparkles className="h-4 w-4 text-[#e6b784]" />
+                A good place to start
+              </div>
+            </div>
+
+            <div className={cn("grid grid-cols-1 gap-5 w-full", SAMPLE_LESSONS.length === 1 ? "max-w-[500px] mx-auto" : "sm:grid-cols-3")}>
+              {SAMPLE_LESSONS.map((item) => {
+                const thumbUrl = sampleThumbs[item.title];
+                const durText = sampleDurs[item.title] || "3:00";
+                return (
+                  <div
+                    key={item.title}
+                    className="ember-lesson-card group relative cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Watch ${item.title}`}
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); watch(item); } }}
+                    onClick={() => watch(item)}
+                  >
+                    {/* YouTube-style 16:9 Thumbnail Box */}
+                    <div className="relative aspect-video w-full overflow-hidden rounded-[7px] bg-black">
+                      {thumbUrl ? (
+                        <img
+                          src={thumbUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-zinc-950">
+                          <Play className="h-8 w-8 text-white/30" />
+                        </div>
+                      )}
+
+                      {/* Play Hover Overlay */}
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                        <span className="scale-75 rounded-full bg-[#e6b784] p-3 text-[#191816] transition-transform duration-200 group-hover:scale-100">
+                          <Play className="h-5 w-5 fill-current ml-0.5" />
+                        </span>
+                      </div>
+
+                      {/* YouTube-Style Duration Badge (Bottom-Right, NO chapters) */}
+                      <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7]">
+                        {durText}
+                      </div>
+                    </div>
+
+                    {/* YouTube-Style Short Title & Subtext */}
+                    <div className="mt-3 px-0.5">
+                      <h3 className="line-clamp-1 text-sm font-medium text-foreground group-hover:text-[#e6b784] transition-colors">
+                        {item.title}
+                      </h3>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {item.subject ? `${item.subject} · ` : ""}Ember
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          <div className={cn("grid grid-cols-1 gap-5 w-full", SAMPLE_LESSONS.length === 1 ? "max-w-[500px] mx-auto" : "sm:grid-cols-3")}>
-            {SAMPLE_LESSONS.map((item) => {
-              const thumbUrl = sampleThumbs[item.title];
-              const durText = sampleDurs[item.title] || "3:00";
-              return (
-                <div
-                  key={item.title}
-                  className="ember-lesson-card group relative cursor-pointer"
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Watch ${item.title}`}
-                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); watch(item); } }}
-                  onClick={() => watch(item)}
-                >
-                  {/* YouTube-style 16:9 Thumbnail Box */}
-                  <div className="relative aspect-video w-full overflow-hidden rounded-[7px] bg-black">
-                    {thumbUrl ? (
-                      <img
-                        src={thumbUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-zinc-950">
-                        <Play className="h-8 w-8 text-white/30" />
-                      </div>
-                    )}
-
-                    {/* Play Hover Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                      <span className="scale-75 rounded-full bg-[#e6b784] p-3 text-[#191816] transition-transform duration-200 group-hover:scale-100">
-                        <Play className="h-5 w-5 fill-current ml-0.5" />
-                      </span>
-                    </div>
-
-                    {/* YouTube-Style Duration Badge (Bottom-Right, NO chapters) */}
-                    <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7]">
-                      {durText}
-                    </div>
-                  </div>
-
-                  {/* YouTube-Style Short Title & Subtext */}
-                  <div className="mt-3 px-0.5">
-                    <h3 className="line-clamp-1 text-sm font-medium text-foreground group-hover:text-[#e6b784] transition-colors">
-                      {item.title}
-                    </h3>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {item.subject ? `${item.subject} · ` : ""}Ember
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        )}
 
         {/* Saved Library (Only if history exists) */}
         {history.length > 0 && (
           <div className="mt-14 w-full space-y-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <HistoryIcon className="h-4 w-4 text-[#e6b784]" />
-              Your Solves
-              <span className="font-mono text-xs text-muted-foreground">({history.length})</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <HistoryIcon className="h-4 w-4 text-[#e6b784]" />
+                Your Solves
+                <span className="font-mono text-xs text-muted-foreground">({history.length})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setHistory([]);
+                  saveHistory([]);
+                }}
+                className="text-xs text-muted-foreground hover:text-[#ff6b6b] transition-colors"
+              >
+                Clear all
+              </button>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">

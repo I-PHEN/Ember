@@ -203,10 +203,8 @@ export const HERO_SCRIPT: SolveScript = {
   ],
 };
 
-/** The single master lesson showcase */
-export const SAMPLE_LESSONS: SolveScript[] = [
-  SAMPLE_CALCULUS,
-];
+/** The showcase lesson list — empty for fresh generation */
+export const SAMPLE_LESSONS: SolveScript[] = [];
 
 export const EXAMPLE_QUESTIONS = [
   "Evaluate ∫ x · e^(2x) dx using integration by parts",
