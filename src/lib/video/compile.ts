@@ -64,7 +64,7 @@ function polyLen(pts: Pt[]): { cum: number[]; len: number } {
 
 export function estimateNarration(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(2.4, words * 0.42 + 0.9);
+  return Math.max(2.4, words * 0.52 + 1.2);
 }
 
 function fmtNum(v: number): string {

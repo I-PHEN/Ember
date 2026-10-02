@@ -4,6 +4,10 @@
    is just: pause everything → set currentTime → play the right one.
 ------------------------------------------------------------------- */
 
+/** Calibrated base speech rate multiplier for calm, pedagogical university delivery
+ *  (~115 WPM vs raw ~146 WPM TTS). Preserves pitch and gives students time to process. */
+export const BASE_SPEECH_RATE = 0.83;
+
 export class SceneAudio {
   private els: (HTMLAudioElement | null)[] = [];
   private urls = new Set<string>();
@@ -33,7 +37,8 @@ export class SceneAudio {
 
   duration(i: number): number {
     const a = this.els[i];
-    return a && Number.isFinite(a.duration) ? a.duration : 0;
+    const raw = a && Number.isFinite(a.duration) ? a.duration : 0;
+    return raw / BASE_SPEECH_RATE;
   }
 
   /**
@@ -53,20 +58,22 @@ export class SceneAudio {
       return false;
     }
     this.pauseOthers(i);
-    const r = Math.max(0.5, Math.min(2, rate));
+    const r = Math.max(0.4, Math.min(2.5, BASE_SPEECH_RATE * rate));
     if (a.playbackRate !== r) a.playbackRate = r;
     a.muted = muted;
-    const dur = Number.isFinite(a.duration) ? a.duration : 0;
-    const wantSound = playing && !muted && dur > 0 && offset < dur - 0.02;
+    const rawDur = Number.isFinite(a.duration) ? a.duration : 0;
+    const effectiveDur = rawDur / BASE_SPEECH_RATE;
+    const wantSound = playing && !muted && effectiveDur > 0 && offset < effectiveDur - 0.02;
     if (!wantSound) {
       if (!a.paused) a.pause();
-      if (playing) a.currentTime = Math.min(offset, Math.max(0, dur - 0.05));
+      if (playing) a.currentTime = Math.min(offset * BASE_SPEECH_RATE, Math.max(0, rawDur - 0.05));
       return false;
     }
-    const drift = a.currentTime - offset;
-    if (Math.abs(drift) > 0.13) {
+    const audioTarget = offset * BASE_SPEECH_RATE;
+    const drift = a.currentTime - audioTarget;
+    if (Math.abs(drift) > 0.12) {
       try {
-        a.currentTime = Math.min(offset, Math.max(0, dur - 0.05));
+        a.currentTime = Math.min(audioTarget, Math.max(0, rawDur - 0.05));
       } catch {
         /* not loaded yet */
       }

@@ -43,7 +43,7 @@ import {
 } from "@/lib/video/types";
 import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
 import { renderFrame } from "@/lib/video/render";
-import { SceneAudio } from "@/lib/video/audio";
+import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { narrationStore } from "@/lib/narration-store";
 import { cn } from "@/lib/utils";
 
@@ -217,8 +217,9 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             if (cancelled) return;
             const dur = await probeDuration(url);
             if (cancelled) return;
-            audioRef.current?.attach(idx, url, dur);
-            setSceneAudio(tl, idx, dur);
+            const effectiveDur = dur / BASE_SPEECH_RATE;
+            audioRef.current?.attach(idx, url, effectiveDur);
+            setSceneAudio(tl, idx, effectiveDur);
             readyRef.current[idx] = true;
             onVoiced?.(idx);
             bumpDur();
