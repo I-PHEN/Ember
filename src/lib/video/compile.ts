@@ -1592,8 +1592,8 @@ function appendTalkHold(ctx: Ctx, estAudio: number): void {
   if (!ctx.scene.narration) return;
   const t0 = ctx.scene.writeEnd + 0.35;
   const talkEnd = Math.max(ctx.scene.writeEnd + 0.9, estAudio + 0.25);
-  const holdDur = Math.min(7, talkEnd - 0.5 - t0);
-  if (holdDur < 2.2) return; // too brief to read as pointing
+  const holdDur = Math.min(25, talkEnd - 0.5 - t0);
+  if (holdDur < 1.6) return; // too brief to read as pointing
   // most recent visible group (emphasis groups point at their target)
   let g: Group | undefined;
   for (let i = ctx.scene.groups.length - 1; i >= 0; i--) {
@@ -1652,8 +1652,8 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
    segment of the words they decorate. */
 
 const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.8; // never rush ink beyond this factor — professor pace wins
-const SAY_SCALE_MAX = 2.4; // never drag ink slower than this factor
+const SAY_SCALE_MIN = 0.55; // allow pen to naturally brisk up when speech is quick so it never lags behind
+const SAY_SCALE_MAX = 3.2; // allow pen to stretch unhurriedly across thoughtful speech
 /** speech windows start here — the opening words play over the pen's
  *  approach to the board, exactly like a professor starting to talk
  *  while turning to the board */
@@ -1727,15 +1727,32 @@ function paceSceneToNarration(
     if (!m.say) return;
     const sKey = normSpeechKey(m.say);
     if (!sKey) return;
-    const at = nKey.indexOf(sKey, searchFrom);
-    if (at < 0) return; // duplicate / out of order — drop the tag
-    const rr = rawRangeFor(nIdx, at, at + sKey.length - 1);
+    let at = nKey.indexOf(sKey, searchFrom);
+    let matchedLen = sKey.length;
+    if (at < 0 && searchFrom > 0) {
+      at = nKey.indexOf(sKey, 0); // fallback if slightly out of sequence
+    }
+    if (at < 0) {
+      // subphrase fallback: try matching 3+ word chunks
+      const words = sKey.split(/\s+/);
+      for (let len = words.length - 1; len >= 3; len--) {
+        const sub = words.slice(0, len).join(" ");
+        at = nKey.indexOf(sub, searchFrom);
+        if (at < 0 && searchFrom > 0) at = nKey.indexOf(sub, 0);
+        if (at >= 0) {
+          matchedLen = sub.length;
+          break;
+        }
+      }
+    }
+    if (at < 0) return; // duplicate / truly absent tag
+    const rr = rawRangeFor(nIdx, at, at + Math.min(matchedLen - 1, nKey.length - 1 - at));
     if (!rr) return;
     if (rr[0] > rawPos) segs.push({ r0: rawPos, r1: rr[0], isSay: false });
     segs.push({ r0: rr[0], r1: rr[1], isSay: true });
     markSeg[i] = segs.length - 1;
     rawPos = rr[1];
-    searchFrom = at + sKey.length;
+    searchFrom = Math.max(searchFrom, at + matchedLen);
   });
   if (!segs.some((s) => s.isSay)) return false;
   if (rawPos < narration.length) {

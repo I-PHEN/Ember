@@ -156,24 +156,55 @@ export function cleanNarration(raw: unknown): string {
   return s;
 }
 
-/** fuzzy comparison key — case/punctuation/space-insensitive */
+const WORD_TO_DIGIT: Record<string, string> = {
+  zero: "0", one: "1", two: "2", three: "3", four: "4",
+  five: "5", six: "6", seven: "7", eight: "8", nine: "9",
+  ten: "10", eleven: "11", twelve: "12", thirteen: "13",
+  fourteen: "14", fifteen: "15", sixteen: "16", seventeen: "17",
+  eighteen: "18", nineteen: "19", twenty: "20", thirty: "30",
+  forty: "40", fifty: "50", sixty: "60", seventy: "70",
+  eighty: "80", ninety: "90", hundred: "100",
+};
+
+/** fuzzy comparison key — case/punctuation/space/number-insensitive */
 export function normSpeechKey(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return s
+    .toLowerCase()
+    .replace(/[−–—]/g, "-")
+    .replace(/[·•×]/g, "*")
+    .replace(/÷/g, "/")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => WORD_TO_DIGIT[w] ?? w)
+    .join(" ");
 }
 
 /** A beat's "say" tag = the exact words spoken while it is written —
- *  what makes the pen stay in sync with the voice. Keep it only when
- *  it genuinely appears inside this scene's narration, else the timing
- *  anchor would be a lie (dropped tags simply join the current beat
- *  group, which is harmless). */
+ *  what makes the pen stay in sync with the voice. Keep it when it
+ *  appears inside this scene's narration (or has a strong contiguous subphrase). */
 function cleanSay(raw: unknown, narrationKey: string): string | undefined {
   if (typeof raw !== "string" || !raw.trim()) return undefined;
   const s = cleanNarration(raw);
   if (!s) return undefined;
   const key = normSpeechKey(s);
   if (!key || key.length < 3) return undefined;
-  if (!narrationKey.includes(key)) return undefined;
-  return s.length > 300 ? s.slice(0, 300) : s;
+  if (narrationKey.includes(key)) return s.length > 300 ? s.slice(0, 300) : s;
+
+  // Subphrase resilience: if the writer paraphrased slightly, check if a 3+ word chunk matches
+  const words = key.split(/\s+/);
+  if (words.length >= 3) {
+    for (let len = words.length - 1; len >= 3; len--) {
+      for (let start = 0; start <= words.length - len; start++) {
+        const sub = words.slice(start, start + len).join(" ");
+        if (narrationKey.includes(sub)) {
+          return s.length > 300 ? s.slice(0, 300) : s;
+        }
+      }
+    }
+  }
+  return undefined;
 }
 
 /* ----------------------- board discipline ------------------------- */
@@ -505,6 +536,7 @@ export function sanitizeSceneBeats(
   const narrationKey = normSpeechKey(narration);
   const beats: Beat[] = [];
   const prose: string[] = [];
+  let emphasisCount = 0;
   for (const bRaw of rawBeats.slice(0, 22)) {
     const beat = sanitizeBeat(bRaw, narrationKey);
     if (!beat) continue;
@@ -512,6 +544,12 @@ export function sanitizeSceneBeats(
       prose.push(beat.text); // explanations are SPOKEN, never written
       if (stats) stats.proseDropped += 1;
       continue;
+    }
+    // Board discipline: real lecturers do NOT circle or underline everything.
+    // At most ONE emphasis beat per scene (box, circle, underline, highlight).
+    if (["box", "circle", "underline", "highlight"].includes(beat.type)) {
+      if (emphasisCount > 0) continue;
+      emphasisCount++;
     }
     beats.push(beat);
   }

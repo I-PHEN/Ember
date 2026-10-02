@@ -1,0 +1,1309 @@
+{
+  "ranAt": "2026-10-02T09:25:18.870Z",
+  "results": [
+    {
+      "id": "alg-linear",
+      "passed": false,
+      "ms": 357989,
+      "watchableMs": 145412,
+      "scenes": 6,
+      "proseBeats": 0,
+      "sayCoverage": 1,
+      "overlapPct": 6,
+      "stats": {
+        "directorMs": 71403,
+        "plannerMs": 15391,
+        "writerMs": [
+          7448,
+          8182,
+          8565,
+          5815,
+          7337,
+          41002
+        ],
+        "voiceMs": [
+          110405,
+          31409,
+          14701,
+          56948,
+          14089
+        ],
+        "firstVoiceReadyMs": 204654,
+        "proseDropped": 0,
+        "overlapPct": 6,
+        "layoutViolations": 3,
+        "providerHops": 2,
+        "watchableMs": 145412,
+        "reviewedScenes": 6,
+        "unreviewedScenes": 0,
+        "fixedScenes": 6,
+        "checkerChecked": 2,
+        "checkerFlags": 0,
+        "verification": {
+          "verdict": "match",
+          "solverAnswer": "x = 4",
+          "scriptAnswer": "x = 4",
+          "rerun": false
+        }
+      },
+      "script": {
+        "title": "Solving a Simple Linear Equation",
+        "subject": "Algebra",
+        "question": "Solve 2x + 5 = 13",
+        "scenes": [
+          {
+            "chapter": "Understanding the problem",
+            "narration": "Welcome back. Today we have a classic linear equation sitting on the board: 2x plus 5 equals 13. Before we write anything down, let us think about what this sentence actually says. It tells us that some unknown quantity, x, was doubled, and then increased by 5, landing precisely at 13. Our goal, quite simply, is to find that mystery number x that makes the statement completely true. We have our pieces: twice x, a constant 5, and the target 13.",
+            "beats": [
+              {
+                "type": "title",
+                "text": "Solving a Simple Linear Equation",
+                "color": "yellow",
+                "say": "Welcome back. Today we have a classic linear equation sitting on the board: 2x plus 5 equals 13."
+              },
+              {
+                "type": "write",
+                "text": "2x + 5 = 13",
+                "color": "blue",
+                "size": "lg",
+                "keep": true,
+                "say": "2x plus 5 equals 13."
+              },
+              {
+                "type": "write",
+                "text": "Find: x",
+                "color": "white",
+                "size": "md",
+                "say": "Our goal, quite simply, is to find that mystery number x that makes the statement completely true."
+              },
+              {
+                "type": "write",
+                "text": "GIVEN: 2x, 5, 13",
+                "color": "white",
+                "size": "md",
+                "say": "We have our pieces: twice x, a constant 5, and the target 13."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "The plan",
+            "narration": "Here is our route forward. Right now, x is buried under two operations: multiplication by 2, and addition of 5. To peel those layers back, we simply undo them in reverse order. Think of it like unwrapping a package. First, we will subtract 5 from both sides to isolate the 2x term. After that, we divide both sides by 2 to leave x entirely on its own. It is clean, reliable, and keeps the scale balanced every step of the way.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "Plan:",
+                "color": "white",
+                "size": "md",
+                "say": "Here is our route forward."
+              },
+              {
+                "type": "write",
+                "text": "1. Subtract 5",
+                "color": "orange",
+                "size": "md",
+                "say": "First, we will subtract 5 from both sides to isolate the 2x term."
+              },
+              {
+                "type": "write",
+                "text": "2. Divide by 2",
+                "color": "orange",
+                "size": "md",
+                "say": "After that, we divide both sides by 2"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Subtract 5",
+            "narration": "Let us execute that first move. We take away 5 from the left side, and to keep our balance honest, we take away 5 from the right side as well. On the left, positive 5 and minus 5 cancel to zero, leaving just 2x. On the right, 13 minus 5 leaves us with 8. So our equation simplifies to 2x equals 8. Pause here for a moment. What would you do next to finish the job?",
+            "beats": [
+              {
+                "type": "write",
+                "text": "2x + 5 − 5 = 13 − 5",
+                "color": "white",
+                "size": "md",
+                "say": "Let us execute that first move. We take away 5 from the left side, and to keep our balance honest, we take away 5 from the right side as well."
+              },
+              {
+                "type": "write",
+                "text": "→ 2x = 8",
+                "color": "green",
+                "size": "md",
+                "say": "On the left, positive 5 and minus 5 cancel to zero, leaving just 2x. On the right, 13 minus 5 leaves us with 8. So our equation simplifies to 2x equals 8."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Divide by 2",
+            "narration": "If you said divide by 2, you are right on the money. Our unknown x is currently multiplied by 2, so the inverse operation is division. We divide the left side by 2, and the twos cancel out neatly, leaving x standing all by itself. Then we do the exact same thing to the right side: 8 divided by 2 gives us 4. Just like that, the arithmetic unwraps cleanly: x equals 4.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "2x ÷ 2 = 8 ÷ 2",
+                "color": "white",
+                "size": "md",
+                "say": "We divide the left side by 2, and the twos cancel out neatly,"
+              },
+              {
+                "type": "crossout",
+                "target": "text:2"
+              },
+              {
+                "type": "write",
+                "text": "÷ 2 both sides",
+                "color": "orange",
+                "size": "sm",
+                "below": "text:2x ÷ 2 = 8 ÷ 2",
+                "say": "leaving x standing all by itself."
+              },
+              {
+                "type": "write",
+                "text": "x = 4",
+                "color": "green",
+                "size": "md",
+                "keep": true,
+                "say": "Then we do the exact same thing to the right side: 8 divided by 2 gives us 4. Just like that, the arithmetic unwraps cleanly: x equals 4."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Answer",
+            "narration": "Let us put a nice green box around that: x equals 4. Notice that our variable carries no physical units here; it is pure, lovely number. Take a breath and let that result land. We started with an equation tying x to other numbers, and through two quiet, reversible operations, we isolated the exact value that satisfies the relationship. But in mathematics, we never just walk away without being absolutely certain.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "x = 4",
+                "color": "green",
+                "size": "lg",
+                "keep": true,
+                "say": "Let us put a nice green box around that: x equals 4. Notice that our variable carries no physical units here; it is pure, lovely number. Take a breath and let that result land. We started with an equation tying x to other numbers, and through two quiet, reversible operations, we isolated the exact v"
+              },
+              {
+                "type": "box",
+                "color": "yellow"
+              },
+              {
+                "type": "wait",
+                "ms": 1500
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Check",
+            "narration": "Let us check our work to be sure. We substitute 4 right back into the original expression wherever we see x. Two times 4 is 8, and 8 plus 5 gives us 13. Thirteen on the left, thirteen on the right. The equality holds, and the statement is true. That, right there, is the quiet power of algebraic balance: peel away the layers one step at a time, check your result, and you will never go wrong.",
+            "beats": [
+              {
+                "type": "erase",
+                "keep": [
+                  "x = 4"
+                ]
+              },
+              {
+                "type": "write",
+                "text": "Check: 2(4) + 5 = 13",
+                "color": "white",
+                "size": "md",
+                "say": "We substitute 4 right back into the original expression wherever we see x."
+              },
+              {
+                "type": "write",
+                "text": "8 + 5 = 13",
+                "color": "white",
+                "size": "md",
+                "say": "Two times 4 is 8, and 8 plus 5 gives us 13."
+              },
+              {
+                "type": "write",
+                "text": "13 = 13 (True)",
+                "color": "green",
+                "size": "md",
+                "say": "Thirteen on the left, thirteen on the right. The equality holds, and the statement is true."
+              },
+              {
+                "type": "point",
+                "ms": 1500,
+                "target": "text:13 = 13 (True)"
+              }
+            ],
+            "intro": false
+          }
+        ]
+      },
+      "checks": [
+        {
+          "ok": true,
+          "detail": "scenes=6"
+        },
+        {
+          "ok": true,
+          "detail": "proseBeats=0"
+        },
+        {
+          "ok": true,
+          "detail": "sayCoverage=1.00"
+        },
+        {
+          "ok": true,
+          "detail": "overlapPct=6"
+        },
+        {
+          "ok": false,
+          "detail": "layoutViolations=3"
+        },
+        {
+          "ok": false,
+          "detail": "watchableMs=145412 (target ≤60s, gate 90s)"
+        },
+        {
+          "ok": true,
+          "detail": "providerHops=2"
+        },
+        {
+          "ok": true,
+          "detail": "reviewed=6 fixed=6 unreviewed=0"
+        },
+        {
+          "ok": true,
+          "detail": "no planted-defect arithmetic on the board"
+        },
+        {
+          "ok": true,
+          "detail": "verify=match solver=x = 4 checker=0 flags"
+        }
+      ]
+    },
+    {
+      "id": "calc-integral",
+      "passed": false,
+      "ms": 447361,
+      "watchableMs": 147755,
+      "scenes": 7,
+      "proseBeats": 0,
+      "sayCoverage": 1,
+      "overlapPct": 6,
+      "stats": {
+        "directorMs": 23650,
+        "plannerMs": 63724,
+        "writerMs": [
+          8573,
+          7327,
+          14472,
+          7054,
+          15476,
+          26469,
+          34415
+        ],
+        "voiceMs": [
+          45109,
+          47718
+        ],
+        "firstVoiceReadyMs": 141059,
+        "proseDropped": 0,
+        "overlapPct": 6,
+        "layoutViolations": 2,
+        "providerHops": 4,
+        "watchableMs": 147755,
+        "reviewedScenes": 7,
+        "unreviewedScenes": 0,
+        "fixedScenes": 5,
+        "checkerChecked": 0,
+        "checkerFlags": 0,
+        "verification": {
+          "verdict": "match",
+          "solverAnswer": "(x/2 - 1/4)e^(2x) + C",
+          "scriptAnswer": "F(x) = (x/2)e^(2x) - (1/4)e^(2x) + C",
+          "rerun": false
+        }
+      },
+      "script": {
+        "title": "Integration by Parts – ∫ x·e^(2x) dx",
+        "subject": "Calculus",
+        "question": "Evaluate ∫ x·e^(2x) dx",
+        "scenes": [
+          {
+            "chapter": "Understanding the problem",
+            "narration": "Let's take a look at what we have here. We want to evaluate the indefinite integral of x times e to the 2x, with respect to x. In plain English, we are hunting for an antiderivative: a function F of x whose derivative brings us right back to this product. Notice that we don't have friendly numbers or easy bounds here, just two completely different types of functions multiplied together: an algebraic power of x, and an exponential. Standard substitution won't cut it, so we need a more flexible tool.",
+            "beats": [
+              {
+                "type": "title",
+                "text": "∫ x·e^(2x) dx",
+                "color": "blue",
+                "say": "Let's take a look at what we have here. We want to evaluate the indefinite integral of x times e to the 2x, with respect to x."
+              },
+              {
+                "type": "write",
+                "text": "Find: F(x) such that F'(x) = x·e^(2x)",
+                "color": "white",
+                "size": "md",
+                "say": "In plain English, we are hunting for an antiderivative: a function F of x whose derivative brings us right back to this product."
+              },
+              {
+                "type": "write",
+                "text": "Product: x · e^(2x)",
+                "color": "yellow",
+                "size": "sm",
+                "say": "Notice that we don't have friendly numbers or easy bounds here, just two completely different types of functions multiplied together: an algebraic power of x, and an exponential."
+              },
+              {
+                "type": "write",
+                "text": "Need Integration by Parts",
+                "color": "green",
+                "size": "sm",
+                "say": "Standard substitution won't cut it, so we need a more flexible tool."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "The plan",
+            "narration": "Here is our route. Whenever we see a product of two mismatched functions like this, our mind should go straight to integration by parts. The core formula tells us that the integral of u dv equals u times v minus the integral of v du. It comes directly from the product rule of differentiation. The whole strategy hinges on picking our u and dv cleverly, so that the new integral on the right-hand side is substantially friendlier than the original one we started with.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "∫ u dv = u·v − ∫ v du",
+                "color": "yellow",
+                "size": "lg",
+                "align": "center",
+                "say": "The core formula tells us that the integral of u dv equals u times v minus the integral of v du."
+              },
+              {
+                "type": "underline",
+                "color": "yellow"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "Plan: u = x, dv = e^(2x) dx",
+                "color": "white",
+                "size": "md",
+                "align": "center",
+                "say": "The whole strategy hinges on picking our u and dv cleverly, so that the new integral on the right-hand side is substantially friendlier than the original one we started with."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Choose u and dv",
+            "narration": "Let's assign our parts. We will choose u to be x, and dv to be e to the 2x dx. Why that split? Because when we differentiate u, the power of x drops away entirely, leaving du as simply 1 dx. Meanwhile, e to the 2x is very easy to integrate: by undoing the chain rule, v becomes one-half e to the 2x. And that, right there, is the trick of this problem: we trade a stubborn x for a constant.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "u = x",
+                "color": "white",
+                "size": "md",
+                "say": "We will choose u to be x"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "dv = e^(2x) dx",
+                "color": "white",
+                "size": "md",
+                "say": "and dv to be e to the 2x dx."
+              },
+              {
+                "type": "point",
+                "ms": 1000,
+                "target": "text:u = x"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "du = dx",
+                "color": "white",
+                "size": "md",
+                "say": "leaving du as simply 1 dx."
+              },
+              {
+                "type": "point",
+                "ms": 1000,
+                "target": "text:dv = e^(2x) dx"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "v = (1/2)e^(2x)",
+                "color": "green",
+                "size": "md",
+                "say": "by undoing the chain rule, v becomes one-half e to the 2x."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Apply integration by parts",
+            "narration": "Now, let's assemble the pieces using our formula. The original integral equals u times v, which is x times one-half e to the 2x, minus the integral of v du, which gives us the integral of one-half e to the 2x dx. Look at how much simpler that second integral is compared to where we started. Now, pause here: what would you do next with that remaining integral? See if you can spot the final factor before we write it down.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "∫ x·e^(2x) dx = x·(1/2)e^(2x)",
+                "color": "white",
+                "size": "md",
+                "say": "Now, let's assemble the pieces using our formula. The original integral equals u times v, which is x times one-half e to the 2x,"
+              },
+              {
+                "type": "write",
+                "text": "− ∫ (1/2)e^(2x) dx",
+                "color": "white",
+                "size": "md",
+                "below": "text:∫ x·e^(2x) dx = x·(1/2)e^(2x)",
+                "say": "minus the integral of v du, which gives us the integral of one-half e to the 2x dx. Look at how much simpler that second integral is compared to where we started. Now, pause here: what would you do next with that remaining integral? See if you can spot the final factor before we write it down."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Integrate the remaining term",
+            "narration": "Let's finish that remaining piece. We need to integrate one-half e to the 2x. Remember, whenever we differentiate e to the 2x, the chain rule spits out an extra factor of two. So when we integrate, we have to divide by two to balance it out. That brings out another factor of one-half, multiplying the one-half we already had. One-half times one-half gives us one-fourth. So that second term becomes simply one-fourth e to the 2x.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "∫ (1/2)e^(2x) dx",
+                "color": "white",
+                "size": "md",
+                "say": "Let's finish that remaining piece. We need to integrate one-half e to the 2x."
+              },
+              {
+                "type": "write",
+                "text": "= (1/4)e^(2x)",
+                "color": "green",
+                "size": "md",
+                "keep": true,
+                "say": "That brings out another factor of one-half, multiplying the one-half we already had. One-half times one-half gives us one-fourth. So that second term becomes simply one-fourth e to the 2x."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Combine results",
+            "narration": "Let's put the entire story together. Our first term is x over two times e to the 2x, and we subtract our second term, one-fourth e to the 2x. And of course, because this is an indefinite integral, we never forget our constant of integration, plus C. If we want to be elegant, we can even factor out e to the 2x, but this expanded form is already completely correct and very easy to read. Let's box this up.",
+            "beats": [
+              {
+                "type": "erase",
+                "keep": []
+              },
+              {
+                "type": "write",
+                "text": "F(x) = (x/2)e^(2x) - (1/4)e^(2x) + C",
+                "color": "green",
+                "size": "md",
+                "keep": true,
+                "say": "Our first term is x over two times e to the 2x, and we subtract our second term, one-fourth e to the 2x. And of course, because this is an indefinite integral, we never forget our constant of integration, plus C."
+              },
+              {
+                "type": "box",
+                "color": "yellow",
+                "target": "F(x) = (x/2)e^(2x) - (1/4)e^(2x) + C"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Check",
+            "narration": "Before we walk away satisfied, let's do a quick reality check by taking the derivative. Differentiating x over two times e to the 2x uses the product rule: derivative of the first gives one-half e to the 2x, plus the first times the derivative of the second, which is x times e to the 2x. Then differentiate the second term, minus one-fourth e to the 2x, which yields minus one-half e to the 2x. Those one-halves cancel cleanly, leaving just x e to the 2x. It matches perfectly. Nicely done today.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "d/dx [ (x/2)e^(2x) - (1/4)e^(2x) ]",
+                "color": "white",
+                "size": "sm",
+                "say": "Before we walk away satisfied, let's do a quick reality check by taking the derivative."
+              },
+              {
+                "type": "write",
+                "text": "= (1/2)e^(2x) + x·e^(2x) - (1/2)e^(2x)",
+                "color": "white",
+                "size": "sm",
+                "say": "Differentiating x over two times e to the 2x uses the product rule: derivative of the first gives one-half e to the 2x, plus the first times the derivative of the second, which is x times e to the 2x. Then differentiate the second term, minus one-fourth e to the 2x, which yields minus one-half e to "
+              },
+              {
+                "type": "write",
+                "text": "= x·e^(2x)",
+                "color": "green",
+                "size": "md",
+                "keep": true,
+                "say": "Those one-halves cancel cleanly, leaving just x e to the 2x. It matches perfectly. Nicely done today."
+              },
+              {
+                "type": "box",
+                "color": "yellow",
+                "target": "= x·e^(2x)"
+              }
+            ],
+            "intro": false
+          }
+        ]
+      },
+      "checks": [
+        {
+          "ok": true,
+          "detail": "scenes=7"
+        },
+        {
+          "ok": true,
+          "detail": "proseBeats=0"
+        },
+        {
+          "ok": true,
+          "detail": "sayCoverage=1.00"
+        },
+        {
+          "ok": true,
+          "detail": "overlapPct=6"
+        },
+        {
+          "ok": false,
+          "detail": "layoutViolations=2"
+        },
+        {
+          "ok": false,
+          "detail": "watchableMs=147755 (target ≤60s, gate 90s)"
+        },
+        {
+          "ok": true,
+          "detail": "providerHops=4"
+        },
+        {
+          "ok": true,
+          "detail": "reviewed=7 fixed=5 unreviewed=0"
+        },
+        {
+          "ok": true,
+          "detail": "no planted-defect arithmetic on the board"
+        },
+        {
+          "ok": true,
+          "detail": "verify=match solver=(x/2 - 1/4)e^(2x) + C checker=0 flags"
+        }
+      ]
+    },
+    {
+      "id": "phys-incline",
+      "passed": false,
+      "ms": 480734,
+      "watchableMs": 94561,
+      "scenes": 0,
+      "proseBeats": -1,
+      "sayCoverage": 0,
+      "overlapPct": 0,
+      "checks": [
+        {
+          "ok": false,
+          "detail": "pipeline did not complete: voicing "
+        }
+      ]
+    },
+    {
+      "id": "ode-separable",
+      "passed": false,
+      "ms": 480865,
+      "watchableMs": 252589,
+      "scenes": 0,
+      "proseBeats": -1,
+      "sayCoverage": 0,
+      "overlapPct": 0,
+      "checks": [
+        {
+          "ok": false,
+          "detail": "pipeline did not complete: voicing "
+        }
+      ]
+    },
+    {
+      "id": "linalg-eigen",
+      "passed": false,
+      "ms": 477811,
+      "watchableMs": 109282,
+      "scenes": 8,
+      "proseBeats": 0,
+      "sayCoverage": 1,
+      "overlapPct": 4,
+      "stats": {
+        "directorMs": 16070,
+        "plannerMs": 55188,
+        "writerMs": [
+          6472,
+          6715,
+          7401,
+          9052,
+          11366,
+          8898,
+          7067,
+          8872
+        ],
+        "voiceMs": [
+          19698,
+          33600
+        ],
+        "firstVoiceReadyMs": 259871,
+        "proseDropped": 0,
+        "overlapPct": 4,
+        "layoutViolations": 0,
+        "providerHops": 5,
+        "watchableMs": 109282,
+        "reviewedScenes": 8,
+        "unreviewedScenes": 0,
+        "fixedScenes": 4,
+        "checkerChecked": 0,
+        "checkerFlags": 0,
+        "verification": {
+          "verdict": "match",
+          "solverAnswer": "λ = 1, 3",
+          "scriptAnswer": "Eigenvalues: λ = 1, 3",
+          "rerun": false
+        }
+      },
+      "script": {
+        "title": "Eigenvalues of a 2×2 Symmetric Matrix",
+        "subject": "Linear Algebra",
+        "question": "Find the eigenvalues of the matrix [[2,1],[1,2]].",
+        "scenes": [
+          {
+            "chapter": "Understanding the problem",
+            "narration": "Welcome. Today we have a classic problem from linear algebra. We are given a two-by-two symmetric matrix A, with entries two, one on the top row, and one, two on the bottom. Our goal is to find its eigenvalues, traditionally written as lambda. Conceptually, an eigenvalue is a special scaling factor. When matrix A acts on a specific non-zero vector v, it simply stretches or shrinks that vector without changing its direction, satisfying A v equals lambda v. Let's find every scalar lambda that makes that possible.",
+            "beats": [
+              {
+                "type": "title",
+                "text": "Eigenvalues of a 2×2 Matrix",
+                "color": "yellow",
+                "say": "Welcome. Today we have a classic problem from linear algebra."
+              },
+              {
+                "type": "write",
+                "text": "A = [[2, 1], [1, 2]]",
+                "color": "blue",
+                "size": "md",
+                "keep": true,
+                "say": "We are given a two-by-two symmetric matrix A, with entries two, one on the top row, and one, two on the bottom."
+              },
+              {
+                "type": "write",
+                "text": "Find: eigenvalues λ",
+                "color": "white",
+                "size": "md",
+                "keep": true,
+                "say": "Our goal is to find its eigenvalues, traditionally written as lambda."
+              },
+              {
+                "type": "write",
+                "text": "A v = λ v",
+                "color": "yellow",
+                "size": "md",
+                "keep": true,
+                "say": "satisfying A v equals lambda v. Let's find every scalar lambda that makes that possible."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "The plan",
+            "narration": "Here is our route. To find those special values of lambda, the equation A minus lambda I times v equals zero must have non-zero solutions. That can only happen if the matrix A minus lambda I is singular, which means its determinant must equal zero. This equation, determinant of A minus lambda I equals zero, is the characteristic equation. Our plan is straightforward: we will build this shifted matrix, compute its determinant, and solve the resulting quadratic equation for lambda.",
+            "beats": [
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "det(A − λI) = 0",
+                "color": "yellow",
+                "size": "md",
+                "say": "determinant of A minus lambda I equals zero"
+              },
+              {
+                "type": "underline",
+                "color": "yellow"
+              },
+              {
+                "type": "write",
+                "text": "Characteristic Equation",
+                "color": "white",
+                "size": "sm",
+                "below": "text:det(A − λI) = 0",
+                "say": "is the characteristic equation."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Form A-λI",
+            "narration": "Let's take our first step and construct A minus lambda I. The identity matrix I has ones on the diagonal and zeros elsewhere, so multiplying it by lambda gives lambda along the main diagonal. When we subtract lambda I from matrix A, we are simply subtracting lambda from each diagonal entry. The off-diagonal entries remain completely untouched. So our new matrix has diagonal entries two minus lambda, and off-diagonal entries of one. Nice, clean, and ready for the determinant.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "A − λI =",
+                "color": "white",
+                "size": "md",
+                "say": "Let's take our first step and construct A minus lambda I."
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "[[2 − λ, 1], [1, 2 − λ]]",
+                "color": "green",
+                "size": "md",
+                "say": "So our new matrix has diagonal entries two minus lambda, and off-diagonal entries of one."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Compute determinant",
+            "narration": "Now we compute the determinant of this two-by-two matrix. For any two-by-two, we multiply the main diagonal entries together and subtract the product of the off-diagonal entries. That gives us the quantity two minus lambda squared, minus one times one. Pause here for a moment — what would you do next to simplify this expression? Take five seconds to expand it in your head, and let's compare notes.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "det = (2 - λ)(2 - λ) - 1·1",
+                "color": "white",
+                "size": "md",
+                "say": "Now we compute the determinant of this two-by-two matrix. For any two-by-two, we multiply the main diagonal entries together and subtract the product of the off-diagonal entries. That gives us the quantity two minus lambda squared, minus one times one. Pause here for a moment — what would you do nex"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Simplify polynomial",
+            "narration": "Let's expand it together. Squaring the binomial two minus lambda gives us lambda squared, minus four lambda, plus four. Then we subtract that one from the off-diagonal product. Combining the constant terms, four minus one leaves us with positive three. So our characteristic polynomial simplifies cleanly to lambda squared minus four lambda plus three. That right there is our characteristic equation, and it is ready to be solved.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "(2 − λ)² − 1",
+                "color": "white",
+                "size": "md",
+                "say": "Let's expand it together. Squaring the binomial two minus lambda"
+              },
+              {
+                "type": "write",
+                "text": "= λ² − 4λ + 4 − 1",
+                "color": "white",
+                "size": "md",
+                "say": "gives us lambda squared, minus four lambda, plus four. Then we subtract that one"
+              },
+              {
+                "type": "write",
+                "text": "= λ² − 4λ + 3",
+                "color": "green",
+                "size": "md",
+                "keep": true,
+                "say": "Combining the constant terms, four minus one leaves us with positive three. So our characteristic polynomial simplifies cleanly to lambda squared minus four lambda plus three."
+              },
+              {
+                "type": "write",
+                "text": "Characteristic equation",
+                "color": "yellow",
+                "size": "sm",
+                "below": "= λ² − 4λ + 3",
+                "say": "That right there is our characteristic equation, and it is ready to be solved."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Solve quadratic",
+            "narration": "Now, we set this quadratic expression equal to zero: lambda squared minus four lambda plus three equals zero. We can solve this by factoring. We are looking for two numbers that multiply to positive three and add up to negative four. Negative one and negative three fit the bill perfectly. This gives us the factored form: lambda minus one, times lambda minus three, equals zero. By the zero-product principle, either factor can equal zero.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "λ² − 4λ + 3 = 0",
+                "color": "white",
+                "size": "md",
+                "say": "lambda squared minus four lambda plus three equals zero"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "(λ − 1)(λ − 3) = 0",
+                "color": "white",
+                "size": "md",
+                "say": "lambda minus one, times lambda minus three, equals zero"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Answer",
+            "narration": "Setting each factor to zero reveals our eigenvalues immediately. From lambda minus one equals zero, we get our first eigenvalue, lambda equals one. From lambda minus three equals zero, we find our second eigenvalue, lambda equals three. So the eigenvalues of our matrix A are lambda equals one and lambda equals three. Let's box this up as our final result before we do a quick sanity check.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "λ − 1 = 0 ⇒ λ₁ = 1",
+                "color": "white",
+                "size": "md",
+                "say": "Setting each factor to zero reveals our eigenvalues immediately. From lambda minus one equals zero, we get our first eigenvalue, lambda equals one."
+              },
+              {
+                "type": "write",
+                "text": "λ − 3 = 0 ⇒ λ₂ = 3",
+                "color": "white",
+                "size": "md",
+                "say": "From lambda minus three equals zero, we find our second eigenvalue, lambda equals three."
+              },
+              {
+                "type": "write",
+                "text": "Eigenvalues: λ = 1, 3",
+                "color": "green",
+                "size": "lg",
+                "keep": true,
+                "say": "So the eigenvalues of our matrix A are lambda equals one and lambda equals three. Let's box this up as our final result before we do a quick sanity check."
+              },
+              {
+                "type": "box",
+                "color": "yellow",
+                "target": "Eigenvalues: λ = 1, 3"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Check",
+            "narration": "Let's double-check our work by plugging both values back into A minus lambda I. For lambda equals one, the matrix becomes one, one on the first row, and one, one on the second. Both rows are identical, so its determinant is one minus one, which is zero. For lambda equals three, we get negative one, one and one, negative one. The determinant is one minus one, again zero. Both values make the matrix singular, confirming our eigenvalues are indeed one and three. Beautiful work.",
+            "beats": [
+              {
+                "type": "erase",
+                "keep": [
+                  "Eigenvalues: λ = 1, 3"
+                ]
+              },
+              {
+                "type": "write",
+                "text": "Check: λ = 1, 3",
+                "color": "yellow",
+                "size": "md",
+                "say": "Let's double-check our work by plugging both values back into A minus lambda I."
+              },
+              {
+                "type": "write",
+                "text": "For λ = 1: A − I = [[1, 1], [1, 1]]",
+                "color": "white",
+                "size": "sm",
+                "say": "For lambda equals one, the matrix becomes one, one on the first row, and one, one on the second."
+              },
+              {
+                "type": "write",
+                "text": "det = 1(1) − 1(1) = 0",
+                "color": "green",
+                "size": "sm",
+                "say": "Both rows are identical, so its determinant is one minus one, which is zero."
+              },
+              {
+                "type": "write",
+                "text": "For λ = 3: A − 3I = [[-1, 1], [1, -1]]",
+                "color": "white",
+                "size": "sm",
+                "say": "For lambda equals three, we get negative one, one and one, negative one."
+              },
+              {
+                "type": "write",
+                "text": "det = (-1)(-1) - (1)(1) = 0",
+                "color": "green",
+                "size": "sm",
+                "say": "The determinant is one minus one, again zero."
+              },
+              {
+                "type": "write",
+                "text": "Confirmed!",
+                "color": "yellow",
+                "size": "md",
+                "say": "Both values make the matrix singular, confirming our eigenvalues are indeed one and three. Beautiful work."
+              }
+            ],
+            "intro": false
+          }
+        ]
+      },
+      "checks": [
+        {
+          "ok": true,
+          "detail": "scenes=8"
+        },
+        {
+          "ok": true,
+          "detail": "proseBeats=0"
+        },
+        {
+          "ok": true,
+          "detail": "sayCoverage=1.00"
+        },
+        {
+          "ok": true,
+          "detail": "overlapPct=4"
+        },
+        {
+          "ok": true,
+          "detail": "layoutViolations=0"
+        },
+        {
+          "ok": false,
+          "detail": "watchableMs=109282 (target ≤60s, gate 90s)"
+        },
+        {
+          "ok": true,
+          "detail": "providerHops=5"
+        },
+        {
+          "ok": true,
+          "detail": "reviewed=8 fixed=4 unreviewed=0"
+        },
+        {
+          "ok": true,
+          "detail": "no planted-defect arithmetic on the board"
+        },
+        {
+          "ok": true,
+          "detail": "verify=match solver=λ = 1, 3 checker=0 flags"
+        }
+      ]
+    },
+    {
+      "id": "explain-blue",
+      "passed": false,
+      "ms": 480729,
+      "watchableMs": 88202,
+      "scenes": 0,
+      "proseBeats": -1,
+      "sayCoverage": 0,
+      "overlapPct": 0,
+      "checks": [
+        {
+          "ok": false,
+          "detail": "pipeline did not complete: voicing "
+        }
+      ]
+    },
+    {
+      "id": "alg-system",
+      "passed": false,
+      "ms": 480476,
+      "watchableMs": 140051,
+      "scenes": 0,
+      "proseBeats": -1,
+      "sayCoverage": 0,
+      "overlapPct": 0,
+      "checks": [
+        {
+          "ok": false,
+          "detail": "pipeline did not complete: voicing "
+        }
+      ]
+    },
+    {
+      "id": "calc-improper",
+      "passed": false,
+      "ms": 331322,
+      "watchableMs": 48220,
+      "scenes": 6,
+      "proseBeats": 0,
+      "sayCoverage": 1,
+      "overlapPct": 8,
+      "stats": {
+        "directorMs": 8414,
+        "plannerMs": 10502,
+        "writerMs": [
+          6102,
+          8778,
+          8929,
+          6337,
+          7696,
+          10188
+        ],
+        "voiceMs": [],
+        "firstVoiceReadyMs": null,
+        "proseDropped": 0,
+        "overlapPct": 8,
+        "layoutViolations": 2,
+        "providerHops": 6,
+        "watchableMs": 48220,
+        "reviewedScenes": 6,
+        "unreviewedScenes": 0,
+        "fixedScenes": 3,
+        "checkerChecked": 0,
+        "checkerFlags": 0,
+        "verification": {
+          "verdict": "match",
+          "solverAnswer": "1",
+          "scriptAnswer": "I = 1",
+          "rerun": false
+        }
+      },
+      "script": {
+        "title": "Improper Integral of 1/x² from 1 to ∞",
+        "subject": "Calculus",
+        "question": "Evaluate the improper integral ∫{1}^{∞} 1/x² dx.",
+        "scenes": [
+          {
+            "chapter": "Understanding the problem",
+            "narration": "Alright, let's look at what we're being asked. The integral written at the top is the area under the curve f of x equals one over x squared, from x equals one out to infinity. So our lower limit is the number one, the upper limit stretches without bound. The question tells us to find I, defined as the integral from one to infinity of one over x squared dx. Because the top limit is infinite, this is an improper integral, meaning we have to treat the infinite bound carefully.",
+            "beats": [
+              {
+                "type": "title",
+                "text": "Improper Integral of 1/x² from 1 to ∞",
+                "color": "yellow",
+                "say": "Alright, let's look at what we're being asked."
+              },
+              {
+                "type": "write",
+                "text": "∫₁^∞ 1/x² dx",
+                "color": "blue",
+                "size": "lg",
+                "keep": true,
+                "say": "The integral written at the top is the area under the curve f of x equals one over x squared,"
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "f(x) = 1/x²",
+                "color": "white",
+                "size": "md",
+                "keep": true,
+                "say": "from x equals one out to infinity."
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "lower = 1, upper = ∞",
+                "color": "white",
+                "size": "md",
+                "keep": true,
+                "say": "So our lower limit is the number one, the upper limit stretches without bound."
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "Find: I = ∫₁^∞ 1/x² dx",
+                "color": "blue",
+                "size": "md",
+                "keep": true,
+                "say": "The question tells us to find I, defined as the integral from one to infinity of one over x squared dx."
+              },
+              {
+                "type": "point",
+                "ms": 1500,
+                "target": "text:Find: I = ∫₁^∞ 1/x² dx"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "The plan",
+            "narration": "Now that we know the goal, let's sketch a short plan. We'll rewrite the improper integral as a limit: I equals the limit as b approaches infinity of the definite integral from one to b of one over x squared dx. That gives us two clear steps. First, we find an antiderivative for 1 over x squared. Then we evaluate that antiderivative at the bounds 1 and b, and finally we let b go to infinity. That's the whole roadmap.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "I = lim_{b→∞} ∫_{1}^{b} 1/x² dx",
+                "color": "white",
+                "size": "md",
+                "say": "I equals the limit as b approaches infinity of the definite integral from one to b of one over x squared dx."
+              },
+              {
+                "type": "newline",
+                "n": 1
+              },
+              {
+                "type": "write",
+                "text": "1. Antiderivative 2. Limit as b → ∞",
+                "color": "yellow",
+                "size": "sm",
+                "say": "First, we find an antiderivative for 1 over x squared. Then we evaluate that antiderivative at the bounds 1 and b, and finally we let b go to infinity."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Find antiderivative",
+            "narration": "Let's turn to the first step: finding the antiderivative. The integrand 1 over x squared can be written as x to the minus two. Applying the power rule, we increase the exponent by one, giving us minus one, and then divide by the new exponent. So the antiderivative is negative one over x, plus a constant that we can ignore for a definite integral. We'll write that in blue and underline it as our antiderivative.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "∫ 1/x² dx = − 1/x",
+                "color": "blue",
+                "size": "md",
+                "say": "Let's turn to the first step: finding the antiderivative. The integrand 1 over x squared can be written as x to the minus two. Applying the power rule, we increase the exponent by one, giving us minus one, and then divide by the new exponent. So the antiderivative is negative one over x, plus a cons"
+              },
+              {
+                "type": "underline",
+                "color": "yellow"
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Apply limits",
+            "narration": "Now we substitute the antiderivative into our limit expression. We have I equals the limit as b goes to infinity of [ negative one over x ] evaluated from one to b. Writing that out, we get I equals the limit as b approaches infinity of ( -1 over b ) minus ( -1 over 1 ). Simplify the signs, and we have the limit of -1 over b plus one. Pause here — what would you do next? Think about what happens to -1 over b when b grows without bound, then we can finish the limit.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "I = lim b→∞ [ -1/x ]₁^b",
+                "color": "white",
+                "size": "md",
+                "say": "We have I equals the limit as b goes to infinity of [ negative one over x ] evaluated from one to b."
+              },
+              {
+                "type": "write",
+                "text": "= lim b→∞ ( -1/b - (-1/1) )",
+                "color": "white",
+                "size": "md",
+                "say": "Writing that out, we get I equals the limit as b approaches infinity of ( -1 over b ) minus ( -1 over 1 )."
+              },
+              {
+                "type": "write",
+                "text": "= lim b→∞ ( -1/b + 1 )",
+                "color": "green",
+                "size": "md",
+                "say": "Simplify the signs, and we have the limit of -1 over b plus one."
+              },
+              {
+                "type": "write",
+                "text": "As b → ∞, −1/b → ?",
+                "color": "yellow",
+                "size": "md",
+                "say": "Pause here — what would you do next? Think about what happens to -1 over b when b grows without bound, then we can finish the limit."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Answer",
+            "narration": "Evaluating the limit is straightforward. As b becomes larger and larger, the term negative one over b shrinks toward zero. So the whole expression approaches zero plus one, which is simply one. We write I equals one and draw a box around it to emphasize the result. Since the integral has a finite value, we say it converges, and in this case the convergence is to the number one, with no units attached.",
+            "beats": [
+              {
+                "type": "write",
+                "text": "I = 1",
+                "color": "green",
+                "size": "lg",
+                "keep": true,
+                "say": "We write I equals one"
+              },
+              {
+                "type": "box",
+                "color": "yellow"
+              },
+              {
+                "type": "write",
+                "text": "Converges",
+                "color": "yellow",
+                "size": "sm",
+                "below": "text:I = 1",
+                "say": "Since the integral has a finite value, we say it converges, and in this case the convergence is to the number one, with no units attached."
+              }
+            ],
+            "intro": false
+          },
+          {
+            "chapter": "Check",
+            "narration": "To reassure ourselves, let's do a quick numeric check. If we integrate from one to ten, the expression -1 over b plus one gives -1/10 plus one, which is 0.9. As we let b grow to one hundred, we get 0.99, and so on, inching ever closer to one. Visualize a number line where these partial sums hop toward the point one from below. This confirms our analytic answer. Great work, and remember the same technique applies to many other improper integrals.",
+            "beats": [
+              {
+                "type": "erase",
+                "keep": [
+                  "I = 1"
+                ]
+              },
+              {
+                "type": "write",
+                "text": "Numeric Check",
+                "color": "yellow",
+                "size": "md",
+                "say": "To reassure ourselves, let's do a quick numeric check."
+              },
+              {
+                "type": "write",
+                "text": "b = 10 → -1/10 + 1 = 0.9",
+                "color": "white",
+                "size": "md",
+                "say": "If we integrate from one to ten, the expression -1 over b plus one gives -1/10 plus one, which is 0.9."
+              },
+              {
+                "type": "write",
+                "text": "b = 100 → -1/100 + 1 = 0.99",
+                "color": "white",
+                "size": "md",
+                "say": "As we let b grow to one hundred, we get 0.99, and so on, inching ever closer to one."
+              },
+              {
+                "type": "write",
+                "text": "Confirmed: Limit = 1",
+                "color": "green",
+                "size": "md",
+                "say": "This confirms our analytic answer. Great work, and remember the same technique applies to many other improper integrals."
+              }
+            ],
+            "intro": false
+          }
+        ]
+      },
+      "checks": [
+        {
+          "ok": true,
+          "detail": "scenes=6"
+        },
+        {
+          "ok": true,
+          "detail": "proseBeats=0"
+        },
+        {
+          "ok": true,
+          "detail": "sayCoverage=1.00"
+        },
+        {
+          "ok": true,
+          "detail": "overlapPct=8"
+        },
+        {
+          "ok": false,
+          "detail": "layoutViolations=2"
+        },
+        {
+          "ok": true,
+          "detail": "watchableMs=48220 (target ≤60s, gate 90s)"
+        },
+        {
+          "ok": true,
+          "detail": "providerHops=6"
+        },
+        {
+          "ok": true,
+          "detail": "reviewed=6 fixed=3 unreviewed=0"
+        },
+        {
+          "ok": true,
+          "detail": "no planted-defect arithmetic on the board"
+        },
+        {
+          "ok": true,
+          "detail": "verify=match solver=1 checker=0 flags"
+        }
+      ]
+    }
+  ]
+}

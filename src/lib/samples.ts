@@ -215,64 +215,217 @@ export const HERO_SCRIPT: SolveScript = {
 };
 
 export const SAMPLE_PHYSICS: SolveScript = {
-  title: "Block on a 30° Incline with Friction",
+  title: "Block on an Incline with Friction",
   subject: "Mechanics",
-  question: "A 5 kg block slides down a 30° incline with μₖ = 0.2. Find its acceleration.",
+  question: "A 10 kg block is pulled up a 30° incline by an 85 N tension force. With μₖ = 0.20, find its acceleration.",
   scenes: [
     {
       chapter: "Understanding the problem",
       narration:
-        "Let's read this physics problem carefully. A block of mass five kilograms is on a ramp tilted at thirty degrees, sliding downhill with kinetic friction coefficient point two. We want to find its acceleration down the plane. Before calculating anything, let's gather what is given: mass m is five kilograms, angle theta is thirty degrees, and mu k is point two.",
-      beats: [
-        { type: "title", text: "Incline with Friction", color: "yellow", say: "Let's read this physics problem carefully" },
-        { type: "write", text: "m = 5 kg,  θ = 30°,  μₖ = 0.2", color: "blue", size: "md", say: "mass m is five kilograms, angle theta is thirty degrees" },
-        { type: "newline", n: 1 },
-        { type: "write", text: "Find: a (downslope)", color: "white", size: "md", say: "We want to find its acceleration down the plane" },
-        { type: "underline", target: "last", color: "orange" },
-      ],
-    },
-    {
-      chapter: "Free-Body Diagram",
-      narration:
-        "A proper free body diagram is our compass here. Gravity pulls straight down with magnitude m times g. The surface pushes perpendicular with normal force N. And friction opposes motion, pointing directly upslope. Let's draw this on the board.",
+        "Welcome. Today we are tackling a classic university mechanics problem: a ten kilogram crate pulled up a thirty degree incline. There is an eighty-five newton tension pulling it uphill, but gravity and kinetic friction are resisting that motion. Before we rush into any equations, let us gather what is given: the mass is ten kilograms, the incline angle is thirty degrees, the pulling force is eighty-five newtons, and the kinetic friction coefficient is point two zero. Our goal is to determine the crate's acceleration up the ramp.",
       beats: [
         {
-          type: "freebody",
-          angle: 30,
-          block: "5kg",
-          forces: [
-            { label: "mg", dir: "down" },
-            { label: "N", dir: "normal" },
-            { label: "fₖ", dir: "upslope" },
-          ],
+          type: "title",
+          text: "Block on an Incline with Friction",
           color: "yellow",
-          say: "A proper free body diagram is our compass here",
+          say: "Welcome. Today we are tackling a classic university mechanics problem",
+        },
+        {
+          type: "write",
+          text: "m = 10 kg,  θ = 30°,  T = 85 N,  μₖ = 0.20",
+          color: "blue",
+          size: "md",
+          say: "the mass is ten kilograms, the incline angle is thirty degrees",
+        },
+        { type: "newline", n: 1 },
+        {
+          type: "write",
+          text: "Find: a (upslope)",
+          color: "white",
+          size: "md",
+          say: "Our goal is to determine the crate's acceleration up the ramp",
         },
       ],
     },
     {
-      chapter: "Newton's Second Law",
+      chapter: "Choosing the coordinate axes",
       narration:
-        "Along the incline, Newton's second law says net force equals mass times acceleration. The downslope component of gravity is m g sine theta, and friction is mu k times the normal force N. Since perpendicular forces balance, N equals m g cosine theta.",
+        "The single most important decision in inclined plane problems is how we orient our coordinate system. If we chose conventional horizontal and vertical axes, the block would accelerate in both directions simultaneously, complicating our equations. Instead, we rotate our coordinate frame: we align the x-axis parallel to the ramp, pointing uphill in the direction of motion, and align the y-axis perpendicular to the surface. This ensures acceleration occurs exclusively along the x-axis.",
       beats: [
-        { type: "erase" },
-        { type: "write", text: "ΣF = m·g·sin(θ) − fₖ = m·a", color: "white", size: "md", say: "Newton's second law says net force equals mass times acceleration" },
+        {
+          type: "write",
+          text: "Coordinate Axes:",
+          color: "orange",
+          size: "md",
+          say: "Instead, we rotate our coordinate frame",
+        },
+        {
+          type: "underline",
+          target: "text:Coordinate Axes:",
+          color: "orange",
+        },
         { type: "newline", n: 1 },
-        { type: "write", text: "N = m·g·cos(θ)", color: "blue", size: "md", say: "N equals m g cosine theta" },
+        {
+          type: "write",
+          text: "+x along ramp (uphill)",
+          color: "white",
+          size: "md",
+          say: "we align the x-axis parallel to the ramp, pointing uphill",
+        },
         { type: "newline", n: 1 },
-        { type: "write", text: "fₖ = μₖ · N = μₖ · m·g·cos(θ)", color: "orange", size: "md", say: "friction is mu k times the normal force" },
+        {
+          type: "write",
+          text: "+y normal to ramp (outward)",
+          color: "white",
+          size: "md",
+          say: "and align the y-axis perpendicular to the surface",
+        },
       ],
     },
     {
-      chapter: "Isolating Acceleration",
+      chapter: "The Free-Body Diagram",
       narration:
-        "Notice something beautiful: the mass m appears in every single term, so it cancels out completely! The block's acceleration does not depend on whether it weighs five grams or five tons: a equals g times the quantity sine theta minus mu k cosine theta. Substituting our values gives 3.2 meters per second squared.",
+        "Now let us draw a complete free-body diagram to track every force acting on the crate. First, gravity pulls straight downward toward the Earth's center with magnitude m times g. Second, the incline pushes outward with a normal force perpendicular to the ramp. Third, our tension force pulls directly uphill. And fourth, kinetic friction opposes the motion, pointing directly downslope. Having all four forces drawn clearly gives us our roadmap for Newton's laws.",
       beats: [
+        { type: "erase" },
+        {
+          type: "freebody",
+          angle: 30,
+          block: "10kg",
+          forces: [
+            { label: "T", dir: "upslope" },
+            { label: "mg", dir: "down" },
+            { label: "N", dir: "normal" },
+            { label: "fₖ", dir: "downslope" },
+          ],
+          color: "yellow",
+          say: "Now let us draw a complete free-body diagram to track every force",
+        },
+      ],
+    },
+    {
+      chapter: "Resolving gravity into components",
+      narration:
+        "Notice that three of our four forces already align with our chosen axes: tension, friction, and the normal force. Only gravity points at an awkward angle. Using trigonometry, the angle between gravity and the negative y-axis is theta, thirty degrees. Therefore, gravity splits into two orthogonal components: a downslope component, m g sine theta, which pulls the crate back downhill, and a perpendicular component, m g cosine theta, which presses the crate into the surface. Calculating these values gives forty-nine newtons downhill and eighty-four point nine newtons into the incline.",
+      beats: [
+        {
+          type: "write",
+          text: "Wₓ = mg · sin(30°) = (10)(9.8)(0.5) = 49.0 N",
+          color: "white",
+          size: "md",
+          say: "a downslope component, m g sine theta, which pulls the crate back downhill",
+        },
         { type: "newline", n: 1 },
-        { type: "write", text: "a = g·(sin(30°) − 0.2·cos(30°))", color: "white", size: "md", say: "a equals g times the quantity sine theta minus mu k cosine theta" },
+        {
+          type: "write",
+          text: "W_y = mg · cos(30°) = (10)(9.8)(0.866) = 84.9 N",
+          color: "white",
+          size: "md",
+          say: "and a perpendicular component, m g cosine theta, which presses the crate into the surface",
+        },
+      ],
+    },
+    {
+      chapter: "Normal force equilibrium",
+      narration:
+        "Now we examine the forces along the perpendicular y-axis. The crate remains firmly on the ramp without flying off into the air or collapsing into the incline. That means there is zero acceleration in the y-direction. Applying Newton's second law, the sum of forces in y must equal zero: the normal force N minus the perpendicular gravity component W y equals zero. Thus, N exactly equals eighty-four point nine newtons.",
+      beats: [
+        {
+          type: "write",
+          text: "ΣF_y = 0  →  N − W_y = 0",
+          color: "blue",
+          size: "md",
+          say: "the sum of forces in y must equal zero",
+        },
         { type: "newline", n: 1 },
-        { type: "write", text: "a = 9.8 · (0.500 − 0.173) = 3.2 m/s²", color: "green", size: "lg", keep: true, say: "Substituting our values gives 3.2 meters per second squared" },
-        { type: "box", target: "last", color: "yellow" },
+        {
+          type: "write",
+          text: "N = mg · cos(30°) = 84.9 N",
+          color: "white",
+          size: "md",
+          say: "Thus, N exactly equals eighty-four point nine newtons",
+        },
+      ],
+    },
+    {
+      chapter: "Calculating kinetic friction",
+      narration:
+        "With the normal force determined, we can calculate the friction resisting the crate's motion. Kinetic friction is the coefficient mu k multiplied by the normal force N. Substituting our values, point two zero times eighty-four point nine newtons gives seventeen point zero newtons. This friction force acts directly down the ramp, opposing our upward pull.",
+      beats: [
+        {
+          type: "write",
+          text: "fₖ = μₖ · N",
+          color: "orange",
+          size: "md",
+          say: "Kinetic friction is the coefficient mu k multiplied by the normal force",
+        },
+        { type: "newline", n: 1 },
+        {
+          type: "write",
+          text: "fₖ = (0.20)(84.9 N) = 17.0 N",
+          color: "white",
+          size: "md",
+          say: "Substituting our values, point two zero times eighty-four point nine newtons gives seventeen point zero newtons",
+        },
+      ],
+    },
+    {
+      chapter: "Newton's Second Law along the ramp",
+      narration:
+        "We are now ready to apply Newton's second law along the incline, the x-axis. The sum of forces equals mass times acceleration. What forces act along the ramp? We have the forward pull of tension T in the positive direction, fighting against both the downhill gravity component W x and the kinetic friction f k. Writing the equation: T minus W x minus f k equals m times a. Substituting our known numbers: eighty-five minus forty-nine minus seventeen equals ten times a.",
+      beats: [
+        { type: "erase" },
+        {
+          type: "write",
+          text: "ΣFₓ = m · a",
+          color: "blue",
+          size: "md",
+          say: "The sum of forces equals mass times acceleration",
+        },
+        { type: "newline", n: 1 },
+        {
+          type: "write",
+          text: "T − Wₓ − fₖ = m · a",
+          color: "white",
+          size: "md",
+          say: "Writing the equation: T minus W x minus f k equals m times a",
+        },
+        { type: "newline", n: 1 },
+        {
+          type: "write",
+          text: "85 − 49.0 − 17.0 = 10 · a",
+          color: "white",
+          size: "md",
+          say: "Substituting our known numbers: eighty-five minus forty-nine minus seventeen equals ten times a",
+        },
+      ],
+    },
+    {
+      chapter: "Solving for acceleration & sanity check",
+      narration:
+        "Let us simplify the left side: eighty-five minus sixty-six leaves a net upward force of nineteen point zero newtons. Dividing both sides by the mass of ten kilograms yields our final acceleration: a equals one point nine meters per second squared up the incline. Notice how reasonable this is: the tension easily overcame the total resistance of sixty-six newtons, producing a modest, steady acceleration. That is how we break down any complex mechanics problem step by step.",
+      beats: [
+        {
+          type: "write",
+          text: "19.0 N = (10 kg) · a",
+          color: "white",
+          size: "md",
+          say: "leaves a net upward force of nineteen point zero newtons",
+        },
+        { type: "newline", n: 1 },
+        {
+          type: "write",
+          text: "a = 1.9 m/s²",
+          color: "green",
+          size: "lg",
+          keep: true,
+          say: "yields our final acceleration: a equals one point nine meters per second squared up the incline",
+        },
+        {
+          type: "box",
+          target: "text:a = 1.9 m/s²",
+          color: "yellow",
+        },
       ],
     },
   ],

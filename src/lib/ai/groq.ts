@@ -27,10 +27,16 @@ export function groqEnabled(): boolean {
 
 /** pure request-body builder — exported so tests assert shape, no network */
 export function buildGroqBody(
-  system: string,
+  systemRaw: string,
   user: string,
   model: string
 ): Record<string, unknown> {
+  /* Groq's json_object mode REQUIRES the word "json" somewhere in the
+     messages, else 400 (found live 2026-09-30). Every engine prompt says
+     "JSON", but don't rely on that — guarantee it. */
+  const system = /\bjson\b/i.test(systemRaw)
+    ? systemRaw
+    : `${systemRaw}\n\nRespond with JSON.`;
   return {
     model,
     messages: [

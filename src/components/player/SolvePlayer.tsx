@@ -50,8 +50,8 @@ import { cn } from "@/lib/utils";
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
 /** how long the player will buffer at a scene boundary waiting for a
- *  late voice before it plays that scene silent (0 = start writing immediately) */
-const VOICE_HOLD_MS = 0;
+ *  late voice before it plays that scene silent (3500ms = buffer like YouTube) */
+const VOICE_HOLD_MS = 3500;
 
 /** split narration into caption-sized sentences (merge tiny ones so a
  *  caption never flashes for a fraction of a second) */

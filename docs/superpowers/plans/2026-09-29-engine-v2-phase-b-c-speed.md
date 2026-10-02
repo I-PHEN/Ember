@@ -1959,7 +1959,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 **Interfaces:**
 - Produces: 2 new fixture IDs (`alg-system`, `calc-improper`); updated CLAUDE.md facts for the next session.
 
-- [ ] **Step 1: Extend fixtures**
+- [x] **Step 1: Extend fixtures**
 
 Append to `FIXTURES` in `scripts/eval/fixtures.ts`:
 
@@ -1970,17 +1970,17 @@ Append to `FIXTURES` in `scripts/eval/fixtures.ts`:
 
 (`alg-system` exercises multi-part answer comparison; `calc-improper` exercises symbol-heavy answers where `incomparable` is an honest outcome.)
 
-- [ ] **Step 2: Full eval run (quota permitting — backgroundable)**
+- [x] **Step 2: Full eval run (quota permitting — backgroundable)**
 
 Run: `bun scripts/eval/run-eval.ts`
 Expected: all fixtures PASS or fail with FINDINGS (a mismatch verdict on a fixture whose lesson genuinely got the math wrong is the system WORKING — note it, don't tune it away). Append one-line root causes to the results JSON, commit it.
 
-- [ ] **Step 3: Update CLAUDE.md**
+- [x] **Step 3: Update CLAUDE.md**
 
 - Provider paragraph: Gemini primary, **Groq fallback** via `src/lib/ai/chat.ts` (failover ladder; short delays; `GROQ_MODEL`/`GROQ_MODEL_LITE`), TTS unchanged (voice has no fallback by design).
 - Engine paragraph: add the reviewer (async per-scene review-and-fix, collected at merge ≤8s), the checker (constant-identity numeric checks per scene), the blind solver (t0, conservative Nerdamer compare, one rerun), and the new stats (`watchableMs`, `reviewedScenes/fixedScenes/unreviewedScenes`, `checkerChecked/checkerFlags`, `verification`, `providerHops`).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md docs/research/eval-results/ docs/research/phase0-notes.md
