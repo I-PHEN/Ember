@@ -64,7 +64,7 @@ function polyLen(pts: Pt[]): { cum: number[]; len: number } {
 
 export function estimateNarration(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(2.4, words * 0.52 + 1.2);
+  return Math.max(2.0, words * 0.41 + 0.6);
 }
 
 function fmtNum(v: number): string {
@@ -1654,10 +1654,8 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
 const SAY_GAP = 0.12; // breathing between speech segments
 const SAY_SCALE_MIN = 0.45; // allow pen to naturally brisk up when speech is quick so it never lags behind
 const SAY_SCALE_MAX = 8.5; // allow pen to stretch gracefully across spoken phrases
-/** speech windows start here — the opening words play over the pen's
- *  approach to the board, exactly like a professor starting to talk
- *  while turning to the board */
-const SAY_T0 = 0.25;
+/** speech windows start here — pen touches down in lockstep with the first word */
+const SAY_T0 = 0.08;
 
 /** lowercase alnum-only key with an index map back to the raw string */
 function normalizeWithMap(raw: string): { key: string; idx: number[] } {
@@ -1973,7 +1971,7 @@ export function compileTimeline(script: SolveScript): Timeline {
     if (sc.intro) {
       compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
     }
-    scene.dur = Math.max(HEAD + scene.writeEnd + 1.15, estAudio + 0.9);
+    scene.dur = Math.max(HEAD + scene.writeEnd + 0.5, estAudio + 0.5);
     scenes.push(scene);
     cursor = ctx.cursor;
     lastBottom = ctx.lastBottom;
@@ -1997,7 +1995,7 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
      schedule keeps every beat inside its own words' window). */
   if (s.paced && !s.locked) {
     const base = s.pacedFor ?? estimateNarration(s.narration);
-    let k = (audioDur + 0.9 - HEAD) / (base + 0.9 - HEAD);
+    let k = (audioDur + 0.5 - HEAD) / (base + 0.5 - HEAD);
     if (Number.isFinite(k) && k > 0 && Math.abs(k - 1) > 0.01) {
       /* audio shorter than planned → do NOT rush the pen past ~0.8×;
        * the scene simply runs a touch longer than the voice (a real
@@ -2030,7 +2028,7 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
     }
   }
 
-  const want = Math.max(HEAD + s.writeEnd + 1.15, audioDur + 0.9);
+  const want = Math.max(HEAD + s.writeEnd + 0.5, audioDur + 0.5);
   if (!s.locked || want > s.dur) s.dur = want;
   s.locked = true;
 }

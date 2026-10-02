@@ -4,9 +4,9 @@
    is just: pause everything → set currentTime → play the right one.
 ------------------------------------------------------------------- */
 
-/** Calibrated base speech rate multiplier for calm, pedagogical university delivery
- *  (~115 WPM vs raw ~146 WPM TTS). Preserves pitch and gives students time to process. */
-export const BASE_SPEECH_RATE = 0.83;
+/** Calibrated base speech rate multiplier for natural conversational lecture delivery
+ *  (~140-155 WPM standard conversational speed). */
+export const BASE_SPEECH_RATE = 1.0;
 
 export class SceneAudio {
   private els: (HTMLAudioElement | null)[] = [];
