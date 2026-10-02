@@ -33,6 +33,28 @@ function deadBy(g: { strokes: Array<{ eraseScene?: number }> }, idx: number): bo
   return g.strokes.some((s) => s.eraseScene !== undefined && s.eraseScene <= idx);
 }
 
+/** bounding box of the group as it appears during scene idx (undoing future slide reflows) */
+function bboxAtScene(
+  g: { bbox: BB; strokes: Array<{ moves?: Array<{ scene: number; dx: number; dy: number }> }> },
+  idx: number
+): BB {
+  let futureDx = 0;
+  let futureDy = 0;
+  const firstStrokeMoves = g.strokes[0]?.moves ?? [];
+  for (const m of firstStrokeMoves) {
+    if (m.scene > idx) {
+      futureDx += m.dx;
+      futureDy += m.dy;
+    }
+  }
+  return {
+    x: g.bbox.x - futureDx,
+    y: g.bbox.y - futureDy,
+    w: g.bbox.w,
+    h: g.bbox.h,
+  };
+}
+
 export function auditTimeline(tl: Timeline): LayoutViolation[] {
   const out: LayoutViolation[] = [];
   tl.scenes.forEach((scene, idx) => {
@@ -43,11 +65,13 @@ export function auditTimeline(tl: Timeline): LayoutViolation[] {
     // freebody diagrams are single groups whose labels intentionally sit
     // near their arrows; their internals are curated by the builder
     for (let i = 0; i < live.length; i++) {
+      const aBox = bboxAtScene(live[i], idx);
       for (let j = i + 1; j < live.length; j++) {
         const a = live[i];
         const b = live[j];
         if (a.anchor === b || b.anchor === a) continue; // emphasis rides its target
-        if (intersects(a.bbox, b.bbox)) {
+        const bBox = bboxAtScene(b, idx);
+        if (intersects(aBox, bBox)) {
           out.push({
             scene: idx,
             kind: "overlap",
@@ -57,12 +81,11 @@ export function auditTimeline(tl: Timeline): LayoutViolation[] {
           });
         }
       }
-      const bb = live[i].bbox;
       if (
-        bb.x < MARGIN_X - 40 ||
-        bb.x + bb.w > BOARD_W - MARGIN_X + 40 ||
-        bb.y < 16 ||
-        bb.y + bb.h > MAX_BASELINE + 110
+        aBox.x < MARGIN_X - 40 ||
+        aBox.x + aBox.w > BOARD_W - MARGIN_X + 40 ||
+        aBox.y < 16 ||
+        aBox.y + aBox.h > MAX_BASELINE + 110
       ) {
         out.push({
           scene: idx,
