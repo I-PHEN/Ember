@@ -2,11 +2,11 @@
    Hand-authored master script — instant flagship demo that needs no LLM.
 
    The flagship master sample demonstrates THE LECTURE model end to end:
-   the classic arc (understand → strategy & LIATE → assign components →
-   assemble → integrate → check by differentiation), an engaging
-   pedagogical transcript, exact "say" tags on every ink beat, disciplined
-   visual emphasis (exactly ONE boxed final answer), and lockstep
-   voice-pen synchronization.
+   the classic Organic Chemistry Tutor pedagogical cadence:
+   1. Spoken voice lead-in (~2-3s) framing the step before writing.
+   2. Hand writing in steady, synchronous lockstep with spoken explanations.
+   3. Closing reflection / coda (~2-3s) letting key insights land.
+   4. Disciplined visual hierarchy (exactly ONE final boxed answer).
 ------------------------------------------------------------------- */
 
 import type { SolveScript } from "./video/types";
@@ -20,20 +20,20 @@ export const SAMPLE_CALCULUS: SolveScript = {
     {
       chapter: "Understanding the integral",
       narration:
-        "Welcome. Today we are tackling a foundational university calculus problem: the indefinite integral of x times e to the two x dx. Looking closely at the integrand, we see a product of two fundamentally different functions: an algebraic polynomial x, and an exponential function e to the two x. Notice that standard u-substitution fails here: substituting u equals two x gives a differential du equals two dx, which cannot eliminate the extra factor of x in front. Whenever we face a stubborn product of algebraic and transcendental functions, our primary tool is integration by parts.",
+        "Welcome everyone. Today we are going to evaluate the indefinite integral of x times e to the 2x dx using integration by parts. Before we write down any formulas, let us take a look at our integrand. Notice that standard u-substitution fails here, because we have a product of two fundamentally different functions: an algebraic polynomial x, and an exponential function e to the 2x. Whenever you face a product of algebraic and transcendental functions, integration by parts is our primary tool.",
       beats: [
         {
           type: "title",
           text: "Integration by Parts",
           color: "yellow",
-          say: "Welcome. Today we are tackling a foundational university calculus problem",
+          say: "Today we are going to evaluate the indefinite integral of x times e to the 2x dx using integration by parts",
         },
         {
           type: "write",
           text: "Evaluate: ∫ x · e^(2x) dx",
           color: "blue",
           size: "lg",
-          say: "the indefinite integral of x times e to the two x dx",
+          say: "Before we write down any formulas, let us take a look at our integrand",
         },
         { type: "newline", n: 1 },
         {
@@ -41,21 +41,21 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "Product: Algebraic (x) × Exponential (e^(2x))",
           color: "white",
           size: "md",
-          say: "we see a product of two fundamentally different functions",
+          say: "Notice that standard u-substitution fails here, because we have a product of two fundamentally different functions",
         },
       ],
     },
     {
       chapter: "The formula & LIATE strategy",
       narration:
-        "Integration by parts stems directly from reversing the product rule of differentiation. The governing formula states that the integral of u dv equals u times v minus the integral of v du. To make this technique work smoothly, the new integral, integral of v du, must be simpler to evaluate than the original. We choose u using the classic LIATE mnemonic: Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, Exponential. Since algebraic x comes before exponential e to the two x, we choose u equals x.",
+        "Now let us recall the governing formula for integration by parts. The formula states that the integral of u dv equals u times v minus the integral of v du. To choose our u and dv wisely, we follow the classic LIATE mnemonic: Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, Exponential. Since algebraic x comes before exponential e to the 2x, we choose u to be x.",
       beats: [
         {
           type: "write",
           text: "Formula: ∫ u dv = u·v − ∫ v du",
           color: "orange",
           size: "md",
-          say: "The governing formula states that the integral of u dv equals u times v minus the integral of v du",
+          say: "The formula states that the integral of u dv equals u times v minus the integral of v du",
         },
         {
           type: "underline",
@@ -65,47 +65,55 @@ export const SAMPLE_CALCULUS: SolveScript = {
         { type: "newline", n: 1 },
         {
           type: "write",
-          text: "LIATE Strategy: Algebraic (A) before Exponential (E)",
+          text: "LIATE: L · I · A · T · E",
           color: "white",
           size: "md",
-          say: "We choose u using the classic LIATE mnemonic",
+          say: "To choose our u and dv wisely, we follow the classic LIATE mnemonic",
+        },
+        { type: "newline", n: 1 },
+        {
+          type: "write",
+          text: "Choose: u = x  (Algebraic before Exponential)",
+          color: "yellow",
+          size: "md",
+          say: "Since algebraic x comes before exponential e to the 2x, we choose u to be x",
         },
       ],
     },
     {
       chapter: "Assigning u, dv and computing du, v",
       narration:
-        "Now let us carefully assign our pieces and compute their derivatives and antiderivatives. Setting u equal to x, we differentiate to find du equals dx. What remains in our integrand becomes dv: dv equals e to the two x dx. To find v, we integrate dv. Integrating e to the two x requires a factor of one half from the chain rule, giving v equals one half e to the two x. Notice how clean this setup is: differentiating u reduced x to a constant, which will make the next integral trivial.",
+        "Now let us find all four components for our integration by parts formula. First, setting u equal to x, we differentiate both sides to get du equals dx. Next, what remains in our integrand becomes dv, so dv equals e to the 2x dx. Integrating both sides to find v gives v equals one half e to the 2x. Notice how clean this is: differentiating u reduced x to a constant, which will make the next integral trivial.",
       beats: [
         { type: "erase" },
         {
           type: "write",
-          text: "u = x          →   du = dx",
+          text: "u = x            →   du = dx",
           color: "white",
           size: "md",
-          say: "Setting u equal to x, we differentiate to find du equals dx",
+          say: "First, setting u equal to x, we differentiate both sides to get du equals dx",
         },
         { type: "newline", n: 1 },
         {
           type: "write",
-          text: "dv = e^(2x) dx  →   v = ½ e^(2x)",
+          text: "dv = e^(2x) dx   →   v = ½ e^(2x)",
           color: "yellow",
           size: "md",
-          say: "What remains in our integrand becomes dv",
+          say: "Next, what remains in our integrand becomes dv, so dv equals e to the 2x dx. Integrating both sides to find v gives v equals one half e to the 2x",
         },
       ],
     },
     {
       chapter: "Applying the integration by parts formula",
       narration:
-        "With all four components ready, we assemble them into our integration by parts formula: u times v minus the integral of v du. First, the boundary term u times v is x multiplied by one half e to the two x, which writes neatly as one half x e to the two x. Second, we subtract the new integral: the integral of one half e to the two x dx. Notice what happened: the troublesome x has completely vanished from inside the integral, leaving only a pure exponential.",
+        "With all four components ready, we assemble them into our integration by parts formula. First, we write u times v, which is x multiplied by one half e to the 2x. Next, we subtract the integral of v du, which is the integral of one half e to the 2x dx. Factoring the constant one half out in front leaves one half x e to the 2x minus one half integral of e to the 2x dx. Look at how much simpler this is: the troublesome x has completely vanished from inside the integral.",
       beats: [
         {
           type: "write",
           text: "∫ x·e^(2x) dx = (x)(½ e^(2x)) − ∫ ½ e^(2x) dx",
           color: "blue",
           size: "md",
-          say: "With all four components ready, we assemble them into our integration by parts formula",
+          say: "First, we write u times v, which is x multiplied by one half e to the 2x. Next, we subtract the integral of v du, which is the integral of one half e to the 2x dx",
         },
         { type: "newline", n: 1 },
         {
@@ -113,14 +121,14 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "= ½ x · e^(2x) − ½ ∫ e^(2x) dx",
           color: "white",
           size: "md",
-          say: "which writes neatly as one half x e to the two x",
+          say: "Factoring the constant one half out in front leaves one half x e to the 2x minus one half integral of e to the 2x dx",
         },
       ],
     },
     {
       chapter: "Evaluating the final integral & boxing result",
       narration:
-        "Now we evaluate the remaining integral. Integrating e to the two x gives another factor of one half, producing one half times one half e to the two x, which is one fourth e to the two x. Because this is an indefinite integral, we must never forget the constant of integration, plus C. Combining our terms gives our final solution: one half x e to the two x minus one fourth e to the two x plus C. We can also factor out one fourth e to the two x to express it as one fourth e to the two x times two x minus one plus C.",
+        "Now we evaluate the remaining integral. Integrating e to the 2x brings down another factor of one half, producing one half times one half e to the 2x, plus our constant of integration C. Multiplying the fractions gives our final answer: one half x e to the 2x minus one fourth e to the 2x plus C. We can also factor out one fourth e to the 2x if we want to write it in factored form.",
       beats: [
         { type: "erase" },
         {
@@ -128,7 +136,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "= ½ x · e^(2x) − ½ (½ e^(2x)) + C",
           color: "white",
           size: "md",
-          say: "Integrating e to the two x gives another factor of one half",
+          say: "Integrating e to the 2x brings down another factor of one half, producing one half times one half e to the 2x, plus our constant of integration C",
         },
         { type: "newline", n: 2 },
         {
@@ -137,7 +145,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           color: "green",
           size: "lg",
           keep: true,
-          say: "Combining our terms gives our final solution: one half x e to the two x minus one fourth e to the two x plus C",
+          say: "Multiplying the fractions gives our final answer: one half x e to the 2x minus one fourth e to the 2x plus C",
         },
         {
           type: "box",
@@ -149,14 +157,14 @@ export const SAMPLE_CALCULUS: SolveScript = {
     {
       chapter: "Verifying the answer by differentiation",
       narration:
-        "Let us verify our result by differentiating it. The derivative of an indefinite integral must return the original integrand. Using the product rule on one half x times e to the two x gives one half e to the two x plus x e to the two x. Next, differentiating minus one fourth e to the two x gives minus one half e to the two x, while the constant C vanishes. The one half e to the two x and minus one half e to the two x cancel to zero, leaving exactly x e to the two x. The solution is confirmed.",
+        "A great mathematician always verifies their solution by differentiating. Taking the derivative of our result with the product rule: the derivative of one half x e to the 2x gives one half e to the 2x plus x e to the 2x, and differentiating minus one fourth e to the 2x gives minus one half e to the 2x. The one half terms cancel out to zero, leaving exactly x e to the 2x. Our result matches the original integrand perfectly.",
       beats: [
         {
           type: "write",
           text: "Check: d/dx [ ½ x·e^(2x) − ¼ e^(2x) + C ]",
           color: "white",
           size: "md",
-          say: "Let us verify our result by differentiating it",
+          say: "Taking the derivative of our result with the product rule",
         },
         { type: "newline", n: 1 },
         {
@@ -164,7 +172,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "= ½ e^(2x) + x·e^(2x) − ½ e^(2x) = x·e^(2x) ✓",
           color: "green",
           size: "md",
-          say: "The one half e to the two x and minus one half e to the two x cancel to zero, leaving exactly x e to the two x",
+          say: "The one half terms cancel out to zero, leaving exactly x e to the 2x",
         },
       ],
     },
