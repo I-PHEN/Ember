@@ -1,32 +1,78 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file for Ember
+// https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
+  // We use SQLite for local dev. This can be easily swapped to postgres for production.
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String        @id @default(cuid())
+  email         String        @unique
+  name          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  projects      Project[]
+  galleryPosts  GalleryPost[]
 }
 
-model Post {
-  id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Project {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  messages      Message[]
+  videoVersions VideoVersion[]
+}
+
+model Message {
+  id            String         @id @default(cuid())
+  projectId     String
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role          String         // "user" or "ai"
+  content       String         // The text prompt or AI response
+  createdAt     DateTime       @default(now())
+  
+  // An AI message might generate a specific version of the video
+  videoVersion  VideoVersion?
+}
+
+model VideoVersion {
+  id            String         @id @default(cuid())
+  projectId     String
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Ties this version to the exact chat prompt that created it
+  messageId     String?        @unique 
+  message       Message?       @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  
+  // Stored as stringified JSON (until we migrate to Postgres 'Json' type)
+  script        String         // The Pedagogue's JSON SolveScript
+  timeline      String?        // The compiled visual timeline data
+  
+  createdAt     DateTime       @default(now())
+  galleryPost   GalleryPost?
+}
+
+model GalleryPost {
+  id             String       @id @default(cuid())
+  publisherId    String
+  publisher      User         @relation(fields: [publisherId], references: [id], onDelete: Cascade)
+  
+  // The public gallery post wraps around one specific, polished VideoVersion
+  videoVersionId String       @unique
+  videoVersion   VideoVersion @relation(fields: [videoVersionId], references: [id], onDelete: Restrict)
+  
+  title          String
+  description    String?
+  views          Int          @default(0)
+  upvotes        Int          @default(0)
+  createdAt      DateTime     @default(now())
 }

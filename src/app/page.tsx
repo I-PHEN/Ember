@@ -16,6 +16,13 @@ import {
   Trash2,
   Paperclip,
   Sparkles,
+  Globe,
+  Check,
+  Loader2,
+  Send,
+  Users,
+  Search,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -132,9 +139,30 @@ export default function Page() {
   const [watchedJobId, setWatchedJobId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  /* Studio & Refinement State */
+  const [activeRightTab, setActiveRightTab] = useState<"chapters" | "refine">("chapters");
+  const [scriptVersions, setScriptVersions] = useState<SolveScript[]>([]);
+  const [currentVersionIdx, setCurrentVersionIdx] = useState(0);
+  const [refineChat, setRefineChat] = useState<{ role: "user" | "ember"; content: string }[]>([]);
+  const [refineInstruction, setRefineInstruction] = useState("");
+  const [isRefining, setIsRefining] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
+
+  /* Explore Gallery State */
+  const [exploreTab, setExploreTab] = useState<"curated" | "community">("curated");
+  const [communityLessons, setCommunityLessons] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
   useEffect(() => {
     setThemeId(defaultTheme());
     setHistory(loadHistory());
+    fetch("/api/gallery")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.items)) setCommunityLessons(d.items);
+      })
+      .catch(() => {});
   }, []);
 
   // Render content-specific thumbnails after the lesson board has settled.
@@ -177,14 +205,111 @@ export default function Page() {
     saveTheme(t);
   }, []);
 
-  /* ------------------------ watch helpers ------------------------ */
+  /* ------------------------ watch & studio helpers ------------------------ */
 
   const watch = useCallback((sc: SolveScript) => {
     setScript(sc);
+    setScriptVersions([sc]);
+    setCurrentVersionIdx(0);
+    setRefineChat([
+      {
+        role: "ember",
+        content: `I've planned this lecture on "${sc.title}". You can ask me to adjust any step, add detail, or re-explain right here.`,
+      },
+    ]);
+    setPublished(false);
     setPhase("watch");
     setSeekReq(null);
     setVoiceVer(0);
+    setActiveRightTab("chapters");
   }, []);
+
+  const switchToVersion = useCallback((idx: number) => {
+    setScriptVersions((versions) => {
+      if (versions[idx]) {
+        setCurrentVersionIdx(idx);
+        setScript(versions[idx]);
+        setSeekReq(null);
+      }
+      return versions;
+    });
+  }, []);
+
+  const handleRefineSubmit = useCallback(
+    async (e?: React.FormEvent, customInstruction?: string) => {
+      if (e) e.preventDefault();
+      const text = (customInstruction ?? refineInstruction).trim();
+      if (!text || !script || isRefining) return;
+
+      setRefineInstruction("");
+      setRefineChat((prev) => [...prev, { role: "user", content: text }]);
+      setIsRefining(true);
+
+      try {
+        const res = await fetch("/api/refine", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ script, instruction: text }),
+        });
+        const data = await res.json();
+        if (data.script) {
+          const newScript = data.script as SolveScript;
+          setScriptVersions((prev) => [...prev, newScript]);
+          setCurrentVersionIdx((prev) => prev + 1);
+          setScript(newScript);
+          setRefineChat((prev) => [
+            ...prev,
+            {
+              role: "ember",
+              content: "I've revised the lesson with your requested changes. The board has been updated live.",
+            },
+          ]);
+        } else {
+          setRefineChat((prev) => [
+            ...prev,
+            { role: "ember", content: "I couldn't quite adjust that section. Try being a bit more specific." },
+          ]);
+        }
+      } catch {
+        setRefineChat((prev) => [
+          ...prev,
+          { role: "ember", content: "Something went wrong communicating with the studio. Please try again." },
+        ]);
+      } finally {
+        setIsRefining(false);
+      }
+    },
+    [refineInstruction, script, isRefining]
+  );
+
+  const handlePublish = useCallback(async () => {
+    if (!script || isPublishing) return;
+    setIsPublishing(true);
+    try {
+      const res = await fetch("/api/gallery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: script.title,
+          description: script.question,
+          script,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPublished(true);
+        fetch("/api/gallery")
+          .then((r) => r.json())
+          .then((d) => {
+            if (Array.isArray(d.items)) setCommunityLessons(d.items);
+          });
+      }
+    } catch (err) {
+      console.error("Publish error:", err);
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [script, isPublishing]);
 
   const persist = useCallback(
     (sc: SolveScript) => {
@@ -320,21 +445,71 @@ export default function Page() {
               Back
             </Button>
             <Wordmark />
+
+            {/* Version Badge & Undo Scrubbing */}
+            <div className="hidden sm:flex items-center gap-1 rounded-xl border border-[#34383c] bg-[#171b1d] px-2.5 py-1 text-xs">
+              <span className="font-mono font-semibold text-[#e6b784]">
+                v{currentVersionIdx + 1}
+              </span>
+              {scriptVersions.length > 1 && (
+                <div className="ml-1.5 flex items-center gap-1 border-l border-[#34383c] pl-1.5">
+                  {scriptVersions.map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => switchToVersion(i)}
+                      className={cn(
+                        "h-4 w-4 rounded-full font-mono text-[10px] transition-colors",
+                        i === currentVersionIdx
+                          ? "bg-[#e6b784] font-bold text-[#191816]"
+                          : "text-muted-foreground hover:bg-[#23262a] hover:text-[#f1eee7]"
+                      )}
+                      title={`Switch to version ${i + 1}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <Button
-            size="sm"
-            onClick={() => setPhase("home")}
-            className="rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]"
-          >
-            <Clapperboard className="h-4 w-4" />
-            New solve
-          </Button>
+          <div className="flex items-center gap-2.5">
+            {/* Publish to Community Gallery Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isPublishing || published}
+              onClick={handlePublish}
+              className="rounded-xl border-[#e6b784]/30 bg-[#171b1d] text-xs font-semibold text-[#e6b784] hover:bg-[#e6b784]/15 hover:text-[#f2ca9e] transition-all"
+            >
+              {published ? (
+                <>
+                  <Check className="h-3.5 w-3.5 mr-1.5 text-[#5cdb95]" />
+                  Published
+                </>
+              ) : (
+                <>
+                  <Globe className="h-3.5 w-3.5 mr-1.5" />
+                  {isPublishing ? "Publishing…" : "Publish to Gallery"}
+                </>
+              )}
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setPhase("home")}
+              className="rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]"
+            >
+              <Clapperboard className="h-4 w-4" />
+              New solve
+            </Button>
+          </div>
         </header>
 
-        {/* Side-by-Side Watch Stage: Player on Left, Chapters on Right */}
-        <section className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-8">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px] items-start">
+        {/* Side-by-Side Watch Stage: Player on Left, Tabs on Right */}
+        <section className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 sm:px-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px] items-start">
             {/* Left: Video Player + Details */}
             <div className="space-y-5">
               <SolvePlayer
@@ -386,29 +561,142 @@ export default function Page() {
               </div>
             </div>
 
-            {/* Right: Sticky Chapters Column Side-by-Side with Video */}
-            <div className="sticky top-24 rounded-2xl border border-[#34383c] bg-[#171b1d] p-4">
-              <div className="mb-3 flex items-center justify-between border-b border-[#2b2f33] pb-3">
-                <span className="text-sm font-medium text-[#f1eee7]">Chapters</span>
-                <span className="font-mono text-xs text-[#8b8d8f]">{chapterTimes.length} scenes</span>
+            {/* Right: Sticky Tabbed Sidebar (Chapters & Refine with Ember) */}
+            <div className="sticky top-20 rounded-2xl border border-[#34383c] bg-[#171b1d] p-4 shadow-xl">
+              {/* Tab Selector */}
+              <div className="mb-4 flex items-center gap-1 rounded-xl border border-[#2b2f33] bg-[#121517] p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab("chapters")}
+                  className={cn(
+                    "flex-1 rounded-lg py-1.5 text-xs font-semibold transition-all",
+                    activeRightTab === "chapters"
+                      ? "bg-[#23262a] text-[#f1eee7] shadow-sm"
+                      : "text-[#8b8d8f] hover:text-[#f1eee7]"
+                  )}
+                >
+                  Chapters ({chapterTimes.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveRightTab("refine")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all",
+                    activeRightTab === "refine"
+                      ? "bg-[#e6b784] text-[#191816] shadow-sm"
+                      : "text-[#8b8d8f] hover:text-[#f1eee7]"
+                  )}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Refine with Ember
+                </button>
               </div>
-              <ol className="board-scroll max-h-[580px] space-y-1 overflow-y-auto pr-1">
-                {chapterTimes.map((c, i) => (
-                  <li key={i}>
-                    <button
-                      onClick={() => goChapter(c.t)}
-                      className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs text-[#a4a5a7] transition-colors hover:bg-[#23262a] hover:text-[#f1eee7]"
+
+              {/* Tab 1: Chapters */}
+              {activeRightTab === "chapters" && (
+                <ol className="board-scroll max-h-[580px] space-y-1 overflow-y-auto pr-1">
+                  {chapterTimes.map((c, i) => (
+                    <li key={i}>
+                      <button
+                        onClick={() => goChapter(c.t)}
+                        className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs text-[#a4a5a7] transition-colors hover:bg-[#23262a] hover:text-[#f1eee7]"
+                      >
+                        <span className="font-mono tabular-nums text-[#e6b784]">
+                          {fmtDur(c.t)}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium group-hover:text-[#f1eee7]">
+                          {c.label}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              {/* Tab 2: Refine with Ember (Interactive Studio) */}
+              {activeRightTab === "refine" && (
+                <div className="flex flex-col h-[580px]">
+                  {/* Chat Messages */}
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1 board-scroll">
+                    {refineChat.map((msg, i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex flex-col gap-1 text-xs leading-relaxed",
+                          msg.role === "user" ? "items-end" : "items-start"
+                        )}
+                      >
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-[#8b8d8f]">
+                          {msg.role === "user" ? "You" : "Professor Ember"}
+                        </span>
+                        <div
+                          className={cn(
+                            "rounded-2xl px-3.5 py-2.5 max-w-[90%]",
+                            msg.role === "user"
+                              ? "bg-[#e6b784] font-medium text-[#191816] rounded-tr-xs"
+                              : "border border-[#34383c] bg-[#121517] text-[#f1eee7] rounded-tl-xs"
+                          )}
+                        >
+                          {msg.content}
+                        </div>
+                      </div>
+                    ))}
+
+                    {isRefining && (
+                      <div className="flex items-center gap-2 text-xs text-[#e6b784] p-2">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>Professor Ember is adjusting the blackboard…</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Suggestion Chips */}
+                  <div className="mt-2 pt-2 border-t border-[#2b2f33] flex flex-wrap gap-1.5">
+                    {[
+                      "Make step 2 simpler",
+                      "Highlight final answer in yellow",
+                      "Explain why this formula works",
+                    ].map((pill) => (
+                      <button
+                        key={pill}
+                        type="button"
+                        disabled={isRefining}
+                        onClick={() => handleRefineSubmit(undefined, pill)}
+                        className="rounded-full border border-[#34383c] bg-[#121517] px-2.5 py-1 text-[11px] text-[#a4a5a7] transition-all hover:border-[#e6b784]/40 hover:text-[#f1eee7] disabled:opacity-50"
+                      >
+                        {pill}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Chat Input Console */}
+                  <form
+                    onSubmit={(e) => handleRefineSubmit(e)}
+                    className="mt-3 relative flex items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={refineInstruction}
+                      onChange={(e) => setRefineInstruction(e.target.value)}
+                      placeholder="Ask Ember to adjust this solve…"
+                      disabled={isRefining}
+                      className="w-full rounded-xl border border-[#34383c] bg-[#121517] px-3 py-2 text-xs text-[#f1eee7] placeholder:text-[#8b8d8f] focus:outline-none focus:border-[#e6b784]/60 disabled:opacity-50"
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!refineInstruction.trim() || isRefining}
+                      className="h-8 rounded-xl bg-[#e6b784] px-3 font-semibold text-[#191816] hover:bg-[#f2ca9e] disabled:opacity-40"
                     >
-                      <span className="font-mono tabular-nums text-[#e6b784]">
-                        {fmtDur(c.t)}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate font-medium group-hover:text-[#f1eee7]">
-                        {c.label}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
+                      {isRefining ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -569,16 +857,57 @@ export default function Page() {
           </p>
         </div>
 
-        {/* YouTube-Style Sample Videos Below */}
-        {SAMPLE_LESSONS.length > 0 && (
-          <div id="lessons" className="mt-12 w-full scroll-mt-24">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-                <Sparkles className="h-4 w-4 text-[#e6b784]" />
-                A good place to start
-              </div>
+        {/* Explore Section: Curated Starters & Community Gallery */}
+        <div id="lessons" className="mt-12 w-full scroll-mt-24">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setExploreTab("curated")}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all",
+                  exploreTab === "curated"
+                    ? "bg-[#e6b784] text-[#191816] shadow-sm"
+                    : "border border-[#34383c] bg-[#1a1d20] text-[#a4a5a7] hover:text-[#f1eee7]"
+                )}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Curated Starters
+              </button>
+              <button
+                type="button"
+                onClick={() => setExploreTab("community")}
+                className={cn(
+                  "flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all",
+                  exploreTab === "community"
+                    ? "bg-[#e6b784] text-[#191816] shadow-sm"
+                    : "border border-[#34383c] bg-[#1a1d20] text-[#a4a5a7] hover:text-[#f1eee7]"
+                )}
+              >
+                <Users className="h-3.5 w-3.5" />
+                Community Gallery
+                {communityLessons.length > 0 && (
+                  <span className="font-mono text-[10px] opacity-75">({communityLessons.length})</span>
+                )}
+              </button>
             </div>
 
+            {exploreTab === "community" && (
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8b8d8f]" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search community solves…"
+                  className="w-full rounded-xl border border-[#34383c] bg-[#171b1d] pl-8 pr-3 py-1.5 text-xs text-[#f1eee7] placeholder:text-[#8b8d8f] focus:outline-none focus:border-[#e6b784]/60"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Tab 1: Curated Starters */}
+          {exploreTab === "curated" && SAMPLE_LESSONS.length > 0 && (
             <div className={cn("grid grid-cols-1 gap-5 w-full", SAMPLE_LESSONS.length === 1 ? "max-w-[500px] mx-auto" : "sm:grid-cols-3")}>
               {SAMPLE_LESSONS.map((item) => {
                 const thumbUrl = sampleThumbs[item.title];
@@ -614,7 +943,7 @@ export default function Page() {
                         </span>
                       </div>
 
-                      {/* YouTube-Style Duration Badge (Bottom-Right, NO chapters) */}
+                      {/* YouTube-Style Duration Badge */}
                       <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7]">
                         {durText}
                       </div>
@@ -633,8 +962,66 @@ export default function Page() {
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Tab 2: Community Gallery */}
+          {exploreTab === "community" && (
+            <div>
+              {communityLessons.filter((l) =>
+                !searchQuery || l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.description?.toLowerCase().includes(searchQuery.toLowerCase())
+              ).length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-[#34383c] bg-[#171b1d]/40 p-12 text-center">
+                  <Globe className="h-8 w-8 text-[#e6b784]/40 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-[#f1eee7]">No community solves found</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Generate any lesson with Professor Ember and click "Publish to Gallery" in the watch screen.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                  {communityLessons
+                    .filter((l) =>
+                      !searchQuery || l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="ember-lesson-card group relative cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Watch ${item.title}`}
+                        onClick={() => watch(item.script)}
+                      >
+                        <div className="relative aspect-video w-full overflow-hidden rounded-[7px] bg-black">
+                          <div className="flex h-full w-full items-center justify-center bg-zinc-950">
+                            <Play className="h-8 w-8 text-white/30" />
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                            <span className="scale-75 rounded-full bg-[#e6b784] p-3 text-[#191816] transition-transform duration-200 group-hover:scale-100">
+                              <Play className="h-5 w-5 fill-current ml-0.5" />
+                            </span>
+                          </div>
+                          <div className="absolute top-2 left-2 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-medium text-[#e6b784]">
+                            Community
+                          </div>
+                        </div>
+
+                        <div className="mt-3 px-0.5">
+                          <h3 className="line-clamp-1 text-sm font-medium text-foreground group-hover:text-[#e6b784] transition-colors">
+                            {item.title}
+                          </h3>
+                          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
+                            <span>By {item.publisher || "Scholar"}</span>
+                            <span>{fmtDate(item.createdAt)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Saved Library (Only if history exists) */}
         {history.length > 0 && (
