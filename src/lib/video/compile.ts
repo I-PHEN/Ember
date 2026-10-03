@@ -46,17 +46,32 @@ import { normSpeechKey } from "../solve-schema";
 const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
-  // px/second — calibrated to natural human chalkboard pace (~2.5-3 characters/second
-  // at md size: 11 chars in ~3.8s). Combined with say-pacing, ink flows smoothly
-  // and synchronously across spoken explanations.
-  return 165 * (0.8 + (0.2 * cap) / 38);
+  // px/second — calibrated with 2/3 power law curvature weighting to natural human pace
+  return 210 * (0.8 + (0.2 * cap) / 38);
 }
 
 function polyLen(pts: Pt[]): { cum: number[]; len: number } {
   const cum = [0];
   let len = 0;
   for (let i = 1; i < pts.length; i++) {
-    len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    const dx = pts[i].x - pts[i - 1].x;
+    const dy = pts[i].y - pts[i - 1].y;
+    const segLen = Math.hypot(dx, dy);
+
+    // 2/3 Power Law motor control: tight curves and loops add effective kinematic
+    // distance so handwriting decelerates naturally into turns and accelerates on straights
+    let turn = 0;
+    if (i > 1) {
+      const prevDx = pts[i - 1].x - pts[i - 2].x;
+      const prevDy = pts[i - 1].y - pts[i - 2].y;
+      const a1 = Math.atan2(dy, dx);
+      const a0 = Math.atan2(prevDy, prevDx);
+      let diff = Math.abs(a1 - a0);
+      if (diff > Math.PI) diff = 2 * Math.PI - diff;
+      turn = diff;
+    }
+    const weight = 1.0 + 0.85 * Math.min(2.0, turn);
+    len += segLen * weight;
     cum.push(len);
   }
   return { cum, len };
@@ -1757,22 +1772,23 @@ function paceSceneToNarration(
     const validMarks = marks.filter((m) => m.t1 > m.t0);
     if (!validMarks.length) return false;
     const est = estimateNarration(narration);
-    const targetWriteEnd = Math.max(HEAD + 1.0, est * 0.82);
+    const leadIn = sceneIdx === 0 ? 1.8 : 0.75;
+    const targetWriteEnd = Math.max(leadIn + 1.0, est * 0.82);
     const rawWriteSpan = Math.max(0.5, scene.writeEnd - HEAD);
-    const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - HEAD) / rawWriteSpan));
+    const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan));
     for (const st of scene.strokes) {
-      st.t0 = HEAD + (st.t0 - HEAD) * k;
+      st.t0 = leadIn + (st.t0 - HEAD) * k;
       st.dur = Math.max(0.03, st.dur * k);
     }
     for (const g of groups) {
       for (const st of g.strokes) {
         if (st.eraseScene === sceneIdx && st.eraseAt !== undefined) {
-          st.eraseAt = HEAD + (st.eraseAt - HEAD) * k;
+          st.eraseAt = leadIn + (st.eraseAt - HEAD) * k;
         }
       }
     }
-    for (const e of scene.erases) e.at = HEAD + (e.at - HEAD) * k;
-    scene.writeEnd = HEAD + (scene.writeEnd - HEAD) * k;
+    for (const e of scene.erases) e.at = leadIn + (e.at - HEAD) * k;
+    scene.writeEnd = leadIn + (scene.writeEnd - HEAD) * k;
     return true;
   }
 
@@ -1811,9 +1827,10 @@ function paceSceneToNarration(
     n0: number;
     scale: number;
   }
+  const leadIn = sceneIdx === 0 ? 1.8 : 0.75;
   const map: MapEntry[] = [];
-  let planned = SAY_T0;
-  let prevEnd = SAY_T0;
+  let planned = leadIn;
+  let prevEnd = leadIn;
   for (let si = 0; si < segs.length; si++) {
     const win = windowFor(segs[si]);
     const old = segOld[si];

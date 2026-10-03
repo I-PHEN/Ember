@@ -156,8 +156,10 @@ interface PenState {
   x: number;
   y: number;
   color: string;
-  mode: "write" | "travel" | "rest" | "hidden";
+  mode: "write" | "travel" | "point" | "rest" | "hidden";
   alpha: number;
+  lift: number;
+  angle: number;
 }
 
 function easeInOut(t: number): number {
@@ -186,23 +188,33 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
   if (active) {
     const p = Math.min(1, (t - activeAbs0) / active.dur);
     const pt = pointAtLen(active, p * active.len);
-    // deictic hold (point beat): pen rests ON a referenced term — a gentle,
-    // deterministic hand sway sells the pointing gesture
+    // deictic hold (point beat): marker hovers LIFTED off the board pointing toward the term
     if (active.len < 0.5) {
+      const swayX = Math.sin(t * 2.2) * 3.5;
+      const swayY = Math.cos(t * 1.8) * 2.0;
       return {
-        x: pt.x + Math.sin(t * 2.3) * 2.6,
-        y: pt.y + Math.cos(t * 1.8) * 1.6,
+        x: pt.x + swayX,
+        y: pt.y + swayY,
         color: markerColor(theme, active.color),
-        mode: "write",
+        mode: "point",
         alpha: 1,
+        lift: 16 + Math.sin(t * 2.2) * 2.5,
+        angle: -0.52 + Math.sin(t * 2.2) * 0.04,
       };
     }
+    // writing stroke: dynamic wrist tilt along the stroke tangent
+    const nextTarget = Math.min(active.len, p * active.len + 5);
+    const nextPt = pointAtLen(active, nextTarget);
+    const strokeAngle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
+    const dynamicTilt = Math.sin(strokeAngle) * 0.08;
     return {
       x: pt.x,
       y: pt.y,
       color: markerColor(theme, active.color),
       mode: "write",
       alpha: 1,
+      lift: 0,
+      angle: -0.64 + dynamicTilt,
     };
   }
 
@@ -223,36 +235,57 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
     }
   }
 
-  if (next && next.t0 - rel < 0.6) {
+  if (next && next.t0 - rel < 0.85) {
     const from = prev
       ? prev.pts[prev.pts.length - 1]
-      : next.pts[0];
+      : { x: next.pts[0].x - 30, y: next.pts[0].y + 20 };
     const to = next.pts[0];
-    const gapStart = prev ? prev.t0 + prev.dur : next.t0 - 0.3;
-    const gapDur = Math.max(0.03, next.t0 - gapStart);
+    const gapStart = prev ? prev.t0 + prev.dur : Math.max(0, next.t0 - 0.7);
+    const gapDur = Math.max(0.04, next.t0 - gapStart);
     const gp = Math.min(1, Math.max(0, (rel - gapStart) / gapDur));
     const e = easeInOut(gp);
+    const arcH = Math.sin(Math.PI * gp);
+    const lift = 22 * arcH;
+    const lateralArc = arcH * 6;
     return {
-      x: from.x + (to.x - from.x) * e,
+      x: from.x + (to.x - from.x) * e + lateralArc,
       y: from.y + (to.y - from.y) * e,
       color: markerColor(theme, next.color),
       mode: "travel",
       alpha: 1,
+      lift,
+      angle: -0.66 + arcH * 0.08,
     };
   }
 
-  // pen just lifted from the board — drift down-and-away (like a teacher
-  // releasing the marker) while fading, so it never sits parked on the text
-  if (prev && rel - (prev.t0 + prev.dur) < 1.15) {
+  // calm ready hover before the first stroke starts in the scene
+  if (next && !prev && rel < next.t0) {
+    const to = next.pts[0];
+    const hoverSway = Math.sin(t * 1.6) * 3;
+    return {
+      x: to.x - 24 + hoverSway,
+      y: to.y + 18 + Math.cos(t * 1.4) * 2,
+      color: markerColor(theme, next.color),
+      mode: "travel",
+      alpha: Math.min(1, rel / 0.5),
+      lift: 18,
+      angle: -0.58,
+    };
+  }
+
+  // pen just lifted from the board — drift down-and-away while fading
+  if (prev && rel - (prev.t0 + prev.dur) < 1.3) {
     const end = prev.pts[prev.pts.length - 1];
     const idle = rel - (prev.t0 + prev.dur);
     const drift = easeInOut(Math.min(1, idle / 0.9));
     return {
-      x: end.x + 16 * drift,
-      y: end.y + 20 * drift,
+      x: end.x + 18 * drift,
+      y: end.y + 24 * drift,
       color: markerColor(theme, prev.color),
       mode: "rest",
-      alpha: 1 - Math.max(0, (idle - 0.5) / 0.6),
+      alpha: 1 - Math.max(0, (idle - 0.6) / 0.7),
+      lift: 14 * drift,
+      angle: -0.60,
     };
   }
   return null;
@@ -263,23 +296,27 @@ function drawPen(
   pen: PenState,
   t: number
 ): void {
-  const writing = pen.mode === "write";
-  const lift = pen.mode === "travel" ? 15 : pen.mode === "rest" ? 9 : 0;
-  const wobble = writing ? Math.sin(t * 9.5) * 0.018 : 0;
+  const writing = pen.mode === "write" && pen.lift < 2;
+  const wobble = writing ? Math.sin(t * 9.5) * 0.016 : 0;
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha));
-  // contact shadow
+
+  // contact shadow on board floor (spreads and softens with elevation)
   ctx.save();
   ctx.translate(pen.x, pen.y + 2);
-  ctx.rotate(-0.62 + wobble);
-  ctx.fillStyle = "rgba(0,0,0,0.30)";
+  ctx.rotate(pen.angle + wobble);
+  const shadowRadius = 14 + pen.lift * 0.45;
+  const shadowAlpha = Math.max(0.06, (0.32 - pen.lift * 0.012) * pen.alpha);
+  ctx.fillStyle = `rgba(0,0,0,${shadowAlpha.toFixed(3)})`;
   ctx.beginPath();
-  ctx.ellipse(-6 - lift * 0.3, 4, 16, 4.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(-6 - pen.lift * 0.35, 4, shadowRadius, 4.5 + pen.lift * 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
-  // pen body (tip at origin, extending up-right)
-  ctx.translate(pen.x, pen.y - lift);
-  ctx.rotate(-0.66 + wobble);
+
+  // pen body (lifted along z-axis)
+  ctx.translate(pen.x, pen.y - pen.lift);
+  ctx.rotate(pen.angle + wobble);
+
   // ink tip
   ctx.fillStyle = pen.color;
   ctx.beginPath();
@@ -288,37 +325,44 @@ function drawPen(
   ctx.lineTo(-3.6, -9);
   ctx.closePath();
   ctx.fill();
+
   // nib ring
-  ctx.fillStyle = "rgba(20,22,28,0.9)";
+  ctx.fillStyle = "rgba(20,22,28,0.95)";
   ctx.beginPath();
   ctx.roundRect(-4.6, -13, 9.2, 5, 1.6);
   ctx.fill();
-  // body
+
+  // barrel gradient
   const grad = ctx.createLinearGradient(-5, 0, 5, 0);
-  grad.addColorStop(0, "#3a3f4b");
-  grad.addColorStop(0.5, "#e8ebf2");
-  grad.addColorStop(1, "#575d6b");
+  grad.addColorStop(0, "#2c3038");
+  grad.addColorStop(0.35, "#dee1e8");
+  grad.addColorStop(0.7, "#8c92a0");
+  grad.addColorStop(1, "#3c414c");
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.roundRect(-5.2, -56, 10.4, 44, 5);
   ctx.fill();
-  // ink band near the top (marker style)
+
+  // colored marker identification band
   ctx.fillStyle = pen.color;
   ctx.beginPath();
   ctx.roundRect(-5.2, -50, 10.4, 9, 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
+
+  // highlight streak on barrel
+  ctx.fillStyle = "rgba(255,255,255,0.40)";
   ctx.beginPath();
-  ctx.roundRect(-4.4, -55, 2.2, 40, 1);
+  ctx.roundRect(-4.4, -55, 2.0, 40, 1);
   ctx.fill();
   ctx.restore();
-  // ink dot at contact while writing
+
+  // ink contact dot (drawn ONLY when the tip touches down onto the board)
   if (writing) {
     ctx.save();
     ctx.globalAlpha = 0.5 * pen.alpha;
     ctx.fillStyle = pen.color;
     ctx.beginPath();
-    ctx.arc(pen.x, pen.y, 2.3, 0, Math.PI * 2);
+    ctx.arc(pen.x, pen.y, 2.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

@@ -70,6 +70,11 @@ export const SAMPLE_CALCULUS: SolveScript = {
           size: "md",
           say: "To choose our u and dv wisely, we follow the classic LIATE mnemonic",
         },
+        {
+          type: "point",
+          target: "text:LIATE: L · I · A · T · E",
+          ms: 1100,
+        },
         { type: "newline", n: 1 },
         {
           type: "write",
@@ -114,6 +119,11 @@ export const SAMPLE_CALCULUS: SolveScript = {
           color: "blue",
           size: "md",
           say: "First, we write u times v, which is x multiplied by one half e to the 2x. Next, we subtract the integral of v du, which is the integral of one half e to the 2x dx",
+        },
+        {
+          type: "point",
+          target: "text:∫ x·e^(2x) dx = (x)(½ e^(2x)) − ∫ ½ e^(2x) dx",
+          ms: 1200,
         },
         { type: "newline", n: 1 },
         {
@@ -173,6 +183,11 @@ export const SAMPLE_CALCULUS: SolveScript = {
           color: "green",
           size: "md",
           say: "The one half terms cancel out to zero, leaving exactly x e to the 2x",
+        },
+        {
+          type: "point",
+          target: "text:= ½ e^(2x) + x·e^(2x) − ½ e^(2x) = x·e^(2x) ✓",
+          ms: 1300,
         },
       ],
     },
