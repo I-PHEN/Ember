@@ -71,7 +71,7 @@ try {
   await new Promise(resolve => setTimeout(resolve, 1000));
   assert.equal(reports.length, 2, "history playback must not report against a previous job");
   assert.deepEqual(errors, []);
-  await page.screenshot({ path: "tests/player-timing-review.png", fullPage: false });
+  await page.screenshot({ path: ".next/player-timing-review.png", fullPage: false });
   console.log(JSON.stringify({ result: "PASS", reports, historyReports: 0, pageErrors: errors }));
 } finally { await browser.close(); }
 

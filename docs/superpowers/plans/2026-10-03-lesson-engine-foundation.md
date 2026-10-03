@@ -1,5 +1,7 @@
 # Lesson Engine Foundation Implementation Plan
 
+Implementation status: Tasks 1–5 delivered on `codex/lesson-foundation`. Task 6 automated and browser-fixture verification completed; repository-wide checks and live-provider limitations are recorded in [the execution result](2026-10-03-lesson-engine-foundation-result.md). The original task checklists below are retained as the planning record; the execution result is authoritative for completion and deviations.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 
 **Goal:** Establish the measurable, typed foundation for an audio-first STEM lesson engine: validated semantic lesson/board artifacts, deterministic board-ownership auditing, and trustworthy planned/actual timing telemetry. This slice does not change the renderer, prompts, TTS provider, or learner-facing behavior.
