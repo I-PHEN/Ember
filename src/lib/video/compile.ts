@@ -39,7 +39,8 @@ import {
   unionBBox,
 } from "./hand";
 import { tryCompileExpr } from "@/lib/expr";
-import { normSpeechKey } from "../solve-schema";
+import { captureTimelineTiming, applySceneTiming } from "./timeline-timing";
+import type { BeatTiming, VoiceTiming } from "./timing";
 
 /* ----------------------------- helpers ---------------------------- */
 
@@ -47,7 +48,7 @@ const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
   // px/second — calibrated with 2/3 power law curvature weighting to natural human pace
-  return 70 * (0.8 + (0.2 * cap) / 38);
+  return 165 * (0.8 + (0.2 * cap) / 38);
 }
 
 function polyLen(pts: Pt[]): { cum: number[]; len: number } {
@@ -79,8 +80,8 @@ function polyLen(pts: Pt[]): { cum: number[]; len: number } {
 
 export function estimateNarration(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  // Calibrated to ~110 WPM (0.54s per word) matching The Organic Chemistry Tutor empirical lecture speed
-  return Math.max(3.0, words * 0.54 + 1.2);
+  // Preview estimate at 150 WPM. Actual audio duration replaces this before playback.
+  return Math.max(1.0, words * 0.4 + 0.7);
 }
 
 function fmtNum(v: number): string {
@@ -112,11 +113,7 @@ interface Ctx {
   beatMarks: BeatMark[];
 }
 
-interface BeatMark {
-  t0: number;
-  t1: number;
-  say?: string;
-}
+type BeatMark = BeatTiming;
 
 function makeGroup(
   ctx: Ctx,
@@ -168,13 +165,13 @@ function addPaths(
   raw: RawPath[],
   opts?: { gap?: number; speedCap?: number; settle?: number }
 ): PathStroke[] {
-  const gap = opts?.gap ?? 0.18;
+  const gap = opts?.gap ?? 0.07;
   const out: PathStroke[] = [];
   for (const r of raw) {
     if (r.pts.length < 2) continue;
     const { cum, len } = polyLen(r.pts);
     const speed = penSpeed(opts?.speedCap ?? 38);
-    const dur = Math.max(0.15, len / speed);
+    const dur = Math.max(0.06, len / speed);
     const s: PathStroke = {
       kind: "path",
       pts: r.pts,
@@ -1596,46 +1593,6 @@ function buildTable(ctx: Ctx, beat: Extract<Beat, { type: "table" }>): void {
   ctx.cursor = { x: MARGIN_X, y: yEnd + LINE_H.md * 0.7 };
 }
 
-/* ---------------------- talk-hold (deixis) ------------------------ */
-
-/* A real professor finishes writing before finishing talking: they
-   step back and POINT at the line they are explaining. When the
-   narration will outlast the writing, park the pen beside the most
-   recent visible term with the same gentle sway a "point" beat uses
-   (embodied-cognition research: students mentally imitate the gesture).
-   Pure pen choreography — no ink, no clock changes. */
-function appendTalkHold(ctx: Ctx, estAudio: number): void {
-  if (!ctx.scene.narration) return;
-  const t0 = ctx.scene.writeEnd + 0.35;
-  const talkEnd = Math.max(ctx.scene.writeEnd + 0.9, estAudio + 0.25);
-  const holdDur = Math.min(25, talkEnd - 0.5 - t0);
-  if (holdDur < 1.6) return; // too brief to read as pointing
-  // most recent visible group (emphasis groups point at their target)
-  let g: Group | undefined;
-  for (let i = ctx.scene.groups.length - 1; i >= 0; i--) {
-    const cand = ctx.scene.groups[i];
-    if (ctx.gone.has(cand)) continue;
-    g = cand.anchor && !ctx.gone.has(cand.anchor) ? cand.anchor : cand;
-    break;
-  }
-  if (!g) return;
-  const b = movedBBox(ctx, g);
-  const c = { x: b.x + b.w * 0.32, y: b.y + b.h + 10 };
-  const inkColor: MarkerName =
-    (g.strokes.find((s) => s.kind === "path") as PathStroke | undefined)
-      ?.color ?? "white";
-  ctx.scene.strokes.push({
-    kind: "path",
-    pts: [c, { x: c.x + 0.01, y: c.y }],
-    color: inkColor,
-    width: 0.01,
-    t0,
-    dur: holdDur,
-    cum: [0, 0.01],
-    len: 0.01,
-  });
-}
-
 /* The trademark intro writes at SIGNATURE pace — twice the teaching
    speed, like someone writing their own name. It is a brand bumper,
    not a lesson: compress the baked stroke schedule after compile.
@@ -1654,252 +1611,13 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
   scene.writeEnd = scene.writeEnd * k;
 }
 
-/* ----------------- say/write pacing (the lecture sync) ---------------
-   When beats carry "say" tags (the exact words spoken while they are
-   written), the natural pen schedule is RE-SHAPED so each beat group
-   lands inside the time window where its words are actually spoken:
-   the narration is split into ordered speech segments (tagged text +
-   the pure-talk remainders between them), each segment's window is
-   proportional to its share of the (estimated) audio, and the beats
-   mapped into their window with a clamped time scale — writing slows
-   down when there is much to say about one line (a real professor
-   dragging the chalk while they explain), and pauses open up where
-   the professor talks without writing. Beats with no tag join the
-   segment of the words they decorate. */
-
-const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.45; // allow pen to naturally brisk up when speech is quick so it never lags behind
-const SAY_SCALE_MAX = 8.5; // allow pen to stretch gracefully across spoken phrases
-/** speech windows start here — pen touches down in lockstep with the first word */
-const SAY_T0 = 0.08;
-
-/** lowercase alnum-only key with an index map back to the raw string */
-function normalizeWithMap(raw: string): { key: string; idx: number[] } {
-  let key = "";
-  const idx: number[] = new Array(raw.length).fill(-1);
-  let pendingSep = false;
-  for (let i = 0; i < raw.length; i++) {
-    const ch = raw[i];
-    if (/[a-zA-Z0-9]/.test(ch)) {
-      if (key.length && pendingSep) key += " ";
-      key += ch.toLowerCase();
-      idx[i] = key.length - 1;
-      pendingSep = false;
-    } else {
-      pendingSep = true;
-    }
-  }
-  return { key, idx };
-}
-
-/** raw [start, end) covering normalized range [a, b] */
-function rawRangeFor(
-  idx: number[],
-  a: number,
-  b: number
-): [number, number] | null {
-  let r0 = -1;
-  let r1 = -1;
-  for (let i = 0; i < idx.length; i++) {
-    const n = idx[i];
-    if (n < 0) continue;
-    if (n >= a && n <= b) {
-      if (r0 < 0) r0 = i;
-      r1 = i;
-    }
-    if (n > b) break;
-  }
-  return r0 < 0 ? null : [r0, r1 + 1];
-}
-
-/** reshape the compiled pen schedule onto the speech segments.
- *  returns true when the scene is say-paced (real TTS durations then
- *  re-scale it — see setSceneAudio). */
-function paceSceneToNarration(
-  scene: SceneTime,
-  groups: Group[],
-  marks: BeatMark[],
-  sceneIdx: number
-): boolean {
-  const narration = scene.narration;
-  if (!narration || !marks.some((m) => m.say)) return false;
-
-  const { key: nKey, idx: nIdx } = normalizeWithMap(narration);
-  if (!nKey) return false;
-
-  /* ordered say matches → narration speech segments (in raw chars) */
-  interface Seg {
-    r0: number;
-    r1: number;
-    isSay: boolean;
-  }
-  const segs: Seg[] = [];
-  const markSeg = new Array<number>(marks.length).fill(-1); // segment a tagged mark opens
-  let searchFrom = 0;
-  let rawPos = 0;
-  marks.forEach((m, i) => {
-    if (!m.say) return;
-    const sKey = normSpeechKey(m.say);
-    if (!sKey) return;
-    let at = nKey.indexOf(sKey, searchFrom);
-    let matchedLen = sKey.length;
-    if (at < 0 && searchFrom > 0) {
-      at = nKey.indexOf(sKey, 0); // fallback if slightly out of sequence
-    }
-    if (at < 0) {
-      // subphrase fallback: try matching 3+ word chunks
-      const words = sKey.split(/\s+/);
-      for (let len = words.length - 1; len >= 3; len--) {
-        const sub = words.slice(0, len).join(" ");
-        at = nKey.indexOf(sub, searchFrom);
-        if (at < 0 && searchFrom > 0) at = nKey.indexOf(sub, 0);
-        if (at >= 0) {
-          matchedLen = sub.length;
-          break;
-        }
-      }
-    }
-    if (at < 0) return; // duplicate / truly absent tag
-    const rr = rawRangeFor(nIdx, at, at + Math.min(matchedLen - 1, nKey.length - 1 - at));
-    if (!rr) return;
-    if (rr[0] > rawPos) segs.push({ r0: rawPos, r1: rr[0], isSay: false });
-    segs.push({ r0: rr[0], r1: rr[1], isSay: true });
-    markSeg[i] = segs.length - 1;
-    rawPos = rr[1];
-    searchFrom = Math.max(searchFrom, at + matchedLen);
-  });
-  if (!segs.some((s) => s.isSay)) {
-    /* Fallback pacing: distribute marks smoothly across the speech window */
-    const validMarks = marks.filter((m) => m.t1 > m.t0);
-    if (!validMarks.length) return false;
-    const est = estimateNarration(narration);
-    const leadIn = sceneIdx === 0 ? 8.0 : 2.5;
-    const targetWriteEnd = Math.max(leadIn + 1.0, est * 0.82);
-    const rawWriteSpan = Math.max(0.5, scene.writeEnd - HEAD);
-    const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan));
-    for (const st of scene.strokes) {
-      st.t0 = leadIn + (st.t0 - HEAD) * k;
-      st.dur = Math.max(0.03, st.dur * k);
-    }
-    for (const g of groups) {
-      for (const st of g.strokes) {
-        if (st.eraseScene === sceneIdx && st.eraseAt !== undefined) {
-          st.eraseAt = leadIn + (st.eraseAt - HEAD) * k;
-        }
-      }
-    }
-    for (const e of scene.erases) e.at = leadIn + (e.at - HEAD) * k;
-    scene.writeEnd = leadIn + (scene.writeEnd - HEAD) * k;
-    return true;
-  }
-
-  /* every mark joins the segment of the nearest PRECEDING say (marks
-     before the first tag join the opening segment — the pen starts
-     writing as the first words play) */
-  let cur = 0;
-  const markSegFinal = marks.map((_, i) => {
-    if (markSeg[i] >= 0) cur = markSeg[i];
-    return cur;
-  });
-
-  /* per-segment windows ∝ share of the estimated audio */
-  const est = estimateNarration(narration);
-  const totalChars = Math.max(1, narration.length);
-  const gaps = SAY_GAP * Math.max(0, segs.length - 1);
-  const span = Math.max(1, est - gaps);
-  const windowFor = (s: Seg) =>
-    Math.max(0.2, (span * (s.r1 - s.r0)) / totalChars);
-
-  /* old time range of the marks inside each segment */
-  const segOld: Array<[number, number] | null> = segs.map(() => null);
-  marks.forEach((m, i) => {
-    if (m.t1 <= m.t0) return; // zero-time marks (newline) carry nothing
-    const si = markSegFinal[i];
-    const o = segOld[si];
-    segOld[si] = o
-      ? [Math.min(o[0], m.t0), Math.max(o[1], m.t1)]
-      : [m.t0, m.t1];
-  });
-
-  /* planned proportional starts, monotonic placement, clamped scale */
-  interface MapEntry {
-    o0: number;
-    o1: number;
-    n0: number;
-    scale: number;
-  }
-  const leadIn = sceneIdx === 0 ? 8.0 : 2.5;
-  const map: MapEntry[] = [];
-  let planned = leadIn;
-  let prevEnd = leadIn;
-  for (let si = 0; si < segs.length; si++) {
-    const win = windowFor(segs[si]);
-    const old = segOld[si];
-    if (old) {
-      const oldDur = Math.max(0.05, old[1] - old[0]);
-      // STRICT PACING: Stroke durations are never scaled. The pen moves at a constant 45px/sec.
-      const scale = 1.0;
-      const n0 = Math.max(planned, si > 0 ? prevEnd + SAY_GAP : prevEnd);
-      map.push({ o0: old[0], o1: old[1], n0, scale });
-      prevEnd = n0 + oldDur * scale;
-    }
-    planned += win + SAY_GAP;
-  }
-  if (!map.length) return false;
-
-  /* containment search, REVERSED: segment ranges are contiguous
-     (o1 of one == o0 of the next), so a forward `t <= o1` scan would
-     steal the first stroke of every new segment for the previous
-     segment's window — the reversed scan resolves ties to the LATER
-     entry, which is the stroke's own segment */
-  const mapTime = (t: number): number => {
-    for (let i = map.length - 1; i >= 0; i--) {
-      const e = map[i];
-      if (t >= e.o0 - 1e-6) return e.n0 + (t - e.o0) * e.scale;
-    }
-    const e = map[0];
-    return e.n0 + (t - e.o0) * e.scale;
-  };
-  const mapScale = (t: number): number => {
-    for (let i = map.length - 1; i >= 0; i--) {
-      if (t >= map[i].o0 - 1e-6) return map[i].scale;
-    }
-    return map[0].scale;
-  };
-
-  const origWriteEnd = scene.writeEnd;
-  for (const st of scene.strokes) {
-    const sc = mapScale(st.t0);
-    st.t0 = mapTime(st.t0);
-    st.dur = Math.max(0.03, st.dur * sc);
-  }
-  /* erase marks and SURVIVOR SLIDES pointing INTO this scene live on
-     strokes of ANY scene (a later scene can erase/slide earlier ink) —
-     remap them all, or slides would fire before the ink they replace
-     has faded (a mapped-time overlap) */
-  for (const g of groups) {
-    for (const st of g.strokes) {
-      if (st.eraseScene === sceneIdx && st.eraseAt !== undefined) {
-        st.eraseAt = mapTime(st.eraseAt);
-      }
-      if (st.moves) {
-        for (const m of st.moves) {
-          if (m.scene === sceneIdx) m.at = mapTime(m.at);
-        }
-      }
-    }
-  }
-  for (const e of scene.erases) e.at = mapTime(e.at);
-  scene.writeEnd = Math.max(SAY_T0, mapTime(origWriteEnd));
-  return true;
-}
-
 /* --------------------------- main compile ------------------------- */
 
 export function compileTimeline(script: SolveScript): Timeline {
   const groups: Group[] = [];
   const gone = new Set<Group>();
   const scenes: SceneTime[] = [];
+  const timingMarks: BeatTiming[][] = [];
   // the board persists across scenes — the cursor carries over
   let cursor: Pt = { x: MARGIN_X, y: FIRST_BASELINE };
   let lastBottom = -Infinity;
@@ -1990,80 +1708,38 @@ export function compileTimeline(script: SolveScript): Timeline {
           break;
         }
       }
-      ctx.beatMarks.push({ t0: markT0, t1: ctx.now, say: markSay });
+      ctx.beatMarks.push({ id: `s${sceneIdx}b${ctx.beatNo}`, t0: markT0, t1: ctx.now, say: markSay, fixed: beat.type === "wait" || beat.type === "point" });
     }
     scene.writeEnd = ctx.now;
     const estAudio = estimateNarration(scene.narration);
-    /* say/write pacing — the pen lands on the words being spoken.
-       Runs BEFORE the talk-hold so the pointing tail follows the
-       reshaped schedule. */
-    const paced = paceSceneToNarration(scene, groups, ctx.beatMarks, sceneIdx);
-    scene.paced = paced;
-    scene.pacedFor = paced ? estAudio : undefined;
-    appendTalkHold(ctx, estAudio);
     if (sc.intro) {
-      compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
+      compressScene(scene, 0.5, sceneIdx);
+      for (const mark of ctx.beatMarks) { mark.t0 *= 0.5; mark.t1 *= 0.5; }
+      for (const group of scene.groups) group.born *= 0.5; // signature pace — bumper, not lesson
     }
-    scene.dur = Math.max(HEAD + scene.writeEnd + 0.5, estAudio + 0.5);
+    scene.dur = Math.max(scene.writeEnd, scene.narration ? estAudio : 0) + 0.5;
+    timingMarks.push(ctx.beatMarks);
     scenes.push(scene);
     cursor = ctx.cursor;
     lastBottom = ctx.lastBottom;
   });
-  return {
+  const timeline: Timeline = {
     title: script.title,
     subject: script.subject,
     question: script.question,
     scenes,
   };
+  captureTimelineTiming(timeline, timingMarks);
+  for (const scene of scenes) {
+    if (scene.narration) applySceneTiming(scene, { duration: estimateNarration(scene.narration), estimated: true });
+  }
+  return timeline;
 }
 
-/** attach a known narration duration (TTS resolved) */
-export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
-  const s = tl.scenes[i];
-  if (!s || !Number.isFinite(audioDur) || audioDur <= 0) return;
-  s.audioDur = audioDur;
-
-  /* say-paced scenes stretch their whole pen schedule to the REAL
-     speech length (TTS speaks at a steady rate, so scaling the baked
-     schedule keeps every beat inside its own words' window). */
-  if (s.paced && s.pacedFor !== audioDur) {
-    const base = s.pacedFor ?? estimateNarration(s.narration);
-    let k = (audioDur + 0.5 - HEAD) / (base + 0.5 - HEAD);
-    if (Number.isFinite(k) && k > 0 && Math.abs(k - 1) > 0.01) {
-      /* audio shorter than planned → do NOT rush the pen past ~0.8×;
-       * the scene simply runs a touch longer than the voice (a real
-       * professor finishing a line in silence). Rushing reads as AI. */
-      k = Math.max(1.0, Math.min(2.3, k));
-      const anchor = (t: number) => HEAD + (t - HEAD) * k;
-      for (const st of s.strokes) {
-        st.t0 = anchor(st.t0);
-        st.dur = Math.max(0.03, st.dur * k);
-      }
-      /* erase marks + survivor slides on ANY scene's strokes pointing
-         into this scene move with it */
-      for (const sc of tl.scenes) {
-        for (const st of sc.strokes) {
-          if (st.eraseScene === i && st.eraseAt !== undefined) {
-            st.eraseAt = anchor(st.eraseAt);
-          }
-          if (st.moves) {
-            for (const m of st.moves) {
-              if (m.scene === i) m.at = anchor(m.at);
-            }
-          }
-        }
-      }
-      for (const e of s.erases) e.at = anchor(e.at);
-      s.writeEnd = anchor(s.writeEnd);
-      s.pacedFor = audioDur;
-    } else if (Number.isFinite(k) && k > 0) {
-      s.pacedFor = audioDur;
-    }
-  }
-
-  const want = Math.max(HEAD + s.writeEnd + 0.5, audioDur + 0.5);
-  if (!s.locked || want > s.dur) s.dur = want;
-  s.locked = true;
+/** Schedule from raw clocks before playback. Optional phrase timestamps are seconds. */
+export function setSceneAudio(tl: Timeline, i: number, audioDur: number, phrases?: VoiceTiming["phrases"]): boolean {
+  const scene = tl.scenes[i];
+  return !!scene && applySceneTiming(scene, { duration: audioDur, phrases });
 }
 
 /** freeze a scene's duration (it started playing) */

@@ -332,6 +332,8 @@ export interface EraseSweep {
 }
 
 export interface SceneTime {
+  /** Timing provenance and feasibility; duration-only anchoring is approximate. */
+  timing?: import("./timing").TimingPlan;
   chapter: string;
   narration: string;
   /** trademark intro scene (brand bumper) */
@@ -347,12 +349,11 @@ export interface SceneTime {
   dur: number;
   /** known narration duration, once TTS resolves */
   audioDur?: number;
-  /** duration frozen (scene started playing or audio attached) */
+  /** All timing frozen once playback/seek commits this scene. */
   locked: boolean;
-  /** say/write pacing active — stroke schedule was stretched to the
-   *  narration, so a real TTS duration re-scales it (see setSceneAudio) */
+  /** Beat timing has been compiled against narration. */
   paced?: boolean;
-  /** the audio duration the schedule is currently paced for */
+  /** Duration used for the current plan (see timing.source for provenance). */
   pacedFor?: number;
 }
 

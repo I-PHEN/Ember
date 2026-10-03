@@ -4,10 +4,9 @@ import { measureText } from "../src/lib/video/text";
 import { CAP } from "../src/lib/video/types";
 import type { SolveScript } from "../src/lib/video/types";
 
-/* An Organic Chemistry Tutor pace, pinned by measurement: this exact 11-char
-   md write compiles to writeEnd ~ 13.5s at the 70px/s base with 0.18s
-   air-travel gaps between strokes. The old AI speed (210px/s) rushed 
-   through in 4.5s. The window [12.0, 15.0] enforces the methodical pace. */
+/* Initial Ember calibration, not a claim about any teacher's measured handwriting.
+   With curvature-weighted paths at 165 units/s and short pen lifts, this
+   equation takes about six seconds. Speech windows may accelerate at most 2.5x. */
 describe("pen pacing", () => {
   test("a mid-size write lands in the professor pace window", () => {
     const script = {
@@ -23,7 +22,7 @@ describe("pen pacing", () => {
     } as unknown as SolveScript;
     const tl = compileTimeline(script);
     const writeEnd = tl.scenes[0].writeEnd;
-    expect(writeEnd).toBeGreaterThan(12.0);
-    expect(writeEnd).toBeLessThan(15.0);
+    expect(writeEnd).toBeGreaterThan(5.5);
+    expect(writeEnd).toBeLessThan(7.0);
   });
 });
