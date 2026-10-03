@@ -92,6 +92,7 @@ export interface SolvePlayerProps {
   /** parent-driven seeks (chapter list) */
   seekRequest?: { t: number; n: number } | null;
   onVoiced?: (sceneIdx: number) => void;
+  onTimeUpdate?: (time: number, sceneIndex: number) => void;
   className?: string;
 }
 
@@ -137,6 +138,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       autoPlay = false,
       seekRequest,
       onVoiced,
+      onTimeUpdate,
       className,
     },
     ref
@@ -275,10 +277,15 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     /* ------------------------- clock loop --------------------------- */
 
     const emitUi = useCallback(() => {
-      setUiT(clockRef.current.t);
+      const curT = clockRef.current.t;
+      setUiT(curT);
       setPlaying(clockRef.current.playing);
       setEnded(clockRef.current.ended);
-    }, []);
+      if (onTimeUpdate) {
+        const idx = sceneAt(tl, curT);
+        onTimeUpdate(curT, idx);
+      }
+    }, [onTimeUpdate, tl]);
 
     const tickFn = useRef<(now: number) => void>(() => undefined);
 

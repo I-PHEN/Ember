@@ -23,7 +23,9 @@ import {
   Users,
   Search,
   RotateCcw,
+  Clock,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import Wordmark from "@/components/Wordmark";
@@ -54,6 +56,8 @@ export interface HistoryItem {
   script: SolveScript;
   createdAt: number;
   thumb?: string;
+  isPublished?: boolean;
+  publishedId?: string;
 }
 
 const HISTORY_KEY = "ember.videos";
@@ -149,6 +153,11 @@ export default function Page() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
+  /* Player Timestamp Tracking for Q&A */
+  const [playerTime, setPlayerTime] = useState(0);
+  const [playerSceneIdx, setPlayerSceneIdx] = useState(0);
+  const [activeSolveId, setActiveSolveId] = useState<string | null>(null);
+
   /* Explore Gallery State */
   const [exploreTab, setExploreTab] = useState<"curated" | "community">("curated");
   const [communityLessons, setCommunityLessons] = useState<any[]>([]);
@@ -163,6 +172,20 @@ export default function Page() {
         if (Array.isArray(d.items)) setCommunityLessons(d.items);
       })
       .catch(() => {});
+  }, []);
+
+  // Check for solve passed via /gallery or direct link
+  useEffect(() => {
+    try {
+      const activeRaw = window.localStorage.getItem("ember.watch.active");
+      if (activeRaw) {
+        window.localStorage.removeItem("ember.watch.active");
+        const activeScript = JSON.parse(activeRaw);
+        if (activeScript && activeScript.scenes) {
+          watch(activeScript);
+        }
+      }
+    } catch {}
   }, []);
 
   // Render content-specific thumbnails after the lesson board has settled.
@@ -207,17 +230,46 @@ export default function Page() {
 
   /* ------------------------ watch & studio helpers ------------------------ */
 
-  const watch = useCallback((sc: SolveScript) => {
+  const getChatKey = (title: string) => `ember.chat.${title}`;
+
+  const saveChatForSolve = (title: string, messages: { role: "user" | "ember"; content: string }[]) => {
+    try {
+      window.localStorage.setItem(getChatKey(title), JSON.stringify(messages));
+    } catch {}
+  };
+
+  const loadChatForSolve = (title: string): { role: "user" | "ember"; content: string }[] | null => {
+    try {
+      const raw = window.localStorage.getItem(getChatKey(title));
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return null;
+  };
+
+  const watch = useCallback((sc: SolveScript, solveId?: string) => {
     setScript(sc);
     setScriptVersions([sc]);
     setCurrentVersionIdx(0);
-    setRefineChat([
-      {
-        role: "ember",
-        content: `I've planned this lecture on "${sc.title}". You can ask me to adjust any step, add detail, or re-explain right here.`,
-      },
-    ]);
-    setPublished(false);
+    setActiveSolveId(solveId || null);
+
+    // Restore persistent chat history or set default greeting
+    const saved = loadChatForSolve(sc.title);
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      setRefineChat(saved);
+    } else {
+      setRefineChat([
+        {
+          role: "ember",
+          content: `I've planned this lecture on "${sc.title}". Ask me any questions about the steps, or tell me what to adjust on the blackboard.`,
+        },
+      ]);
+    }
+
+    // Check if published in history
+    const existingHistory = loadHistory();
+    const matched = existingHistory.find((h) => h.title === sc.title && h.isPublished);
+    setPublished(!!matched);
+
     setPhase("watch");
     setSeekReq(null);
     setVoiceVer(0);
@@ -242,44 +294,72 @@ export default function Page() {
       if (!text || !script || isRefining) return;
 
       setRefineInstruction("");
-      setRefineChat((prev) => [...prev, { role: "user", content: text }]);
+      const updatedChat = [...refineChat, { role: "user" as const, content: text }];
+      setRefineChat(updatedChat);
+      saveChatForSolve(script.title, updatedChat);
       setIsRefining(true);
 
       try {
+        const activeChapter = script.scenes[playerSceneIdx]?.chapter;
         const res = await fetch("/api/refine", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ script, instruction: text }),
+          body: JSON.stringify({
+            script,
+            instruction: text,
+            currentTime: playerTime,
+            currentScene: activeChapter,
+            history: updatedChat,
+          }),
         });
         const data = await res.json();
-        if (data.script) {
+
+        if (data.mode === "edit" && data.script) {
+          // Board revision mode
           const newScript = data.script as SolveScript;
           setScriptVersions((prev) => [...prev, newScript]);
           setCurrentVersionIdx((prev) => prev + 1);
           setScript(newScript);
-          setRefineChat((prev) => [
-            ...prev,
+          const nextChat = [
+            ...updatedChat,
             {
-              role: "ember",
-              content: "I've revised the lesson with your requested changes. The board has been updated live.",
+              role: "ember" as const,
+              content:
+                data.reply ||
+                "I've revised the lesson with your requested changes. The board has been updated live.",
             },
-          ]);
+          ];
+          setRefineChat(nextChat);
+          saveChatForSolve(newScript.title, nextChat);
         } else {
-          setRefineChat((prev) => [
-            ...prev,
-            { role: "ember", content: "I couldn't quite adjust that section. Try being a bit more specific." },
-          ]);
+          // Q&A / Explanation mode
+          const nextChat = [
+            ...updatedChat,
+            {
+              role: "ember" as const,
+              content:
+                data.reply ||
+                "Here is my explanation based on what we've chalked on the board.",
+            },
+          ];
+          setRefineChat(nextChat);
+          saveChatForSolve(script.title, nextChat);
         }
       } catch {
-        setRefineChat((prev) => [
-          ...prev,
-          { role: "ember", content: "Something went wrong communicating with the studio. Please try again." },
-        ]);
+        const nextChat = [
+          ...updatedChat,
+          {
+            role: "ember" as const,
+            content: "Something went wrong communicating with the studio. Please try again.",
+          },
+        ];
+        setRefineChat(nextChat);
+        saveChatForSolve(script.title, nextChat);
       } finally {
         setIsRefining(false);
       }
     },
-    [refineInstruction, script, isRefining]
+    [refineInstruction, script, isRefining, playerTime, playerSceneIdx, refineChat]
   );
 
   const handlePublish = useCallback(async () => {
@@ -298,6 +378,15 @@ export default function Page() {
       const data = await res.json();
       if (data.success) {
         setPublished(true);
+        setHistory((prev) => {
+          const updated = prev.map((item) =>
+            item.title === script.title
+              ? { ...item, isPublished: true, publishedId: data.postId }
+              : item
+          );
+          saveHistory(updated);
+          return updated;
+        });
         fetch("/api/gallery")
           .then((r) => r.json())
           .then((d) => {
@@ -310,6 +399,23 @@ export default function Page() {
       setIsPublishing(false);
     }
   }, [script, isPublishing]);
+
+  const handleUnpublish = useCallback(async (item: HistoryItem) => {
+    if (!item.publishedId) return;
+    try {
+      await fetch(`/api/gallery?id=${item.publishedId}`, { method: "DELETE" });
+      setHistory((prev) => {
+        const updated = prev.map((h) =>
+          h.id === item.id ? { ...h, isPublished: false, publishedId: undefined } : h
+        );
+        saveHistory(updated);
+        return updated;
+      });
+      if (script?.title === item.title) setPublished(false);
+    } catch (err) {
+      console.error("Unpublish error:", err);
+    }
+  }, [script]);
 
   const persist = useCallback(
     (sc: SolveScript) => {
@@ -520,6 +626,10 @@ export default function Page() {
                 autoPlay
                 seekRequest={seekReq}
                 onVoiced={() => setVoiceVer((v) => v + 1)}
+                onTimeUpdate={(t, sceneIdx) => {
+                  setPlayerTime(t);
+                  setPlayerSceneIdx(sceneIdx);
+                }}
               />
 
               {/* Title & Professor Details */}
@@ -653,9 +763,10 @@ export default function Page() {
                   {/* Suggestion Chips */}
                   <div className="mt-2 pt-2 border-t border-[#2b2f33] flex flex-wrap gap-1.5">
                     {[
+                      "Why this formula?",
                       "Make step 2 simpler",
-                      "Highlight final answer in yellow",
-                      "Explain why this formula works",
+                      "Explain normal force",
+                      "Highlight answer in yellow",
                     ].map((pill) => (
                       <button
                         key={pill}
@@ -669,16 +780,31 @@ export default function Page() {
                     ))}
                   </div>
 
+                  {/* Active Timestamp Context Indicator */}
+                  <div className="mt-2.5 flex items-center justify-between px-1 text-[11px] text-[#8b8d8f]">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3 w-3 text-[#e6b784]" />
+                      <span>
+                        At <strong className="font-mono text-[#f1eee7]">{fmtDur(playerTime)}</strong>
+                      </span>
+                      <span className="text-[#34383c]">·</span>
+                      <span className="truncate max-w-[170px] text-[#a4a5a7]">
+                        {script.scenes[playerSceneIdx]?.chapter || "Current Step"}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-[#8b8d8f]/70 font-mono">timestamp synced</span>
+                  </div>
+
                   {/* Chat Input Console */}
                   <form
                     onSubmit={(e) => handleRefineSubmit(e)}
-                    className="mt-3 relative flex items-center gap-2"
+                    className="mt-2 relative flex items-center gap-2"
                   >
                     <input
                       type="text"
                       value={refineInstruction}
                       onChange={(e) => setRefineInstruction(e.target.value)}
-                      placeholder="Ask Ember to adjust this solve…"
+                      placeholder="Ask Ember about this step, or tell her what to edit…"
                       disabled={isRefining}
                       className="w-full rounded-xl border border-[#34383c] bg-[#121517] px-3 py-2 text-xs text-[#f1eee7] placeholder:text-[#8b8d8f] focus:outline-none focus:border-[#e6b784]/60 disabled:opacity-50"
                     />
@@ -708,10 +834,16 @@ export default function Page() {
 
   return (
     <main className="ember-home flex min-h-dvh flex-col">
-      {/* Top Header (Clean, circles removed) */}
+      {/* Top Header */}
       <header className="ember-home-header sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b px-6 backdrop-blur-xl sm:px-12">
         <Wordmark />
-        <a href="#lessons" className="text-sm text-muted-foreground transition-colors hover:text-white">Explore lessons ↗</a>
+        <Link
+          href="/gallery"
+          className="flex items-center gap-1.5 rounded-xl border border-[#34383c] bg-[#171b1d] px-3.5 py-1.5 text-xs font-semibold text-[#a4a5a7] transition-all hover:border-[#e6b784]/40 hover:text-[#f1eee7]"
+        >
+          <Globe className="h-3.5 w-3.5 text-[#e6b784]" />
+          Community Gallery ↗
+        </Link>
       </header>
 
       {/* running/finished job — floats under the header; NEVER pushes the page */}
@@ -857,57 +989,22 @@ export default function Page() {
           </p>
         </div>
 
-        {/* Explore Section: Curated Starters & Community Gallery */}
-        <div id="lessons" className="mt-12 w-full scroll-mt-24">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setExploreTab("curated")}
-                className={cn(
-                  "flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all",
-                  exploreTab === "curated"
-                    ? "bg-[#e6b784] text-[#191816] shadow-sm"
-                    : "border border-[#34383c] bg-[#1a1d20] text-[#a4a5a7] hover:text-[#f1eee7]"
-                )}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
+        {/* Curated Starter Lessons (A good place to start) */}
+        {SAMPLE_LESSONS.length > 0 && (
+          <div id="lessons" className="mt-12 w-full scroll-mt-24">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                <Sparkles className="h-4 w-4 text-[#e6b784]" />
                 Curated Starters
-              </button>
-              <button
-                type="button"
-                onClick={() => setExploreTab("community")}
-                className={cn(
-                  "flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-xs font-semibold transition-all",
-                  exploreTab === "community"
-                    ? "bg-[#e6b784] text-[#191816] shadow-sm"
-                    : "border border-[#34383c] bg-[#1a1d20] text-[#a4a5a7] hover:text-[#f1eee7]"
-                )}
+              </div>
+              <Link
+                href="/gallery"
+                className="text-xs text-[#e6b784] hover:underline flex items-center gap-1 font-medium transition-colors"
               >
-                <Users className="h-3.5 w-3.5" />
-                Community Gallery
-                {communityLessons.length > 0 && (
-                  <span className="font-mono text-[10px] opacity-75">({communityLessons.length})</span>
-                )}
-              </button>
+                Browse Community Gallery ↗
+              </Link>
             </div>
 
-            {exploreTab === "community" && (
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8b8d8f]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search community solves…"
-                  className="w-full rounded-xl border border-[#34383c] bg-[#171b1d] pl-8 pr-3 py-1.5 text-xs text-[#f1eee7] placeholder:text-[#8b8d8f] focus:outline-none focus:border-[#e6b784]/60"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Tab 1: Curated Starters */}
-          {exploreTab === "curated" && SAMPLE_LESSONS.length > 0 && (
             <div className={cn("grid grid-cols-1 gap-5 w-full", SAMPLE_LESSONS.length === 1 ? "max-w-[500px] mx-auto" : "sm:grid-cols-3")}>
               {SAMPLE_LESSONS.map((item) => {
                 const thumbUrl = sampleThumbs[item.title];
@@ -943,13 +1040,13 @@ export default function Page() {
                         </span>
                       </div>
 
-                      {/* YouTube-Style Duration Badge */}
+                      {/* Duration Badge */}
                       <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7]">
                         {durText}
                       </div>
                     </div>
 
-                    {/* YouTube-Style Short Title & Subtext */}
+                    {/* Short Title & Subtext */}
                     <div className="mt-3 px-0.5">
                       <h3 className="line-clamp-1 text-sm font-medium text-foreground group-hover:text-[#e6b784] transition-colors">
                         {item.title}
@@ -962,66 +1059,8 @@ export default function Page() {
                 );
               })}
             </div>
-          )}
-
-          {/* Tab 2: Community Gallery */}
-          {exploreTab === "community" && (
-            <div>
-              {communityLessons.filter((l) =>
-                !searchQuery || l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.description?.toLowerCase().includes(searchQuery.toLowerCase())
-              ).length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-[#34383c] bg-[#171b1d]/40 p-12 text-center">
-                  <Globe className="h-8 w-8 text-[#e6b784]/40 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-[#f1eee7]">No community solves found</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Generate any lesson with Professor Ember and click "Publish to Gallery" in the watch screen.
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                  {communityLessons
-                    .filter((l) =>
-                      !searchQuery || l.title?.toLowerCase().includes(searchQuery.toLowerCase()) || l.description?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .map((item) => (
-                      <div
-                        key={item.id}
-                        className="ember-lesson-card group relative cursor-pointer"
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Watch ${item.title}`}
-                        onClick={() => watch(item.script)}
-                      >
-                        <div className="relative aspect-video w-full overflow-hidden rounded-[7px] bg-black">
-                          <div className="flex h-full w-full items-center justify-center bg-zinc-950">
-                            <Play className="h-8 w-8 text-white/30" />
-                          </div>
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/35 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                            <span className="scale-75 rounded-full bg-[#e6b784] p-3 text-[#191816] transition-transform duration-200 group-hover:scale-100">
-                              <Play className="h-5 w-5 fill-current ml-0.5" />
-                            </span>
-                          </div>
-                          <div className="absolute top-2 left-2 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-medium text-[#e6b784]">
-                            Community
-                          </div>
-                        </div>
-
-                        <div className="mt-3 px-0.5">
-                          <h3 className="line-clamp-1 text-sm font-medium text-foreground group-hover:text-[#e6b784] transition-colors">
-                            {item.title}
-                          </h3>
-                          <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                            <span>By {item.publisher || "Scholar"}</span>
-                            <span>{fmtDate(item.createdAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Saved Library (Only if history exists) */}
         {history.length > 0 && (
@@ -1072,6 +1111,14 @@ export default function Page() {
                         <Play className="h-5 w-5 fill-current ml-0.5" />
                       </span>
                     </div>
+
+                    {/* Published to Gallery Badge */}
+                    {e.isPublished && (
+                      <div className="absolute top-2 left-2 rounded-md bg-black/85 border border-[#e6b784]/40 px-2 py-0.5 text-[10px] font-semibold text-[#e6b784] flex items-center gap-1 shadow-md">
+                        <Check className="h-3 w-3 text-[#5cdb95]" />
+                        Published
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-3 flex items-start justify-between px-0.5">
@@ -1083,17 +1130,32 @@ export default function Page() {
                         {e.subject ? `${e.subject} · ` : ""}{fmtDate(e.createdAt)}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={(evt) => {
-                        evt.stopPropagation();
-                        deleteEntry(e.id);
-                      }}
-                      aria-label="Delete video"
-                      className="ml-2 rounded-lg p-1.5 text-muted-foreground hover:bg-[#ff6b6b] hover:text-white transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {e.isPublished && (
+                        <button
+                          type="button"
+                          onClick={(evt) => {
+                            evt.stopPropagation();
+                            handleUnpublish(e);
+                          }}
+                          title="Unpublish from Community Gallery"
+                          className="rounded-lg px-2 py-1 text-[11px] font-medium text-[#8b8d8f] hover:text-[#e6b784] hover:bg-white/5 transition-colors"
+                        >
+                          Unpublish
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(evt) => {
+                          evt.stopPropagation();
+                          deleteEntry(e.id);
+                        }}
+                        aria-label="Delete video"
+                        className="ml-1 rounded-lg p-1.5 text-muted-foreground hover:bg-[#ff6b6b] hover:text-white transition-colors"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

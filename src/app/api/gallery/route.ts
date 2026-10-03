@@ -5,25 +5,54 @@ const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q")?.toLowerCase();
+    const subject = searchParams.get("subject");
+
     const posts = await prisma.galleryPost.findMany({
       orderBy: { createdAt: "desc" },
-      take: 24,
+      take: 40,
       include: {
         videoVersion: true,
-        publisher: { select: { name: true } }
-      }
+        publisher: { select: { name: true } },
+      },
     });
 
-    const items = posts.map(p => ({
-      id: p.id,
-      title: p.title,
-      description: p.description,
-      publisher: p.publisher?.name ?? "Anonymous",
-      upvotes: p.upvotes,
-      views: p.views,
-      createdAt: p.createdAt.getTime(),
-      script: p.videoVersion?.script ? JSON.parse(p.videoVersion.script) : null,
-    })).filter(p => p.script);
+    let items = posts
+      .map((p) => {
+        let script = null;
+        try {
+          if (p.videoVersion?.script) script = JSON.parse(p.videoVersion.script);
+        } catch {
+          script = null;
+        }
+        return {
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          publisher: p.publisher?.name ?? "Anonymous Scholar",
+          upvotes: p.upvotes,
+          views: p.views,
+          createdAt: p.createdAt.getTime(),
+          script,
+        };
+      })
+      .filter((p) => p.script);
+
+    if (subject && subject !== "All") {
+      items = items.filter(
+        (i) => i.script?.subject?.toLowerCase() === subject.toLowerCase()
+      );
+    }
+
+    if (q) {
+      items = items.filter(
+        (i) =>
+          i.title.toLowerCase().includes(q) ||
+          (i.description && i.description.toLowerCase().includes(q)) ||
+          (i.script?.question && i.script.question.toLowerCase().includes(q))
+      );
+    }
 
     return NextResponse.json({ items });
   } catch (err) {
@@ -43,22 +72,22 @@ export async function POST(req: NextRequest) {
     let user = await prisma.user.findFirst();
     if (!user) {
       user = await prisma.user.create({
-        data: { email: "creator@ember.app", name: "Community Scholar" }
+        data: { email: "creator@ember.app", name: "Community Scholar" },
       });
     }
 
     const project = await prisma.project.create({
       data: {
         userId: user.id,
-        title: title.slice(0, 80)
-      }
+        title: title.slice(0, 80),
+      },
     });
 
     const version = await prisma.videoVersion.create({
       data: {
         projectId: project.id,
-        script: typeof script === "string" ? script : JSON.stringify(script)
-      }
+        script: typeof script === "string" ? script : JSON.stringify(script),
+      },
     });
 
     const post = await prisma.galleryPost.create({
@@ -66,13 +95,33 @@ export async function POST(req: NextRequest) {
         publisherId: user.id,
         videoVersionId: version.id,
         title: title.slice(0, 100),
-        description: description?.slice(0, 280) ?? null
-      }
+        description: description?.slice(0, 280) ?? null,
+      },
     });
 
     return NextResponse.json({ success: true, postId: post.id });
   } catch (err) {
     console.error("Gallery publish error:", err);
     return NextResponse.json({ error: "Failed to publish to gallery" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Missing post id" }, { status: 400 });
+    }
+
+    await prisma.galleryPost.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Gallery unpublish error:", err);
+    return NextResponse.json({ error: "Failed to unpublish post" }, { status: 500 });
   }
 }
