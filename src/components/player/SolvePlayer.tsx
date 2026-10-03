@@ -49,10 +49,6 @@ import { cn } from "@/lib/utils";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
 
-/** how long the player will buffer at a scene boundary waiting for a
- *  late voice before it plays that scene silent (3500ms = buffer like YouTube) */
-const VOICE_HOLD_MS = 3500;
-
 /** split narration into caption-sized sentences (merge tiny ones so a
  *  caption never flashes for a fraction of a second) */
 function captionChunks(text: string): string[] {
@@ -148,7 +144,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
   ) {
     const tl = useMemo(() => compileTimeline(script), [script]);
     const theme = THEMES[themeId];
-    const [, bumpDur] = useReducer((x: number) => x + 1, 0);
+    const [durationVersion, bumpDur] = useReducer((x: number) => x + 1, 0);
 
     const wrapRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -166,7 +162,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const gaveUpRef = useRef<boolean[]>([]);
     const onVoicedRef = useRef(onVoiced);
     useEffect(() => { onVoicedRef.current = onVoiced; }, [onVoiced]);
-    const holdSinceRef = useRef<Record<number, number>>({});
+    const pendingSeekRef = useRef<{ sceneIndex: number; offset: number } | null>(null);
     const lastSceneRef = useRef(-1);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -204,9 +200,14 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     useEffect(() => {
       if (mini) return;
       let cancelled = false;
+      audioRef.current?.dispose();
+      audioRef.current = new SceneAudio();
+      clockRef.current.t = 0;
+      clockRef.current.ended = false;
+      lastSceneRef.current = -1;
       readyRef.current = tl.scenes.map(() => false);
       gaveUpRef.current = tl.scenes.map(() => false);
-      holdSinceRef.current = {};
+      pendingSeekRef.current = null;
       (async () => {
         const pending: number[] = [];
         for (let i = 0; i < tl.scenes.length; i++) {
@@ -225,8 +226,19 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             const dur = await probeDuration(url);
             if (cancelled) return;
             const effectiveDur = dur / BASE_SPEECH_RATE;
-            audioRef.current?.attach(idx, url, effectiveDur);
-            setSceneAudio(tl, idx, effectiveDur);
+            const scheduled = setSceneAudio(tl, idx, effectiveDur);
+            // A scene skipped by seeking may already be committed without voice.
+            // Its historical schedule must not move when its late fetch resolves.
+            if (scheduled || tl.scenes[idx].audioDur !== undefined) {
+              audioRef.current?.attach(idx, url, effectiveDur);
+            } else {
+              gaveUpRef.current[idx] = true;
+            }
+            const pendingSeek = pendingSeekRef.current;
+            if (pendingSeek?.sceneIndex === idx) {
+              clockRef.current.t = sceneStart(tl, idx) + Math.min(pendingSeek.offset, Math.max(0, tl.scenes[idx].dur - 0.01));
+              pendingSeekRef.current = null;
+            }
             if (jobId) {
               // Best-effort observations must never delay or fail audio playback.
               void fetch("/api/video/jobs/" + encodeURIComponent(jobId) + "/timing", {
@@ -243,6 +255,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             onVoicedRef.current?.(idx);
             bumpDur();
           } catch {
+            if (cancelled) return;
             /* the store already retried for minutes — play this scene
                silent, but keep fetching the rest */
             gaveUpRef.current[idx] = true;
@@ -316,39 +329,21 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
 
         if (c.playing && !scrubRef.current.active) {
           const idx = sceneAt(tl, c.t);
-          if (idx !== lastSceneRef.current) {
-            for (let k = 0; k <= idx; k++) lockScene(tl, k);
-            lastSceneRef.current = idx;
-          }
           const scene = tl.scenes[idx];
           const needsVoice =
             !mini &&
             !!scene.narration &&
             !readyRef.current[idx] &&
             !gaveUpRef.current[idx];
-          const atEnd = c.t >= totalNow - 0.02;
-          /* buffer like YouTube: entering a scene (or ending the video)
-             whose voice isn't recorded yet holds the clock while the
-             narration store keeps retrying — capped, then the scene
-             plays silent rather than freezing forever */
-          let holding = false;
-          if (needsVoice && VOICE_HOLD_MS > 0) {
-            const atSceneEntry = c.t <= sceneStart(tl, idx) + 0.06;
-            if (atEnd || atSceneEntry) {
-              if (holdSinceRef.current[idx] === undefined) {
-                holdSinceRef.current[idx] = now;
-              } else if (now - holdSinceRef.current[idx] > VOICE_HOLD_MS) {
-                gaveUpRef.current[idx] = true; // stop waiting on this one
-              } else {
-                holding = true;
-              }
-            }
-          }
-          if (holding) {
+          // Freeze only after audio is scheduled (or its retries genuinely failed).
+          // Waiting even on the first frame avoids crossing a boundary prematurely.
+          if (needsVoice) {
             setWaiting(true);
           } else {
             setWaiting(false);
-            c.t = Math.min(c.t + dt * c.rate, totalNow);
+            for (let k = 0; k <= idx; k++) lockScene(tl, k);
+            lastSceneRef.current = idx;
+            c.t = Math.min(c.t + dt * c.rate, sceneStart(tl, idx) + scene.dur, totalNow);
             if (c.t >= totalNow - 0.001) {
               if (mini) {
                 c.t = 0;
@@ -370,7 +365,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
           const b = audioRef.current?.tick(
             idx,
             offset,
-            c.playing && !scrubRef.current.active,
+            c.playing && !scrubRef.current.active && !!readyRef.current[idx] && !gaveUpRef.current[idx],
             c.rate,
             muted
           );
@@ -408,12 +403,19 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         c.t = Math.max(0, Math.min(t, Math.max(0, totalNow - 0.01)));
         if (c.t < totalNow - 0.05) c.ended = false;
         const idx = sceneAt(tl, c.t);
-        for (let k = 0; k <= idx; k++) lockScene(tl, k);
+        for (let k = 0; k < idx; k++) lockScene(tl, k);
+        if (!mini && tl.scenes[idx].narration && !readyRef.current[idx] && !gaveUpRef.current[idx]) {
+          pendingSeekRef.current = { sceneIndex: idx, offset: c.t - sceneStart(tl, idx) };
+          c.t = sceneStart(tl, idx);
+        } else {
+          pendingSeekRef.current = null;
+          lockScene(tl, idx);
+        }
         lastSceneRef.current = idx;
         dirtyRef.current = true;
         emitUi();
       },
-      [tl, emitUi]
+      [tl, emitUi, mini]
     );
 
     const play = useCallback(() => {
@@ -599,7 +601,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         acc += s.dur;
       }
       return arr;
-    }, [tl]);
+    }, [tl, durationVersion]);
 
     const chapterAt = useCallback(
       (t: number): string => {
