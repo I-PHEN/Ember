@@ -79,7 +79,8 @@ function polyLen(pts: Pt[]): { cum: number[]; len: number } {
 
 export function estimateNarration(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(2.0, words * 0.41 + 0.6);
+  // Calibrated to ~110 WPM (0.54s per word) matching The Organic Chemistry Tutor empirical lecture speed
+  return Math.max(3.0, words * 0.54 + 1.2);
 }
 
 function fmtNum(v: number): string {
@@ -1772,7 +1773,7 @@ function paceSceneToNarration(
     const validMarks = marks.filter((m) => m.t1 > m.t0);
     if (!validMarks.length) return false;
     const est = estimateNarration(narration);
-    const leadIn = sceneIdx === 0 ? 1.8 : 0.75;
+    const leadIn = sceneIdx === 0 ? 8.0 : 2.5;
     const targetWriteEnd = Math.max(leadIn + 1.0, est * 0.82);
     const rawWriteSpan = Math.max(0.5, scene.writeEnd - HEAD);
     const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan));
@@ -1827,7 +1828,7 @@ function paceSceneToNarration(
     n0: number;
     scale: number;
   }
-  const leadIn = sceneIdx === 0 ? 1.8 : 0.75;
+  const leadIn = sceneIdx === 0 ? 8.0 : 2.5;
   const map: MapEntry[] = [];
   let planned = leadIn;
   let prevEnd = leadIn;
@@ -1836,8 +1837,8 @@ function paceSceneToNarration(
     const old = segOld[si];
     if (old) {
       const oldDur = Math.max(0.05, old[1] - old[0]);
-      // Target writing duration: fill ~75-80% of the speech window so pen glides steadily with voice
-      const targetDur = Math.max(oldDur * 0.7, win * 0.78 - 0.2);
+      // Target writing duration: glide steadily across ~85-90% of speech window
+      const targetDur = Math.max(oldDur * 1.0, win * 0.88 - 0.2);
       const scale = Math.min(
         SAY_SCALE_MAX,
         Math.max(SAY_SCALE_MIN, targetDur / oldDur)

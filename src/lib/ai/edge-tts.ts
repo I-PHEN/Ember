@@ -31,12 +31,12 @@ export function resolveEdgeVoice(voice?: string): string {
 
 /**
  * Synthesize speech via Edge TTS (using uv runner).
- * Generates high-quality 24kHz audio with calibrated pedagogical pacing (~145-150 WPM).
+ * Generates high-quality 24kHz audio with calibrated Organic Chemistry Tutor pacing (~108-114 WPM).
  */
 export async function edgeTTS(
   text: string,
   voice = "en-US-ChristopherNeural",
-  rate = "-4%"
+  rate = "-22%"
 ): Promise<Buffer> {
   const resolvedVoice = resolveEdgeVoice(voice);
   const tmpFile = path.join(

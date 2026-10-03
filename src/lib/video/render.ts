@@ -297,75 +297,60 @@ function drawPen(
   t: number
 ): void {
   const writing = pen.mode === "write" && pen.lift < 2;
-  const wobble = writing ? Math.sin(t * 9.5) * 0.016 : 0;
-  ctx.save();
-  ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha));
+  const pointing = pen.mode === "point";
+  const rest = pen.mode === "rest";
 
-  // contact shadow on board floor (spreads and softens with elevation)
   ctx.save();
-  ctx.translate(pen.x, pen.y + 2);
-  ctx.rotate(pen.angle + wobble);
-  const shadowRadius = 14 + pen.lift * 0.45;
-  const shadowAlpha = Math.max(0.06, (0.32 - pen.lift * 0.012) * pen.alpha);
-  ctx.fillStyle = `rgba(0,0,0,${shadowAlpha.toFixed(3)})`;
+  const baseAlpha = Math.max(0, Math.min(1, pen.alpha));
+  ctx.globalAlpha = rest ? baseAlpha * 0.45 : baseAlpha;
+
+  const dotX = pen.x;
+  const dotY = pen.y - (writing ? 0 : Math.min(8, pen.lift * 0.3));
+
+  // 1. Soft glowing aura (slightly larger and pulsing during deictic pointing)
+  const haloR = pointing ? 9.0 + Math.sin(t * 3.5) * 1.5 : writing ? 6.0 : 4.5;
+  const haloAlpha = pointing ? 0.40 + Math.sin(t * 3.5) * 0.15 : writing ? 0.25 : 0.15;
+
+  ctx.save();
+  ctx.fillStyle = pen.color;
+  ctx.globalAlpha = baseAlpha * haloAlpha;
   ctx.beginPath();
-  ctx.ellipse(-6 - pen.lift * 0.35, 4, shadowRadius, 4.5 + pen.lift * 0.15, 0, 0, Math.PI * 2);
+  ctx.arc(dotX, dotY, haloR, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // pen body (lifted along z-axis)
-  ctx.translate(pen.x, pen.y - pen.lift);
-  ctx.rotate(pen.angle + wobble);
-
-  // ink tip
+  // 2. Solid color disc (radius ~3.5px) matching current ink color
+  const coreR = pointing ? 4.2 : 3.4;
+  ctx.save();
   ctx.fillStyle = pen.color;
+  ctx.globalAlpha = baseAlpha * 0.95;
   ctx.beginPath();
-  ctx.moveTo(0, 1.5);
-  ctx.lineTo(3.6, -9);
-  ctx.lineTo(-3.6, -9);
-  ctx.closePath();
-  ctx.fill();
-
-  // nib ring
-  ctx.fillStyle = "rgba(20,22,28,0.95)";
-  ctx.beginPath();
-  ctx.roundRect(-4.6, -13, 9.2, 5, 1.6);
-  ctx.fill();
-
-  // barrel gradient
-  const grad = ctx.createLinearGradient(-5, 0, 5, 0);
-  grad.addColorStop(0, "#2c3038");
-  grad.addColorStop(0.35, "#dee1e8");
-  grad.addColorStop(0.7, "#8c92a0");
-  grad.addColorStop(1, "#3c414c");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.roundRect(-5.2, -56, 10.4, 44, 5);
-  ctx.fill();
-
-  // colored marker identification band
-  ctx.fillStyle = pen.color;
-  ctx.beginPath();
-  ctx.roundRect(-5.2, -50, 10.4, 9, 2);
-  ctx.fill();
-
-  // highlight streak on barrel
-  ctx.fillStyle = "rgba(255,255,255,0.40)";
-  ctx.beginPath();
-  ctx.roundRect(-4.4, -55, 2.0, 40, 1);
+  ctx.arc(dotX, dotY, coreR, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
-  // ink contact dot (drawn ONLY when the tip touches down onto the board)
-  if (writing) {
+  // 3. Crisp white center pinpoint (radius ~1.4px) - the tablet stylus contact point
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = baseAlpha;
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 1.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 4. In pointing mode: subtle pointing focus ring
+  if (pointing) {
     ctx.save();
-    ctx.globalAlpha = 0.5 * pen.alpha;
-    ctx.fillStyle = pen.color;
+    ctx.strokeStyle = pen.color;
+    ctx.lineWidth = 1.2;
+    ctx.globalAlpha = baseAlpha * (0.5 + Math.sin(t * 4.0) * 0.25);
     ctx.beginPath();
-    ctx.arc(pen.x, pen.y, 2.2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(dotX, dotY, 13 + Math.sin(t * 3.0) * 2, 0, Math.PI * 2);
+    ctx.stroke();
     ctx.restore();
   }
+
+  ctx.restore();
 }
 
 /* ----------------------------- eraser ------------------------------ */
@@ -373,29 +358,66 @@ function drawPen(
 function drawEraserSprite(
   ctx: CanvasRenderingContext2D,
   x: number,
-  y: number
+  y: number,
+  tilt = -0.08
 ): void {
   ctx.save();
   ctx.translate(x, y);
-  ctx.rotate(-0.12);
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.rotate(tilt);
+
+  // soft shadow cast on the board
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.30)";
   ctx.beginPath();
-  ctx.ellipse(4, 12, 26, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(3, 14, 28, 7, 0, 0, Math.PI * 2);
   ctx.fill();
-  // classic black+white eraser block
-  ctx.fillStyle = "#e9e6df";
+  ctx.restore();
+
+  // dark felt erasing pad on the bottom
+  ctx.fillStyle = "#23262a";
   ctx.beginPath();
-  ctx.roundRect(-30, -18, 60, 30, 5);
+  ctx.roundRect(-32, -4, 64, 14, [0, 0, 4, 4]);
   ctx.fill();
-  ctx.fillStyle = "#2e3239";
+
+  // felt texture divider line
+  ctx.strokeStyle = "#383c44";
+  ctx.lineWidth = 1.0;
   ctx.beginPath();
-  ctx.roundRect(-30, -18, 60, 12, 5);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.28)";
-  ctx.lineWidth = 1.4;
-  ctx.beginPath();
-  ctx.roundRect(-30, -18, 60, 30, 5);
+  ctx.moveTo(-32, 2);
+  ctx.lineTo(32, 2);
   ctx.stroke();
+
+  // natural hardwood handle on top (warm birch/oak block)
+  const woodGrad = ctx.createLinearGradient(0, -22, 0, -4);
+  woodGrad.addColorStop(0, "#d8a46e");
+  woodGrad.addColorStop(0.5, "#c6925c");
+  woodGrad.addColorStop(1, "#b57f49");
+  ctx.fillStyle = woodGrad;
+  ctx.beginPath();
+  ctx.roundRect(-32, -22, 64, 18, [5, 5, 1, 1]);
+  ctx.fill();
+
+  // ergonomic grip indent along top
+  ctx.fillStyle = "rgba(0,0,0,0.12)";
+  ctx.beginPath();
+  ctx.roundRect(-22, -19, 44, 4, 2);
+  ctx.fill();
+
+  // subtle top highlight
+  ctx.strokeStyle = "rgba(255,255,255,0.25)";
+  ctx.lineWidth = 1.0;
+  ctx.beginPath();
+  ctx.moveTo(-30, -21);
+  ctx.lineTo(30, -21);
+  ctx.stroke();
+
+  // outer border
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.roundRect(-32, -22, 64, 32, 5);
+  ctx.stroke();
+
   ctx.restore();
 }
 
@@ -428,7 +450,7 @@ export function renderFrame(
       let alpha = 1;
       const et = eraseTime(tl, s);
       if (et !== null && t >= et) {
-        alpha = 1 - (t - et) / 0.24;
+        alpha = 1 - (t - et) / 0.16;
         if (alpha <= 0) continue;
       }
       ctx.globalAlpha = alpha;
@@ -475,20 +497,24 @@ export function renderFrame(
     const rel = t - start;
     for (const sw of tl.scenes[idx].erases) {
       const dt = rel - sw.at;
-      if (dt < 0 || dt > 0.95) continue;
-      const prog = Math.min(1, dt / 0.8);
+      if (dt < 0 || dt > 0.65) continue;
+      const prog = Math.min(1, dt / 0.55);
       const x = sw.region.x - 50 + prog * (sw.region.w + 100);
       const y = sw.region.y + sw.region.h / 2;
-      drawEraserSprite(ctx, x, y);
-      // a few dust streaks behind the eraser
+      const tilt = -0.06 + Math.sin(prog * Math.PI) * 0.05;
+      drawEraserSprite(ctx, x, y, tilt);
+
+      // realistic chalk dust plume behind the eraser felt pad
       ctx.save();
-      ctx.globalAlpha = 0.25 * (1 - prog);
-      ctx.fillStyle = theme.id === "blackboard" ? "#cfd3da" : "#8a8577";
-      for (let k = 0; k < 5; k++) {
-        const dx = x - 34 - k * 14;
-        const dy = y - 8 + ((k * 37) % 22);
+      const dustAlpha = 0.28 * Math.pow(1 - prog, 1.4);
+      ctx.fillStyle = theme.id === "blackboard" ? "rgba(225,230,238," : "rgba(120,115,105,";
+      for (let k = 0; k < 7; k++) {
+        const dx = x - 32 - k * 16 - (k % 3) * 6;
+        const dy = y - 10 + ((k * 43) % 24) + (prog * 6);
+        const r = 4.5 + (k % 4) * 1.5;
         ctx.beginPath();
-        ctx.ellipse(dx, dy, 5 + (k % 3), 2.4, 0.4, 0, Math.PI * 2);
+        ctx.fillStyle = `${theme.id === "blackboard" ? "rgba(225,230,238," : "rgba(120,115,105,"}${(dustAlpha * (1 - k / 8)).toFixed(3)})`;
+        ctx.ellipse(dx, dy, r, r * 0.7, 0.2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
