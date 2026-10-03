@@ -143,6 +143,7 @@ Agents advise; deterministic services own contracts.
 | Lesson director | Create objective-led segment plan and select representations. | Stroke timing or final numerical answer. |
 | Pedagogy critic | Score objective coverage, prerequisites, cognitive load, misconception quality, and learner action. Returns targeted revision only. | Re-author the entire lesson. |
 | Narration scorer | Write natural spoken text and split it into stable, ordered phrase IDs. | Board geometry or TTS duration. |
+| Board Director | Own the persistent board state, representation, visual hierarchy, semantic colors, and state transitions for the whole lesson. | Raw pixels, collision repair, or stroke duration. |
 | Board choreographer | Produce semantic ink actions tied to phrase IDs. | Exact start/end times or prose explanation on board. |
 | Blind solver | Independently solve/derive the question. | See the proposed solution or teach the lesson. |
 | Timing compiler | Map semantic actions to measured phrase windows and emit immutable cues. | Invent content or stretch a scene globally. |
@@ -175,6 +176,44 @@ Create original vector trajectories by recording a consenting instructor's or de
 
 The first library covers Latin letters, digits, arithmetic, Greek symbols, calculus notation, arrows, graph labels, chemistry bonds/rings, and diagram primitives. It is Ember-created data, not a transcription of another educator's handwriting.
 
+### AI owns the board
+
+The board is not a passive canvas or a transcript with coordinates. It is a persistent instructional object directed by the AI across the entire lesson. The lesson pipeline therefore adds a **Board Director** between `LessonPlan` and `InkIntent`:
+
+```text
+LessonPlan → BoardDirector → BoardScore → Board choreographer → InkIntent
+```
+
+`BoardScore` describes the board's intended state, hierarchy, and transitions before ink is timed:
+
+```text
+BoardScore
+  boardZones: { context, activeWork, visualModel, conclusion }
+  landmarks[]: { semanticId, primitive, role, persistence, relationTo[] }
+  states[]: { segmentId, visibleIds[], add[], emphasize[], remove[], learnerFocus }
+  visualGrammar: { colorRoles, alignmentRules, erasePolicy, whitespaceBudget }
+```
+
+The Board Director owns these decisions:
+
+- What remains visible as context, what can be erased, and where the student's eye should go next.
+- Which representation belongs on the board: a matrix, indexed grid, graph, free-body diagram, reaction structure, trace table, or equation chain.
+- Spatial hierarchy: a stable context setup, a separate active-work area, a reserved visual-model area, and a protected conclusion/answer area.
+- Semantic color roles that remain stable within a lesson—such as blue for row/index references, red for column/index references, green for an accepted result, and restrained yellow for the current focus. Color never acts as decoration.
+- How an abstraction is made visible: index labels beside a matrix, arrows to the selected row/column, a boxed region under an integral, or a trace pointer through an algorithm.
+
+The language model is deliberately *not* allowed to own pixel coordinates, collision repair, or stroke durations. It emits semantic relationships (for example, `row-indexes left-of matrix`, `column-indexes above matrix`, and `entry target row=2 column=3`). A deterministic layout engine resolves those relationships, preserves a whitespace budget, and rejects overlap. This gives the AI real authorship of the explanation while keeping rendering reliable.
+
+The supplied matrix references demonstrate the desired behavior: the instructor first establishes the object, then gives row and column labels a stable color and location, states the dimensions in an uncluttered region, and only then begins `A₂₃` with the already-visible grid as context. The animation is simple; ownership comes from the deliberate board state and the fact that each mark has a teaching purpose.
+
+### Board state rules
+
+- A board state is readable as a still image: the current task, relevant givens/model, and next visual focus are evident without audio.
+- New content enters only through an intentional state delta: add, reveal, emphasize, transform, or erase. The renderer may never teleport unrelated text into free space.
+- Context landmarks persist until their instructional purpose ends. A calculation may erase; a governing diagram or matrix remains while it is referenced.
+- The layout favors grouped local writing over board-wide jumps. Empty space is instructional: the board retains a configurable minimum clear area.
+- A state transition that would make active work illegible, invalidate a semantic reference, or push a conclusion outside its protected area fails before render.
+
 ### Motion policy
 
 - Long straight strokes are brisk; letter joins, turns, and tight curves slow down.
@@ -204,6 +243,7 @@ Every gate emits measurements into `LessonArtifact.checks`; failures trigger at 
 | Correctness | symbolic/numeric line checks, units/range checks where possible, blind-solver agreement | no high-confidence contradiction |
 | Pedagogy | objective/prerequisite/one misconception/learner-action coverage, subgoal labels | every segment has a teaching function |
 | Board discipline | prose classifier, text length, action density, layout collision/overflow | no explanatory sentences; zero severe collisions |
+| Board ownership | valid state transitions, semantic-reference resolution, stable color roles, context persistence, whitespace budget | every mark has a teaching purpose; no orphaned or teleported content |
 | Timing | anchor resolution, ink-window containment, speech-to-ink lag, cue ordering | 100% required anchors resolved; ≥95% ink duration inside its phrase window |
 | Audio | WAV decode, duration, clipping, alignment confidence, WPM distribution | no clipping; confidence above provider threshold |
 | Render | canvas frame audit at cue boundaries and final state | no off-board ink, hidden results, or target misses |
