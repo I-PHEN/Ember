@@ -8,11 +8,18 @@ export const maxDuration = 120;
    shared with the video-job voice pre-warm (single lock + cache).
 ------------------------------------------------------------------- */
 
-const wav = (buffer: Buffer) =>
+function detectAudioMime(buffer: Buffer): string {
+  if (buffer.length >= 4 && buffer.subarray(0, 4).toString("ascii") === "RIFF") {
+    return "audio/wav";
+  }
+  return "audio/mpeg";
+}
+
+const audioResponse = (buffer: Buffer) =>
   new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {
-      "Content-Type": "audio/wav",
+      "Content-Type": detectAudioMime(buffer),
       "Content-Length": String(buffer.length),
       "Cache-Control": "no-cache",
     },
@@ -39,10 +46,10 @@ export async function POST(req: NextRequest) {
     }
 
     const cached = peekCache(text, voice, speed);
-    if (cached) return wav(cached);
+    if (cached) return audioResponse(cached);
 
     const { buffer } = await speak(text, voice, speed);
-    return wav(buffer);
+    return audioResponse(buffer);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Voice generation failed.";
     const tooMany = /429|Too many/i.test(msg);

@@ -20,7 +20,7 @@ export const CHAT_MODEL =
 export const CHAT_MODEL_LITE =
   process.env.GEMINI_MODEL_LITE ?? "gemini-3.5-flash-lite";
 export const TTS_MODEL =
-  process.env.GEMINI_TTS_MODEL ?? "gemini-2.5-flash-preview-tts";
+  process.env.GEMINI_TTS_MODEL ?? "gemini-3.8-flash-lite-tts";
 
 /* Gemini's prebuilt neural voices. Anything else — including the
    legacy "jam" the client still sends — maps to the Ember default. */
@@ -113,6 +113,7 @@ export async function geminiChat(
 
 const TTS_FALLBACKS = [
   TTS_MODEL,
+  "gemini-3.8-flash-lite-tts",
   "gemini-2.5-flash-preview-tts",
   "gemini-3.8-flash-tts",
   "gemini-3.1-flash-tts-preview",

@@ -1,4 +1,7 @@
 import { geminiTTS } from "./ai/gemini";
+import { edgeTTS } from "./ai/edge-tts";
+
+let geminiExhaustedUntil = 0;
 
 /* ------------------------------------------------------------------
    The global TTS pipeline. Upstream speech is strictly rate-limited,
@@ -38,9 +41,23 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function ttsOnce(input: string, voice: string): Promise<Buffer> {
-  /* Gemini TTS (voice is normalized to a prebuilt Gemini voice — the
-     legacy "jam" the client sends maps to the configured Ember voice) */
-  return geminiTTS(input, voice);
+  const now = Date.now();
+  if (now < geminiExhaustedUntil) {
+    return edgeTTS(input, voice);
+  }
+
+  try {
+    return await geminiTTS(input, voice);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/429|quota|RESOURCE_EXHAUSTED/i.test(msg)) {
+      geminiExhaustedUntil = now + 60 * 60 * 1000;
+      console.warn(`[TTS] Gemini quota exhausted. Switched seamlessly to Edge TTS (${voice}).`);
+    } else {
+      console.warn(`[TTS] Gemini TTS failed: ${msg.slice(0, 100)}. Falling back to Edge TTS...`);
+    }
+    return await edgeTTS(input, voice);
+  }
 }
 
 async function ttsWithRetry(
@@ -51,8 +68,8 @@ async function ttsWithRetry(
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < delays.length; attempt++) {
     if (delays[attempt]) await sleep(delays[attempt]);
-    // keep calls spaced even across retries — wider after rate-limits
-    const wait = lastCallAt + gapMs - Date.now();
+    const effectiveGap = Date.now() < geminiExhaustedUntil ? 200 : gapMs;
+    const wait = lastCallAt + effectiveGap - Date.now();
     if (wait > 0) await sleep(wait);
     lastCallAt = Date.now();
     try {
