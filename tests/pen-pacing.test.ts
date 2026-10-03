@@ -4,11 +4,10 @@ import { measureText } from "../src/lib/video/text";
 import { CAP } from "../src/lib/video/types";
 import type { SolveScript } from "../src/lib/video/types";
 
-/* A professor's chalk pace, pinned by measurement: this exact 11-char
-   md write compiles to writeEnd = 4.50s at the 165px/s base (3.25s of
-   strokes + gaps/settle/HEAD). The old 265px/s base lands ≈3.7s (too
-   fast — reads as AI); a broken 80px/s lands ≈6.6s (too slow). The
-   window [4.0, 5.2] admits the professor pace and rejects both. */
+/* An Organic Chemistry Tutor pace, pinned by measurement: this exact 11-char
+   md write compiles to writeEnd ~ 13.5s at the 70px/s base with 0.18s
+   air-travel gaps between strokes. The old AI speed (210px/s) rushed 
+   through in 4.5s. The window [12.0, 15.0] enforces the methodical pace. */
 describe("pen pacing", () => {
   test("a mid-size write lands in the professor pace window", () => {
     const script = {
@@ -24,7 +23,7 @@ describe("pen pacing", () => {
     } as unknown as SolveScript;
     const tl = compileTimeline(script);
     const writeEnd = tl.scenes[0].writeEnd;
-    expect(writeEnd).toBeGreaterThan(4.0);
-    expect(writeEnd).toBeLessThan(5.2);
+    expect(writeEnd).toBeGreaterThan(12.0);
+    expect(writeEnd).toBeLessThan(15.0);
   });
 });

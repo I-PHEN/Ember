@@ -47,7 +47,7 @@ const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
   // px/second — calibrated with 2/3 power law curvature weighting to natural human pace
-  return 210 * (0.8 + (0.2 * cap) / 38);
+  return 70 * (0.8 + (0.2 * cap) / 38);
 }
 
 function polyLen(pts: Pt[]): { cum: number[]; len: number } {
@@ -168,13 +168,13 @@ function addPaths(
   raw: RawPath[],
   opts?: { gap?: number; speedCap?: number; settle?: number }
 ): PathStroke[] {
-  const gap = opts?.gap ?? 0.045;
+  const gap = opts?.gap ?? 0.18;
   const out: PathStroke[] = [];
   for (const r of raw) {
     if (r.pts.length < 2) continue;
     const { cum, len } = polyLen(r.pts);
     const speed = penSpeed(opts?.speedCap ?? 38);
-    const dur = Math.max(0.07, Math.min(2.6, len / speed));
+    const dur = Math.max(0.15, len / speed);
     const s: PathStroke = {
       kind: "path",
       pts: r.pts,
