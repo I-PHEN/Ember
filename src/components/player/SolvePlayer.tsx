@@ -45,6 +45,7 @@ import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
 import { renderFrame } from "@/lib/video/render";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { narrationStore } from "@/lib/narration-store";
+import { phrasesForScene } from "@/lib/video/speech-alignment";
 import { cn } from "@/lib/utils";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
@@ -221,12 +222,16 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
           if (pick === -1) pick = 0;
           const idx = pending.splice(pick, 1)[0];
           try {
-            const url = await narrationStore.get(tl.scenes[idx].narration!, "jam");
+            const track = await narrationStore.getTrack(tl.scenes[idx].narration!, "jam");
+            const url = track.url;
             if (cancelled) return;
             const dur = await probeDuration(url);
             if (cancelled) return;
             const effectiveDur = dur / BASE_SPEECH_RATE;
-            const scheduled = setSceneAudio(tl, idx, effectiveDur);
+            const phrases = track.alignment.status === "aligned"
+              ? phrasesForScene(script.scenes[idx], idx, track.alignment.words, dur, BASE_SPEECH_RATE)
+              : null;
+            const scheduled = setSceneAudio(tl, idx, effectiveDur, phrases ?? undefined);
             // A scene skipped by seeking may already be committed without voice.
             // Its historical schedule must not move when its late fetch resolves.
             if (scheduled || tl.scenes[idx].audioDur !== undefined) {

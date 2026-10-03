@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
 const base = process.argv[2] ?? "http://localhost:3017";
 const audioDelay = Number(process.env.TEST_AUDIO_DELAY_MS ?? 0);
+const alignedFixture = process.env.TEST_ALIGNED_AUDIO === "1";
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? "C:/Program Files/Google/Chrome/Application/chrome.exe",
   headless: true, args: ["--autoplay-policy=no-user-gesture-required"],
@@ -43,6 +44,19 @@ try {
     }
     if (path === "/api/narrate") {
       if (audioDelay) await new Promise(resolve => setTimeout(resolve, audioDelay));
+      if (alignedFixture) {
+        const text = JSON.parse(request.postData()).text;
+        const tokens = text.match(/[\p{L}\p{N}]+/gu);
+        // Deliberately different from proportional estimates, to prove the player
+        // consumes measured timestamps rather than silently falling back.
+        const words = tokens.map((word, i) => ({
+          text: word, start: i * 0.12, end: (i + 1) * 0.12,
+        }));
+        return request.respond({ contentType: "application/json", body: JSON.stringify({
+          audio: wav.toString("base64"), contentType: "audio/wav",
+          alignment: { status: "aligned", duration: 2, words },
+        }) });
+      }
       return request.respond({ contentType: "audio/wav", body: wav });
     }
     if (path.endsWith("/timing")) {
@@ -67,6 +81,9 @@ try {
   while (reports.length < 2 && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
   assert.equal(reports.length, 2, "one timing report per loaded narration");
   assert(reports[0].body.writeEndMs < 4000, "short writing must fit the available speech window without the old eight-second lead-in");
+  if (alignedFixture) {
+    assert(reports[0].body.writeEndMs < 2000, "measured anchor times should differ from duration-only scheduling");
+  }
   for (const report of reports) {
     assert.equal(report.path, "/api/video/jobs/browser-fixture/timing");
     assert.deepEqual(Object.keys(report.body).sort(), ["audioDurationMs", "sceneIndex", "writeEndMs"]);

@@ -1,5 +1,7 @@
 import { geminiTTS } from "./ai/gemini";
 import { edgeTTS } from "./ai/edge-tts";
+import { alignNarration } from "./ai/alignment-worker";
+import type { SpeechAlignment } from "./video/speech-alignment";
 
 let geminiExhaustedUntil = 0;
 
@@ -17,7 +19,8 @@ const MAX_GAP_MS = 8000;
 const MAX_CACHED = 64;
 const MAX_TEXT = 1020;
 
-const cache = new Map<string, Buffer>();
+export interface SpeechArtifact { buffer: Buffer; alignment: SpeechAlignment }
+const cache = new Map<string, SpeechArtifact>();
 let lastCallAt = 0;
 /* adaptive pacing: the limiter is account-wide, so after any 429 the
    whole TTS pipeline spaces its calls further apart (up to 8s) and
@@ -97,24 +100,29 @@ export function speak(
   text: string,
   voice = "jam",
   speed = 1
-): Promise<{ buffer: Buffer; ms: number; cached: boolean }> {
+): Promise<SpeechArtifact & { ms: number; cached: boolean }> {
+  if (!text.trim() || text.length > MAX_TEXT || speed !== 1) {
+    return Promise.reject(new Error("Invalid narration text or unsupported synthesis speed"));
+  }
   const t0 = Date.now();
   return withLock(async () => {
     const key = voiceKey(voice, speed, text);
     const hit = cache.get(key);
-    if (hit) return { buffer: hit, ms: Date.now() - t0, cached: true };
+    if (hit) return { ...hit, ms: Date.now() - t0, cached: true };
 
-    const buffer = await ttsWithRetry(text.slice(0, MAX_TEXT), voice);
+    const buffer = await ttsWithRetry(text, voice);
+    const alignment = await alignNarration(text, buffer);
+    const artifact = { buffer, alignment };
     if (cache.size >= MAX_CACHED) {
       const first = cache.keys().next().value;
       if (first !== undefined) cache.delete(first);
     }
-    cache.set(key, buffer);
-    return { buffer, ms: Date.now() - t0, cached: false };
+    cache.set(key, artifact);
+    return { ...artifact, ms: Date.now() - t0, cached: false };
   });
 }
 
 /** Cached-peek used by the narrate route's fast path (no queue join). */
-export function peekCache(text: string, voice = "jam", speed = 1): Buffer | undefined {
+export function peekCache(text: string, voice = "jam", speed = 1): SpeechArtifact | undefined {
   return cache.get(voiceKey(voice, speed, text));
 }

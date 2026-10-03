@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { peekCache, speak } from "@/lib/tts-queue";
+import { narrationResponse } from "@/lib/ai/narration-response";
 
 export const maxDuration = 120;
 
@@ -8,29 +9,13 @@ export const maxDuration = 120;
    shared with the video-job voice pre-warm (single lock + cache).
 ------------------------------------------------------------------- */
 
-function detectAudioMime(buffer: Buffer): string {
-  if (buffer.length >= 4 && buffer.subarray(0, 4).toString("ascii") === "RIFF") {
-    return "audio/wav";
-  }
-  return "audio/mpeg";
-}
-
-const audioResponse = (buffer: Buffer) =>
-  new NextResponse(new Uint8Array(buffer), {
-    status: 200,
-    headers: {
-      "Content-Type": detectAudioMime(buffer),
-      "Content-Length": String(buffer.length),
-      "Cache-Control": "no-cache",
-    },
-  });
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
     const text = typeof body?.text === "string" ? body.text.trim() : "";
     const voice = typeof body?.voice === "string" ? body.voice : "jam";
-    const speed = Number(body?.speed) || 1;
+    const speed = body?.speed === undefined ? 1 : Number(body.speed);
+    const json = body?.format === "json";
 
     if (!text) {
       return NextResponse.json({ error: "text is required" }, { status: 400 });
@@ -41,15 +26,15 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (speed < 0.5 || speed > 2) {
-      return NextResponse.json({ error: "speed out of range" }, { status: 400 });
+    if (speed !== 1) {
+      return NextResponse.json({ error: "Use player playback speed; synthesis supports speed 1 only." }, { status: 400 });
     }
 
     const cached = peekCache(text, voice, speed);
-    if (cached) return audioResponse(cached);
+    if (cached) return narrationResponse(cached, json);
 
-    const { buffer } = await speak(text, voice, speed);
-    return audioResponse(buffer);
+    const artifact = await speak(text, voice, speed);
+    return narrationResponse(artifact, json);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Voice generation failed.";
     const tooMany = /429|Too many/i.test(msg);

@@ -1,4 +1,7 @@
 "use client";
+import { validateWordTiming, type SpeechAlignment } from "./video/speech-alignment";
+
+export interface NarrationTrack { url: string; alignment: SpeechAlignment }
 
 /* ------------------------------------------------------------------
    Narration store — fetches + caches TTS audio (object URLs) for
@@ -41,15 +44,15 @@ interface TransientError extends Error {
   retryAfterMs?: number;
 }
 
-class NarrationStore {
-  private cache = new Map<string, Promise<string>>();
-  private inflight = new Map<string, Promise<string>>();
+export class NarrationStore {
+  private cache = new Map<string, Promise<NarrationTrack>>();
+  private inflight = new Map<string, Promise<NarrationTrack>>();
 
-  private async attempt(text: string, voice: string): Promise<string> {
+  private async attempt(text: string, voice: string): Promise<NarrationTrack> {
     const r = await fetch("/api/narrate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice }),
+      body: JSON.stringify({ text, voice, format: "json" }),
     });
     if (r.status === 429 || r.status >= 500) {
       const err = new Error(
@@ -62,14 +65,28 @@ class NarrationStore {
       throw err;
     }
     if (!r.ok) throw new Error(`narrate ${r.status}`); // permanent — no retry
+    if (r.headers.get("Content-Type")?.includes("application/json")) {
+      const data = await r.json();
+      if (typeof data.audio !== "string" || data.audio.length > 24 * 1024 * 1024 ||
+          !["audio/wav", "audio/mpeg"].includes(data.contentType)) throw new Error("Invalid narration audio");
+      const bytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
+      if (!bytes.length) throw new Error("Empty narration audio");
+      const raw = data.alignment;
+      const words = raw?.status === "aligned" ? validateWordTiming(text, raw.words, raw.duration) : null;
+      const alignment: SpeechAlignment = words
+        ? { status: "aligned", words, duration: raw.duration }
+        : { status: ["unavailable", "timeout", "invalid"].includes(raw?.status) ? raw.status : "invalid", words: [] };
+      return { url: URL.createObjectURL(new Blob([bytes], { type: data.contentType })), alignment };
+    }
+    // Compatibility with existing binary narration servers and saved fixtures.
     const blob = await r.blob();
     if (!blob.type.startsWith("audio")) {
       throw new Error("narrate returned non-audio");
     }
-    return URL.createObjectURL(blob);
+    return { url: URL.createObjectURL(blob), alignment: { status: "unavailable", words: [] } };
   }
 
-  private fetchWithPatience(text: string, voice: string): Promise<string> {
+  private fetchWithPatience(text: string, voice: string): Promise<NarrationTrack> {
     return (async () => {
       let lastErr: TransientError | null = null;
       for (let a = 0; a < ATTEMPT_GAPS.length; a++) {
@@ -94,7 +111,7 @@ class NarrationStore {
   }
 
   /** single-flight fetch — one request per (voice, text) at a time */
-  private fetchOnce(text: string, voice: string): Promise<string> {
+  private fetchOnce(text: string, voice: string): Promise<NarrationTrack> {
     const key = `${voice}::${text}`;
     let p = this.inflight.get(key);
     if (!p) {
@@ -112,7 +129,7 @@ class NarrationStore {
     return p;
   }
 
-  get(text: string, voice = "jam"): Promise<string> {
+  getTrack(text: string, voice = "jam"): Promise<NarrationTrack> {
     const key = `${voice}::${text}`;
     let p = this.cache.get(key);
     if (!p) {
@@ -124,6 +141,10 @@ class NarrationStore {
       });
     }
     return p;
+  }
+
+  async get(text: string, voice = "jam"): Promise<string> {
+    return (await this.getTrack(text, voice)).url;
   }
 }
 
