@@ -537,6 +537,11 @@ export default function Page() {
     reader.readAsDataURL(file);
   };
 
+  const handleTimeUpdate = useCallback((t: number, sceneIdx: number) => {
+    setPlayerTime(t);
+    setPlayerSceneIdx(sceneIdx);
+  }, []);
+
   /* ============================ WATCH ============================ */
 
   if (phase === "watch" && script) {
@@ -632,10 +637,7 @@ export default function Page() {
                 autoPlay
                 seekRequest={seekReq}
                 onVoiced={() => setVoiceVer((v) => v + 1)}
-                onTimeUpdate={(t, sceneIdx) => {
-                  setPlayerTime(t);
-                  setPlayerSceneIdx(sceneIdx);
-                }}
+                onTimeUpdate={handleTimeUpdate}
               />
 
               {/* Title & Professor Details */}

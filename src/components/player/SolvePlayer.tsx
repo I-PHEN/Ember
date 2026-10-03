@@ -429,12 +429,29 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       [seek]
     );
 
+    const hasAutoPlayedRef = useRef(false);
+
     useEffect(() => {
-      if (autoPlay) {
-        const id = setTimeout(() => play(), 150);
+      hasAutoPlayedRef.current = false;
+    }, [script]);
+
+    useEffect(() => {
+      if (autoPlay && !hasAutoPlayedRef.current) {
+        hasAutoPlayedRef.current = true;
+        const id = setTimeout(() => {
+          const c = clockRef.current;
+          if (c.ended) {
+            c.t = 0;
+            c.ended = false;
+            lastSceneRef.current = -1;
+          }
+          c.playing = true;
+          lastNowRef.current = performance.now();
+          emitUi();
+        }, 150);
         return () => clearTimeout(id);
       }
-    }, [autoPlay, play]);
+    }, [autoPlay, script, emitUi]);
 
     useEffect(() => {
       if (seekRequest) seek(seekRequest.t);
