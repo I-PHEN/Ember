@@ -84,6 +84,8 @@ export interface SolvePlayerHandle {
 }
 
 export interface SolvePlayerProps {
+  /** Only supplied when this exact script belongs to a live generation job. */
+  jobId?: string;
   script: SolveScript;
   themeId: BoardThemeId;
   onThemeChange?: (t: BoardThemeId) => void;
@@ -132,6 +134,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
   function SolvePlayer(
     {
       script,
+      jobId,
       themeId,
       onThemeChange,
       mini = false,
@@ -161,6 +164,8 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     });
     const readyRef = useRef<boolean[]>([]);
     const gaveUpRef = useRef<boolean[]>([]);
+    const onVoicedRef = useRef(onVoiced);
+    useEffect(() => { onVoicedRef.current = onVoiced; }, [onVoiced]);
     const holdSinceRef = useRef<Record<number, number>>({});
     const lastSceneRef = useRef(-1);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -222,8 +227,20 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             const effectiveDur = dur / BASE_SPEECH_RATE;
             audioRef.current?.attach(idx, url, effectiveDur);
             setSceneAudio(tl, idx, effectiveDur);
+            if (jobId) {
+              // Best-effort observations must never delay or fail audio playback.
+              void fetch("/api/video/jobs/" + encodeURIComponent(jobId) + "/timing", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  sceneIndex: idx,
+                  audioDurationMs: Math.round(effectiveDur * 1000),
+                  writeEndMs: Math.round(tl.scenes[idx].writeEnd * 1000),
+                }),
+              }).catch(() => undefined);
+            }
             readyRef.current[idx] = true;
-            onVoiced?.(idx);
+            onVoicedRef.current?.(idx);
             bumpDur();
           } catch {
             /* the store already retried for minutes — play this scene
@@ -236,7 +253,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       return () => {
         cancelled = true;
       };
-    }, [tl, mini]);
+    }, [tl, mini, jobId]);
 
     /* --------------------------- canvas ----------------------------- */
 

@@ -142,6 +142,7 @@ export default function Page() {
   const [voiceVer, setVoiceVer] = useState(0);
   const planQuestionRef = useRef("");
   const [watchedJobId, setWatchedJobId] = useState<string | null>(null);
+  const [timingSource, setTimingSource] = useState<{ script: SolveScript; jobId: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* Studio & Refinement State */
@@ -458,6 +459,7 @@ export default function Page() {
       persist(sc);
       if (autoWatch) {
         setWatchedJobId(jobId);
+        setTimingSource({ script: sc, jobId });
         watch(sc);
       }
     },
@@ -491,6 +493,7 @@ export default function Page() {
   const watchReady = useCallback(() => {
     if (jobStatus?.script) {
       setWatchedJobId(jobStatus.id);
+      setTimingSource({ script: jobStatus.script, jobId: jobStatus.id });
       watch(jobStatus.script);
     }
   }, [jobStatus, watch]);
@@ -630,6 +633,7 @@ export default function Page() {
             {/* Left: Video Player + Details */}
             <div className="space-y-5">
               <SolvePlayer
+                jobId={timingSource?.script === script ? timingSource.jobId : undefined}
                 ref={playerRef}
                 script={script}
                 themeId={themeId}

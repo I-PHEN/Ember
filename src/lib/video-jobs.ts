@@ -8,6 +8,8 @@ import {
   isBoardProse,
 } from "./solve-schema";
 import { compileTimeline } from "./video/compile";
+import { measureTimeline, type TimelineMetrics } from "./video/timeline-metrics";
+import { parseMeasuredSceneTiming, upsertMeasuredSceneTiming, type MeasuredSceneTiming } from "./video/timing-report";
 import { scriptOverlap } from "./video/overlap";
 import { auditTimeline } from "./video/layout-audit";
 import { speak } from "./tts-queue";
@@ -133,6 +135,7 @@ interface Job {
   mergedAt: number | null;
   readyAt: number | null;
   stats: {
+    timing: { planned: TimelineMetrics | null; measuredScenes: MeasuredSceneTiming[] };
     directorMs: number | null;
     plannerMs: number | null;
     writerMs: number[];
@@ -210,6 +213,7 @@ export function createJob(question: string): string {
     mergedAt: null,
     readyAt: null,
     stats: {
+      timing: { planned: null, measuredScenes: [] },
       directorMs: null,
       plannerMs: null,
       writerMs: [],
@@ -252,6 +256,19 @@ export interface JobSnapshot {
   stats: Job["stats"];
   /** honest monotonic progress toward ready (0-100, 100 only when ready) */
   progressPct: number;
+}
+
+/** Numeric browser observations only; reports never influence playback or generation. */
+export function recordSceneTiming(id: string, raw: unknown): "recorded" | "invalid" | "missing" {
+  sweep();
+  const job = jobs.get(id);
+  if (!job?.script) return "missing";
+  const report = parseMeasuredSceneTiming(raw, job.script.scenes.length);
+  if (!report) return "invalid";
+  // Existing dev-mode jobs may predate this field across a hot reload.
+  job.stats.timing ??= { planned: null, measuredScenes: [] };
+  job.stats.timing.measuredScenes = upsertMeasuredSceneTiming(job.stats.timing.measuredScenes, report);
+  return "recorded";
 }
 
 export function getJob(id: string): JobSnapshot | null {
@@ -819,6 +836,7 @@ async function runJob(job: Job): Promise<void> {
       return;
     }
     let tl = compileTimeline(script); // server-side smoke test — must never crash a client
+    job.stats.timing = { planned: measureTimeline(tl), measuredScenes: [] };
     job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
     let violations = auditTimeline(tl);
     job.stats.layoutViolations = violations.length;
@@ -891,6 +909,7 @@ async function runJob(job: Job): Promise<void> {
       if (script2 && script2.scenes.length >= 2) {
         script = script2;
         tl = compileTimeline(script);
+        job.stats.timing = { planned: measureTimeline(tl), measuredScenes: [] };
         job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
         violations = auditTimeline(tl);
         job.stats.layoutViolations = violations.length;
