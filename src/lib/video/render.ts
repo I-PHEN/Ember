@@ -296,60 +296,15 @@ function drawPen(
   pen: PenState,
   t: number
 ): void {
-  const writing = pen.mode === "write" && pen.lift < 2;
-  const pointing = pen.mode === "point";
-  const rest = pen.mode === "rest";
-
+  // Pure static dot cursor (no animations, no halos, no focus rings)
+  const rest = pen.mode === "rest" || pen.mode === "idle";
   ctx.save();
-  const baseAlpha = Math.max(0, Math.min(1, pen.alpha));
-  ctx.globalAlpha = rest ? baseAlpha * 0.45 : baseAlpha;
-
-  const dotX = pen.x;
-  const dotY = pen.y - (writing ? 0 : Math.min(8, pen.lift * 0.3));
-
-  // 1. Soft glowing aura (slightly larger and pulsing during deictic pointing)
-  const haloR = pointing ? 9.0 + Math.sin(t * 3.5) * 1.5 : writing ? 6.0 : 4.5;
-  const haloAlpha = pointing ? 0.40 + Math.sin(t * 3.5) * 0.15 : writing ? 0.25 : 0.15;
-
-  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha)) * (rest ? 0.45 : 0.95);
   ctx.fillStyle = pen.color;
-  ctx.globalAlpha = baseAlpha * haloAlpha;
   ctx.beginPath();
-  ctx.arc(dotX, dotY, haloR, 0, Math.PI * 2);
+  // Fixed size 3.4px solid dot matching active ink exactly
+  ctx.arc(pen.x, pen.y, 3.4, 0, Math.PI * 2);
   ctx.fill();
-  ctx.restore();
-
-  // 2. Solid color disc (radius ~3.5px) matching current ink color
-  const coreR = pointing ? 4.2 : 3.4;
-  ctx.save();
-  ctx.fillStyle = pen.color;
-  ctx.globalAlpha = baseAlpha * 0.95;
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, coreR, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // 3. Crisp white center pinpoint (radius ~1.4px) - the tablet stylus contact point
-  ctx.save();
-  ctx.fillStyle = "#ffffff";
-  ctx.globalAlpha = baseAlpha;
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 1.4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // 4. In pointing mode: subtle pointing focus ring
-  if (pointing) {
-    ctx.save();
-    ctx.strokeStyle = pen.color;
-    ctx.lineWidth = 1.2;
-    ctx.globalAlpha = baseAlpha * (0.5 + Math.sin(t * 4.0) * 0.25);
-    ctx.beginPath();
-    ctx.arc(dotX, dotY, 13 + Math.sin(t * 3.0) * 2, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-
   ctx.restore();
 }
 

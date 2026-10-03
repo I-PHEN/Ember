@@ -1837,12 +1837,8 @@ function paceSceneToNarration(
     const old = segOld[si];
     if (old) {
       const oldDur = Math.max(0.05, old[1] - old[0]);
-      // Target writing duration: glide steadily across ~85-90% of speech window
-      const targetDur = Math.max(oldDur * 1.0, win * 0.88 - 0.2);
-      const scale = Math.min(
-        SAY_SCALE_MAX,
-        Math.max(SAY_SCALE_MIN, targetDur / oldDur)
-      );
+      // STRICT PACING: Stroke durations are never scaled. The pen moves at a constant 45px/sec.
+      const scale = 1.0;
       const n0 = Math.max(planned, si > 0 ? prevEnd + SAY_GAP : prevEnd);
       map.push({ o0: old[0], o1: old[1], n0, scale });
       prevEnd = n0 + oldDur * scale;
@@ -2037,7 +2033,7 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
       /* audio shorter than planned → do NOT rush the pen past ~0.8×;
        * the scene simply runs a touch longer than the voice (a real
        * professor finishing a line in silence). Rushing reads as AI. */
-      k = Math.max(0.8, Math.min(2.3, k));
+      k = Math.max(1.0, Math.min(2.3, k));
       const anchor = (t: number) => HEAD + (t - HEAD) * k;
       for (const st of s.strokes) {
         st.t0 = anchor(st.t0);

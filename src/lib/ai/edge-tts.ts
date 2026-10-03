@@ -36,7 +36,7 @@ export function resolveEdgeVoice(voice?: string): string {
 export async function edgeTTS(
   text: string,
   voice = "en-US-ChristopherNeural",
-  rate = "-22%"
+  rate = "-32%"
 ): Promise<Buffer> {
   const resolvedVoice = resolveEdgeVoice(voice);
   const tmpFile = path.join(
