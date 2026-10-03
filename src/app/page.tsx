@@ -56,6 +56,7 @@ export interface HistoryItem {
   script: SolveScript;
   createdAt: number;
   thumb?: string;
+  durText?: string;
   isPublished?: boolean;
   publishedId?: string;
 }
@@ -210,8 +211,10 @@ export default function Page() {
       const refreshed = entries.map((entry) => {
         try {
           const tl = compileTimeline(entry.script);
+          const dur = fmtDur(totalDuration(tl));
           return {
             ...entry,
+            durText: dur,
             thumb: renderToImage(tl, THEMES.blackboard, thumbnailTime(tl), 420),
           };
         } catch {
@@ -420,9 +423,11 @@ export default function Page() {
   const persist = useCallback(
     (sc: SolveScript) => {
       let thumb: string | undefined;
+      let durText = "3:00";
       try {
         const tl = compileTimeline(sc);
         const t = thumbnailTime(tl);
+        durText = fmtDur(totalDuration(tl));
         thumb = renderToImage(tl, THEMES.blackboard, t, 420);
       } catch {
         thumb = undefined;
@@ -435,6 +440,7 @@ export default function Page() {
         script: sc,
         createdAt: Date.now(),
         thumb,
+        durText,
       };
       setHistory((h) => {
         const next = [entry, ...h].slice(0, HISTORY_MAX);
@@ -1119,6 +1125,11 @@ export default function Page() {
                         Published
                       </div>
                     )}
+
+                    {/* YouTube-Style Duration Badge */}
+                    <div className="absolute bottom-2 right-2 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7]">
+                      {e.durText || "3:00"}
+                    </div>
                   </div>
 
                   <div className="mt-3 flex items-start justify-between px-0.5">

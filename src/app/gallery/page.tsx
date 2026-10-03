@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import Wordmark from "@/components/Wordmark";
 import { Button } from "@/components/ui/button";
+import { compileTimeline } from "@/lib/video/compile";
+import { renderToImage } from "@/lib/video/render";
+import { thumbnailTime } from "@/lib/video/thumbnail";
+import { THEMES, totalDuration } from "@/lib/video/types";
 import { cn } from "@/lib/utils";
 
 interface GalleryItem {
@@ -43,17 +47,49 @@ function fmtDate(ts: number): string {
   });
 }
 
+function fmtDur(sec: number): string {
+  if (!Number.isFinite(sec) || sec < 0) sec = 0;
+  const m = Math.floor(sec / 60);
+  const s = Math.round(sec % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 export default function GalleryPage() {
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [durs, setDurs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch("/api/gallery")
       .then((r) => r.json())
       .then((d) => {
-        if (Array.isArray(d.items)) setItems(d.items);
+        if (Array.isArray(d.items)) {
+          setItems(d.items);
+
+          // Generate rich blackboard snapshot thumbnails & exact durations
+          const newThumbs: Record<string, string> = {};
+          const newDurs: Record<string, string> = {};
+          for (const item of d.items) {
+            if (item.script && item.script.scenes?.length) {
+              try {
+                const tl = compileTimeline(item.script);
+                const dur = totalDuration(tl);
+                newDurs[item.id] = fmtDur(dur);
+                const t = thumbnailTime(tl);
+                newThumbs[item.id] = renderToImage(tl, THEMES.blackboard, t, 480);
+              } catch {
+                newDurs[item.id] = "3:15";
+              }
+            } else {
+              newDurs[item.id] = "3:00";
+            }
+          }
+          setThumbs(newThumbs);
+          setDurs(newDurs);
+        }
       })
       .catch((err) => console.error("Failed to load gallery:", err))
       .finally(() => setLoading(false));
@@ -204,9 +240,17 @@ export default function GalleryPage() {
               >
                 {/* 16:9 Thumbnail Area */}
                 <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-                  <div className="flex h-full w-full items-center justify-center bg-zinc-950">
-                    <Play className="h-8 w-8 text-white/30" />
-                  </div>
+                  {thumbs[item.id] ? (
+                    <img
+                      src={thumbs[item.id]}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-zinc-950">
+                      <Play className="h-8 w-8 text-white/30" />
+                    </div>
+                  )}
 
                   {/* Play Hover Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
@@ -217,14 +261,14 @@ export default function GalleryPage() {
 
                   {/* Subject Badge */}
                   {item.script?.subject && (
-                    <div className="absolute top-2.5 left-2.5 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-semibold text-[#e6b784] border border-[#e6b784]/20">
+                    <div className="absolute top-2.5 left-2.5 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-semibold text-[#e6b784] border border-[#e6b784]/20 backdrop-blur-sm">
                       {item.script.subject}
                     </div>
                   )}
 
-                  {/* Scene Count Badge */}
-                  <div className="absolute bottom-2.5 right-2.5 rounded-md bg-black/80 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-[#f1eee7]">
-                    {item.script?.scenes?.length ?? 0} scenes
+                  {/* YouTube-Style Duration Badge */}
+                  <div className="absolute bottom-2.5 right-2.5 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7] shadow-sm backdrop-blur-sm">
+                    {durs[item.id] || "3:00"}
                   </div>
                 </div>
 
