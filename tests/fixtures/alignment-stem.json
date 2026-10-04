@@ -1,0 +1,17 @@
+[
+  {
+    "id": "matrix",
+    "text": "A matrix is a rectangular arrangement of numbers. This matrix has two rows and three columns. We write its dimensions as two by three. To locate an entry, choose the row first, then the column.",
+    "anchors": ["two rows", "three columns", "two by three", "row first, then the column"]
+  },
+  {
+    "id": "equation",
+    "text": "Solve two x plus three equals eleven. Subtract three from both sides. That leaves two x equals eight. Now divide both sides by two. We get x equals four. Substitute four into the original equation to check the answer.",
+    "anchors": ["two x plus three equals eleven", "Subtract three from both sides", "two x equals eight", "divide both sides by two", "x equals four"]
+  },
+  {
+    "id": "repeated",
+    "text": "Look at row two. Follow row two across the matrix. Now find column three. Pause and locate where row two meets column three. That entry is five. Remember: row first, then column. Row first, then column.",
+    "anchors": ["row two", "row two", "column three", "row two meets column three", "entry is five", "row first, then column", "Row first, then column"]
+  }
+]
