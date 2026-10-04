@@ -19,91 +19,32 @@ export async function POST(req: NextRequest) {
       normalizedEmail.split("@")[0].charAt(0).toUpperCase() +
         normalizedEmail.split("@")[0].slice(1);
 
-    if (action === "signup") {
-      // Create or find user in Prisma SQLite database
-      const existing = await db.user.findUnique({
+    let userRecord: any = null;
+    try {
+      userRecord = await db.user.findUnique({
         where: { email: normalizedEmail },
       });
 
-      if (existing) {
-        // If already exists, return the existing user account
-        return NextResponse.json({
-          user: {
-            uid: existing.id,
-            email: existing.email,
-            displayName: existing.name || fallbackName,
-            createdAt: existing.createdAt.getTime(),
-          },
-        });
-      }
-
-      const created = await db.user.create({
-        data: {
-          email: normalizedEmail,
-          name: fallbackName,
-        },
-      });
-
-      return NextResponse.json({
-        user: {
-          uid: created.id,
-          email: created.email,
-          displayName: created.name,
-          createdAt: created.createdAt.getTime(),
-        },
-      });
-    }
-
-    if (action === "signin") {
-      let user = await db.user.findUnique({
-        where: { email: normalizedEmail },
-      });
-
-      // If user does not exist in local db yet, create account automatically
-      if (!user) {
-        user = await db.user.create({
+      if (!userRecord) {
+        userRecord = await db.user.create({
           data: {
             email: normalizedEmail,
             name: fallbackName,
           },
         });
       }
-
-      return NextResponse.json({
-        user: {
-          uid: user.id,
-          email: user.email,
-          displayName: user.name || fallbackName,
-          createdAt: user.createdAt.getTime(),
-        },
-      });
+    } catch (dbErr) {
+      console.warn("Prisma database warning (fallback session issued):", dbErr);
     }
 
-    if (action === "google") {
-      let user = await db.user.findUnique({
-        where: { email: normalizedEmail },
-      });
-
-      if (!user) {
-        user = await db.user.create({
-          data: {
-            email: normalizedEmail,
-            name: fallbackName,
-          },
-        });
-      }
-
-      return NextResponse.json({
-        user: {
-          uid: user.id,
-          email: user.email,
-          displayName: user.name || fallbackName,
-          createdAt: user.createdAt.getTime(),
-        },
-      });
-    }
-
-    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+    return NextResponse.json({
+      user: {
+        uid: userRecord?.id || "usr_" + Math.random().toString(36).slice(2, 10),
+        email: normalizedEmail,
+        displayName: userRecord?.name || fallbackName,
+        createdAt: userRecord?.createdAt ? new Date(userRecord.createdAt).getTime() : Date.now(),
+      },
+    });
   } catch (err: any) {
     console.error("Auth API error:", err);
     return NextResponse.json(

@@ -11,6 +11,11 @@ interface GoogleAccount {
 
 const DEFAULT_ACCOUNTS: GoogleAccount[] = [
   {
+    name: "Michael Ejdah",
+    email: "michaelejdah179@gmail.com",
+    avatarColor: "#4285F4",
+  },
+  {
     name: "Iphhennom",
     email: "iphhennom@gmail.com",
     avatarColor: "#e6b784",
@@ -18,7 +23,7 @@ const DEFAULT_ACCOUNTS: GoogleAccount[] = [
   {
     name: "Michael",
     email: "michael.stem@gmail.com",
-    avatarColor: "#4285F4",
+    avatarColor: "#34A853",
   },
 ];
 
@@ -31,7 +36,38 @@ export default function GoogleAuthPopup() {
 
   const handleSelectAccount = (acc: GoogleAccount) => {
     setSelectedAccount(acc);
-    setStep("confirm");
+    setStep("loading");
+
+    setTimeout(() => {
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: "GOOGLE_AUTH_SUCCESS",
+            user: {
+              email: acc.email,
+              name: acc.name,
+              photoURL: null,
+            },
+          },
+          window.location.origin
+        );
+        window.close();
+      } else {
+        try {
+          const userObj = {
+            uid: "usr_google_" + Math.random().toString(36).slice(2, 9),
+            email: acc.email,
+            displayName: acc.name,
+            photoURL: null,
+            createdAt: Date.now(),
+          };
+          window.localStorage.setItem("ember.auth.user", JSON.stringify(userObj));
+          window.location.href = "/studio";
+        } catch {
+          window.location.href = "/studio";
+        }
+      }
+    }, 400);
   };
 
   const handleConfirm = () => {
@@ -86,7 +122,37 @@ export default function GoogleAuthPopup() {
       avatarColor: "#5cdb95",
     };
     setSelectedAccount(newAcc);
-    setStep("confirm");
+    setStep("loading");
+    setTimeout(() => {
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: "GOOGLE_AUTH_SUCCESS",
+            user: {
+              email: newAcc.email,
+              name: newAcc.name,
+              photoURL: null,
+            },
+          },
+          window.location.origin
+        );
+        window.close();
+      } else {
+        try {
+          const userObj = {
+            uid: "usr_google_" + Math.random().toString(36).slice(2, 9),
+            email: newAcc.email,
+            displayName: newAcc.name,
+            photoURL: null,
+            createdAt: Date.now(),
+          };
+          window.localStorage.setItem("ember.auth.user", JSON.stringify(userObj));
+          window.location.href = "/studio";
+        } catch {
+          window.location.href = "/studio";
+        }
+      }
+    }, 400);
   };
 
   return (
