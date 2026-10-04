@@ -42,6 +42,7 @@ import {
   type Timeline,
 } from "@/lib/video/types";
 import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
+import { chapterSnapshot, chapterSeekTime, type Chapter } from "@/lib/video/chapters";
 import { renderFrame } from "@/lib/video/render";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { narrationStore } from "@/lib/narration-store";
@@ -89,7 +90,8 @@ export interface SolvePlayerProps {
   mini?: boolean;
   autoPlay?: boolean;
   /** parent-driven seeks (chapter list) */
-  seekRequest?: { t: number; n: number } | null;
+  seekRequest?: { t: number; n: number } | { sceneIndex: number; script: SolveScript; n: number } | null;
+  onChaptersChange?: (script: SolveScript, chapters: Chapter[]) => void;
   onVoiced?: (sceneIdx: number) => void;
   onTimeUpdate?: (time: number, sceneIndex: number) => void;
   className?: string;
@@ -137,6 +139,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       mini = false,
       autoPlay = false,
       seekRequest,
+      onChaptersChange,
       onVoiced,
       onTimeUpdate,
       className,
@@ -146,6 +149,10 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const tl = useMemo(() => compileTimeline(script), [script]);
     const theme = THEMES[themeId];
     const [durationVersion, bumpDur] = useReducer((x: number) => x + 1, 0);
+
+    useEffect(() => {
+      onChaptersChange?.(script, chapterSnapshot(tl));
+    }, [script, tl, durationVersion, onChaptersChange]);
 
     const wrapRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -332,7 +339,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         const dt = Math.min(0.1, (now - lastNowRef.current) / 1000);
         lastNowRef.current = now;
         const c = clockRef.current;
-        const totalNow = totalRef.current;
+        const totalNow = totalDuration(tl);
 
         if (c.playing && !scrubRef.current.active) {
           const idx = sceneAt(tl, c.t);
@@ -406,7 +413,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const seek = useCallback(
       (t: number) => {
         const c = clockRef.current;
-        const totalNow = totalRef.current;
+        const totalNow = totalDuration(tl);
         c.t = Math.max(0, Math.min(t, Math.max(0, totalNow - 0.01)));
         if (c.t < totalNow - 0.05) c.ended = false;
         const idx = sceneAt(tl, c.t);
@@ -480,7 +487,12 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     }, [autoPlay, script, emitUi]);
 
     useEffect(() => {
-      if (seekRequest) seek(seekRequest.t);
+      if (!seekRequest) return;
+      if ("sceneIndex" in seekRequest) {
+        if (seekRequest.script !== script) return;
+        const t = chapterSeekTime(tl, seekRequest.sceneIndex);
+        if (t !== null) seek(t);
+      } else seek(seekRequest.t);
        
     }, [seekRequest?.n]);
 

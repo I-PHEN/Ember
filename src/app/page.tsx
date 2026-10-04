@@ -5,7 +5,7 @@
    Taught by Professor Ada.
 ------------------------------------------------------------------- */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   AlertTriangle,
@@ -40,6 +40,7 @@ import { SAMPLE_LESSONS } from "@/lib/samples";
 import { useVideoJob } from "@/lib/use-video-job";
 import { defaultTheme, saveTheme } from "@/lib/solve-schema";
 import { compileTimeline } from "@/lib/video/compile";
+import type { Chapter } from "@/lib/video/chapters";
 import { renderToImage } from "@/lib/video/render";
 import { thumbnailTime } from "@/lib/video/thumbnail";
 import { THEMES, totalDuration } from "@/lib/video/types";
@@ -136,10 +137,13 @@ export default function Page() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [sampleThumbs, setSampleThumbs] = useState<Record<string, string>>({});
   const [sampleDurs, setSampleDurs] = useState<Record<string, string>>({});
-  const [seekReq, setSeekReq] = useState<{ t: number; n: number } | null>(null);
+  const [seekReq, setSeekReq] = useState<{ sceneIndex: number; script: SolveScript; n: number } | null>(null);
   const seekNonce = useRef(0);
   const playerRef = useRef<SolvePlayerHandle>(null);
-  const [voiceVer, setVoiceVer] = useState(0);
+  const [chapterState, setChapterState] = useState<{ script: SolveScript; chapters: Chapter[] } | null>(null);
+  const handleChaptersChange = useCallback((script: SolveScript, chapters: Chapter[]) => {
+    setChapterState({ script, chapters });
+  }, []);
   const planQuestionRef = useRef("");
   const [watchedJobId, setWatchedJobId] = useState<string | null>(null);
   const [timingSource, setTimingSource] = useState<{ script: SolveScript; jobId: string } | null>(null);
@@ -276,7 +280,7 @@ export default function Page() {
 
     setPhase("watch");
     setSeekReq(null);
-    setVoiceVer(0);
+    setChapterState(null);
     setActiveRightTab("chapters");
   }, []);
 
@@ -510,23 +514,14 @@ export default function Page() {
     });
   }, []);
 
-  const chapterTimes = useMemo(() => {
-    if (phase !== "watch" || !script) return [] as { t: number; label: string }[];
-    const tl = compileTimeline(script);
-    let acc = 0;
-    const out: { t: number; label: string }[] = [];
-    for (const s of tl.scenes) {
-      const at = acc;
-      acc += s.dur;
-      if (!s.intro) out.push({ t: at, label: s.chapter });
-    }
-    return out;
-  }, [phase, script, voiceVer]);
+  const chapterTimes = phase === "watch" && chapterState?.script === script
+    ? chapterState.chapters : [];
 
-  const goChapter = useCallback((t: number) => {
+  const goChapter = useCallback((sceneIndex: number) => {
+    if (!script) return;
     seekNonce.current += 1;
-    setSeekReq({ t: t + 0.01, n: seekNonce.current });
-  }, []);
+    setSeekReq({ sceneIndex, script, n: seekNonce.current });
+  }, [script]);
 
   const handleImageUpload = (file: File) => {
     if (!file.type.startsWith("image/")) return;
@@ -640,7 +635,7 @@ export default function Page() {
                 onThemeChange={changeTheme}
                 autoPlay
                 seekRequest={seekReq}
-                onVoiced={() => setVoiceVer((v) => v + 1)}
+                onChaptersChange={handleChaptersChange}
                 onTimeUpdate={handleTimeUpdate}
               />
 
@@ -720,7 +715,7 @@ export default function Page() {
                   {chapterTimes.map((c, i) => (
                     <li key={i}>
                       <button
-                        onClick={() => goChapter(c.t)}
+                        onClick={() => goChapter(c.sceneIndex)}
                         className="group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-xs text-[#a4a5a7] transition-colors hover:bg-[#23262a] hover:text-[#f1eee7]"
                       >
                         <span className="font-mono tabular-nums text-[#e6b784]">
