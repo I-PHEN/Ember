@@ -51,3 +51,31 @@ them for playback speed. It does not fabricate missing word timestamps.
 fixtures. `TEST_ALIGNED_AUDIO=1` enables the measured-timestamp scenario in
 `tests/player-timing.browser.mjs`. Neither substitutes for listening to real
 generated narration and inspecting board synchronization.
+
+For a real-audio diagnostic, synthesize this exact transcript with the configured
+voice and save the WAV locally:
+
+> A matrix is a rectangular arrangement of numbers. This matrix has two rows and
+> three columns. We write its dimensions as two by three. To locate an entry,
+> choose the row first, then the column.
+
+```powershell
+bun tests/speech-alignment.live.ts .next/alignment-matrix.wav
+```
+
+The diagnostic does not call a provider or regenerate audio. It checks the
+production 30-second deadline, full transcript coverage, four measured phrase
+anchors and reuse of the worker. It saves the measured words, phrase windows and
+cold/warm latency beside the WAV as `.alignment.json`. Its ink durations are
+synthetic: passing is not evidence of good board layout or natural pen movement.
+
+Run the decoder compatibility regression separately (no model download needed):
+
+```powershell
+workers/alignment/.venv/Scripts/python.exe workers/alignment/test_audio_decode.py
+```
+
+PyAV is pinned because Faster-Whisper 1.2.1 uses the `metadata_errors` argument
+removed in newer PyAV releases. The October 4 real Gemini sample decoded after
+this fix, but base.en produced invalid word spans and the live acceptance test
+failed. Local installation alone does not establish production alignment quality.

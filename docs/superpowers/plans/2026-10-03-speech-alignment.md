@@ -25,13 +25,33 @@ Next webpack production build passed using the offline font fixture. The project
 skips build-time type validation; standalone TypeScript checking still reports
 the existing gallery route and render.ts errors, with no new errors observed.
 
-Live alignment remains unverified: dependency installation timed out downloading
-av, and a longer retry stalled and was stopped. The Python environment still
-cannot import stable_whisper. Worker source, locked dependencies, setup script
-and deployment instructions are present, but model setup and a real-audio smoke
-test remain outstanding. Until installed, narration uses the explicit
-unavailable/duration-only fallback. Do not describe this as production-ready
-forced alignment or a proven synchronization-quality improvement yet.
+### October 4 live check
+
+Dependency installation and base.en model setup completed. Serializing downloads
+with UV_CONCURRENT_DOWNLOADS=1 and a 120-second network timeout completed the
+previously stalled install. The first actual audio test exposed a compatibility
+bug: faster-whisper 1.2.1 passes metadata_errors to av.open, but PyAV 19.0.1 no
+longer accepts it. Pinned av==16.1.0 and regenerated the lockfile. The decoder
+regression test now passes; all 138 application tests also pass.
+
+Generated one Gemini matrix narration (574430-byte WAV, approximately 11.97
+seconds). The real worker now runs, but rejects the alignment as invalid after
+28503 ms on its first complete run. Raw model output gives zero-length spans for
+"This", "We" and "choose", plus probability 0.0402 for the opening "A".
+Disabling silence suppression did not remove these defects. An independent
+Faster-Whisper transcription agrees with the intended narration, except for
+rendering spoken "two by three" as "2 by 3". That supports investigating the
+alignment model rather than assuming Gemini omitted the words; it is not a
+human listening assessment.
+
+The repeatable diagnostic is tests/speech-alignment.live.ts. Its live acceptance
+test currently FAILS, correctly preserving duration-only fallback. No validator
+was weakened, zero-length span repaired or guessed timestamp published as
+aligned. Model initialization is operational, but synchronization quality and
+warm-worker acceptance remain outstanding. Compare a stronger alignment model
+on the same audio next, measuring latency as well as timestamp validity before
+selecting a production default. A browser playback review of real measured
+timing is still required after a valid alignment exists.
 
 ## Acceptance
 

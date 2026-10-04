@@ -5,6 +5,8 @@ requires-python = ">=3.11,<3.14"
 dependencies = [
   "stable-ts==2.19.1",
   "faster-whisper==1.2.1",
+  # Faster-Whisper 1.2.1 still passes av.open(metadata_errors=...).
+  "av==16.1.0",
 ]
 
 [tool.uv]
