@@ -64,106 +64,75 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
   const totalSec = Math.floor(durationInFrames / fps);
   const timeFormatted = `${String(Math.floor(currentSec / 60)).padStart(2, "0")}:${String(currentSec % 60).padStart(2, "0")} / ${String(Math.floor(totalSec / 60)).padStart(2, "0")}:${String(totalSec % 60).padStart(2, "0")}`;
 
-  // ================= SCENE BREAKDOWN (64s / 1920 frames) =================
-  // Scene 1: 0 - 300 (0:00 - 0:10) · Real Community Gallery
-  // Scene 2: 300 - 660 (0:10 - 0:22) · Real Studio Composer & Problem Entry
-  // Scene 3: 660 - 1020 (0:22 - 0:34) · Real AI Director (GenerateOverlay)
-  // Scene 4: 1020 - 1500 (0:34 - 0:50) · Real Blackboard Engine & Roadmap
-  // Scene 5: 1500 - 1740 (0:50 - 0:58) · Real Office Hours Interactive Chat
-  // Scene 6: 1740 - 1920 (0:58 - 1:04) · Real App Launch Outro
+  // ================= SCENE BREAKDOWN (50s / 1500 frames) =================
+  // Scene 1: 0 - 360 (0:00 - 0:12) · Problem Composer & Typing
+  // Scene 2: 360 - 720 (0:12 - 0:24) · AI Derivation Planner (Director)
+  // Scene 3: 720 - 1170 (0:24 - 0:39) · Blackboard Canvas Engine & Handwriting
+  // Scene 4: 1170 - 1500 (0:39 - 0:50) · Interactive Office Hours
 
   let activeScene = 1;
-  let sceneBadge = "01 · COMMUNITY GALLERY";
+  let sceneBadge = "01 · PROBLEM COMPOSER";
   let caption =
-    "The Library of Thought: Search and explore peer-reviewed university STEM lectures.";
+    "Problem Composer: Paste any calculus, physics, or engineering problem.";
 
-  if (frame >= 1740) {
-    activeScene = 6;
-    sceneBadge = "06 · LAUNCH STUDIO";
-    caption =
-      "Ember: Every problem, a lesson. Built for student and university problem solving.";
-  } else if (frame >= 1500) {
-    activeScene = 5;
-    sceneBadge = "05 · OFFICE HOURS INTERACTIVE CHAT";
-    caption =
-      "Office Hours: Clarify any derivation step with Professor Ember in real-time LaTeX & Voice Mode.";
-  } else if (frame >= 1020) {
+  if (frame >= 1170) {
     activeScene = 4;
-    sceneBadge = "04 · SYNCHRONOUS BLACKBOARD & ROADMAP";
+    sceneBadge = "04 · OFFICE HOURS Q&A";
     caption =
-      "Live blackboard player: marker pen hand-writes derivations with teacher pacing and chapter roadmap.";
-  } else if (frame >= 660) {
+      "Office Hours: Clarify any derivation step with Professor Ember in real time.";
+  } else if (frame >= 720) {
     activeScene = 3;
-    sceneBadge = "03 · AI PEDAGOGICAL DIRECTOR";
+    sceneBadge = "03 · BLACKBOARD STAGE";
     caption =
-      "AI Director shapes the pedagogical arc, checks mathematical consistency, and synthesizes chalk coordinates.";
-  } else if (frame >= 300) {
+      "Blackboard Stage: Marker pen hand-writes derivations with calm teacher pacing.";
+  } else if (frame >= 360) {
     activeScene = 2;
-    sceneBadge = "02 · STUDIO COMPOSER";
+    sceneBadge = "02 · DERIVATION PLANNER";
     caption =
-      "Interactive Blackboard Studio: Paste any calculus, physics, or engineering problem.";
+      "Derivation Planner: Shapes pedagogical steps, checks consistency, and coordinates chalk.";
   }
 
   // Realistic human cursor with smooth ease-in-out movement
   const getCursor = () => {
-    // Scene 1 (0 to 300): Cursor moves to "Create Solve" button at top right (915, 36) in 1024-space
-    if (frame < 300) {
-      if (frame < 80) return { x: 500, y: 350, click: false, visible: true };
-      const p = Math.min(1, Math.max(0, (frame - 80) / 32));
-      const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-      const x = 500 + (915 - 500) * ease;
-      const y = 350 + (36 - 350) * ease;
-      const click = frame >= 220 && frame <= 250;
-      return { x, y, click, visible: true };
-    }
-    // Scene 2 (300 to 660): Cursor moves to prompt pill at (575, 515), clicks at 410, then moves to "Start lesson" at (675, 455), clicks at 580
-    if (frame < 660) {
-      if (frame < 350) return { x: 915, y: 36, click: false, visible: true };
-      if (frame < 460) {
-        const p = Math.min(1, Math.max(0, (frame - 350) / 30));
+    // Scene 1 (0 to 360): Cursor in composer, then clicks "Start lesson" at (675, 455)
+    if (frame < 360) {
+      if (frame < 180) return { x: 575, y: 420, click: false, visible: true };
+      if (frame < 240) {
+        const p = Math.min(1, Math.max(0, (frame - 180) / 28));
         const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-        const x = 915 + (575 - 915) * ease;
-        const y = 36 + (515 - 36) * ease;
-        const click = frame >= 405 && frame <= 430;
-        return { x, y, click, visible: true };
+        const x = 575 + (675 - 575) * ease;
+        const y = 420 + (455 - 420) * ease;
+        return { x, y, click: false, visible: true };
       }
-      if (frame < 520) return { x: 575, y: 515, click: false, visible: true };
-      const p = Math.min(1, Math.max(0, (frame - 520) / 28));
-      const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-      const x = 575 + (675 - 575) * ease;
-      const y = 515 + (455 - 515) * ease;
-      const click = frame >= 575 && frame <= 605;
-      return { x, y, click, visible: true };
+      const click = frame >= 240 && frame <= 270;
+      return { x: 675, y: 455, click, visible: true };
     }
-    // Scene 3: Generating overlay (cursor hidden)
-    if (frame < 1020) {
+    // Scene 2 & 3: Cursor hidden during planning and blackboard solve
+    if (frame < 1170) {
       return { x: -100, y: -100, click: false, visible: false };
     }
-    // Scene 4 to 5 (1450 to 1540): Cursor moves to prompt chips in Office Hours (750, 498)
-    if (frame < 1740) {
-      if (frame < 1470) return { x: -100, y: -100, click: false, visible: false };
-      const p = Math.min(1, Math.max(0, (frame - 1470) / 26));
-      const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-      const x = 500 + (750 - 500) * ease;
-      const y = 250 + (498 - 250) * ease;
-      const click = frame >= 1515 && frame <= 1540;
-      return { x, y, click, visible: true };
-    }
-    return { x: -100, y: -100, click: false, visible: false };
+    // Scene 4 (1170 to 1500): Cursor moves to question chips in Office Hours (750, 498)
+    if (frame < 1200) return { x: 500, y: 350, click: false, visible: false };
+    const p = Math.min(1, Math.max(0, (frame - 1200) / 26));
+    const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    const x = 500 + (750 - 500) * ease;
+    const y = 350 + (498 - 350) * ease;
+    const click = frame >= 1235 && frame <= 1260;
+    return { x, y, click, visible: true };
   };
 
   const cursor = getCursor();
 
-  // Rapid typing in Scene 2
+  // Rapid typing in Scene 1 (frames 40 to 180)
   const fullPrompt =
     "Evaluate the indefinite integral ∫ x · e^(2x) dx using integration by parts.";
   const typeCount =
-    frame < 420
+    frame < 40
       ? 0
       : Math.min(
           fullPrompt.length,
           Math.floor(
-            interpolate(frame, [420, 480], [0, fullPrompt.length], {
+            interpolate(frame, [40, 180], [0, fullPrompt.length], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             })
@@ -171,24 +140,24 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
         );
   const typedText = fullPrompt.slice(0, typeCount);
 
-  // Director Progress in Scene 3 (6% -> 100%)
-  const directorProgress = interpolate(frame, [670, 990], [6, 100], {
+  // Director Progress in Scene 2 (frames 380 to 690: 6% -> 100%)
+  const directorProgress = interpolate(frame, [380, 690], [6, 100], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Fast, energetic chalk derivation in Scene 4 (16 seconds advancing 52 seconds of chalk work)
-  const boardTime = interpolate(frame, [1020, 1500], [0, 52], {
+  // Fast, energetic chalk derivation in Scene 3 (frames 720 to 1170: 0 to 52 seconds)
+  const boardTime = interpolate(frame, [720, 1170], [0, 52], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Camera scale and pan in Scene 5 (smooth zoom into Office Hours on right)
-  const officeZoom = interpolate(frame, [1490, 1550], [1, 1.32], {
+  // Camera scale and pan in Scene 4 (frames 1170 to 1230: zoom into Office Hours)
+  const officeZoom = interpolate(frame, [1170, 1230], [1, 1.32], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const officePanX = interpolate(frame, [1490, 1550], [0, -14], {
+  const officePanX = interpolate(frame, [1170, 1230], [0, -14], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -232,13 +201,6 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
             zIndex: 30,
           }}
         >
-          {/* Traffic Lights */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ff5f56" }} />
-            <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#ffbd2e" }} />
-            <div style={{ width: 10, height: 10, borderRadius: "50%", backgroundColor: "#27c93f" }} />
-          </div>
-
           {/* Real URL Bar */}
           <div
             style={{
@@ -255,9 +217,7 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
             }}
           >
             <span style={{ color: "#5cdb95", fontSize: 10 }}>🔒</span>
-            <span>
-              {activeScene === 1 ? "https://ember.ai/gallery" : "https://ember.ai/studio"}
-            </span>
+            <span>https://ember.ai/studio</span>
           </div>
 
           {/* Active Stage Indicator */}
@@ -283,32 +243,8 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
             overflow: "hidden",
           }}
         >
-          {/* ================= SCENE 1: REAL COMMUNITY GALLERY SCREENSHOT ================= */}
+          {/* ================= SCENE 1: REAL STUDIO COMPOSER SCREENSHOT ================= */}
           {activeScene === 1 && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#121517",
-              }}
-            >
-              <Img
-                src={staticFile("demo-assets/1-gallery.png")}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "top center",
-                }}
-              />
-            </div>
-          )}
-
-          {/* ================= SCENE 2: REAL STUDIO COMPOSER SCREENSHOT ================= */}
-          {activeScene === 2 && (
             <div
               style={{
                 position: "absolute",
@@ -349,7 +285,7 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
                   }}
                 >
                   <span>{typedText}</span>
-                  {frame < 490 && (
+                  {frame < 230 && (
                     <span
                       style={{
                         display: "inline-block",
@@ -365,8 +301,8 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
             </div>
           )}
 
-          {/* ================= SCENE 3: REAL AI DIRECTOR SCREENSHOT ================= */}
-          {activeScene === 3 && (
+          {/* ================= SCENE 2: REAL AI DIRECTOR SCREENSHOT ================= */}
+          {activeScene === 2 && (
             <div
               style={{
                 position: "absolute",
@@ -433,8 +369,8 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
             </div>
           )}
 
-          {/* ================= SCENE 4: REAL BLACKBOARD CANVAS OVERLAY ================= */}
-          {activeScene === 4 && (
+          {/* ================= SCENE 3: REAL BLACKBOARD CANVAS OVERLAY ================= */}
+          {activeScene === 3 && (
             <div
               style={{
                 position: "absolute",
@@ -479,8 +415,8 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
             </div>
           )}
 
-          {/* ================= SCENE 5: REAL OFFICE HOURS ZOOM ================= */}
-          {activeScene === 5 && (
+          {/* ================= SCENE 4: REAL OFFICE HOURS ZOOM ================= */}
+          {activeScene === 4 && (
             <div
               style={{
                 position: "absolute",
@@ -546,112 +482,6 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
                       />
                     ))}
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ================= SCENE 6: CLEAN HACKATHON OUTRO ================= */}
-          {activeScene === 6 && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#101315",
-                textAlign: "center",
-                padding: "40px",
-              }}
-            >
-              <div
-                style={{
-                  display: "inline-block",
-                  padding: "4px 14px",
-                  borderRadius: 20,
-                  backgroundColor: "#1c2024",
-                  border: "1px solid #2a2e33",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "#e6b784",
-                  letterSpacing: "0.1em",
-                  marginBottom: 14,
-                }}
-              >
-                EMBER · BLACKBOARD AI ENGINE
-              </div>
-
-              <h1
-                style={{
-                  fontSize: 48,
-                  fontWeight: 900,
-                  color: "#f1eee7",
-                  margin: "0 0 10px 0",
-                  letterSpacing: "-0.03em",
-                }}
-              >
-                EMBER
-              </h1>
-
-              <p
-                style={{
-                  fontSize: 18,
-                  color: "#e6b784",
-                  fontWeight: 500,
-                  margin: "0 0 28px 0",
-                  maxWidth: 520,
-                }}
-              >
-                Every problem, a lesson.
-              </p>
-
-              <div style={{ display: "flex", gap: 14, marginBottom: 26 }}>
-                <div style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid #282c31", backgroundColor: "#16191c", textAlign: "left" }}>
-                  <div style={{ fontSize: 9, color: "#e6b784", fontWeight: 700 }}>CALCULUS</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#f1eee7", marginTop: 2 }}>Integration by Parts</div>
-                  <div style={{ fontSize: 10, color: "#8b8d8f", marginTop: 2 }}>9:29 · Saved</div>
-                </div>
-
-                <div style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid #282c31", backgroundColor: "#16191c", textAlign: "left" }}>
-                  <div style={{ fontSize: 9, color: "#5cdb95", fontWeight: 700 }}>PHYSICS</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#f1eee7", marginTop: 2 }}>5 kg Block on Incline</div>
-                  <div style={{ fontSize: 10, color: "#8b8d8f", marginTop: 2 }}>3:15 · Saved</div>
-                </div>
-
-                <div style={{ padding: "10px 18px", borderRadius: 10, border: "1px solid #282c31", backgroundColor: "#16191c", textAlign: "left" }}>
-                  <div style={{ fontSize: 9, color: "#7ec8e3", fontWeight: 700 }}>MATH</div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "#f1eee7", marginTop: 2 }}>Euler&apos;s Identity Proof</div>
-                  <div style={{ fontSize: 10, color: "#8b8d8f", marginTop: 2 }}>1:50 · Saved</div>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 12 }}>
-                <div
-                  style={{
-                    padding: "10px 24px",
-                    borderRadius: 10,
-                    backgroundColor: "#e6b784",
-                    color: "#16181a",
-                    fontSize: 13,
-                    fontWeight: 700,
-                  }}
-                >
-                  Open Blackboard Studio →
-                </div>
-                <div
-                  style={{
-                    padding: "10px 24px",
-                    borderRadius: 10,
-                    backgroundColor: "#181b1e",
-                    border: "1px solid #2a2e33",
-                    color: "#f1eee7",
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
-                >
-                  Explore Community Gallery
                 </div>
               </div>
             </div>
