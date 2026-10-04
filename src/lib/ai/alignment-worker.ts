@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import path from "node:path";
-import { validateWordTiming, type SpeechAlignment, type AlignmentStatus } from "../video/speech-alignment";
+import { validateWordTiming, validateRecognizedTiming, type SpeechAlignment, type AlignmentStatus } from "../video/speech-alignment";
 
 interface WorkerOptions { command?: string; args?: string[]; timeoutMs?: number; idleMs?: number }
 interface Pending {
@@ -46,10 +46,11 @@ export class AlignmentWorker {
           const result = JSON.parse(line);
           const pending = this.pending.get(result.id);
           if (!pending) { this.stop("invalid"); return; }
-          const words = result.status === "aligned"
-            ? validateWordTiming(pending.text, result.words, result.duration) : null;
+          const words = result.status === "recognized"
+            ? validateRecognizedTiming(pending.text, result.words, result.duration)
+            : result.status === "aligned" ? validateWordTiming(pending.text, result.words, result.duration) : null;
           const alignment: SpeechAlignment = words
-            ? { status: "aligned", words, duration: result.duration, engine: typeof result.engine === "string" ? result.engine.slice(0, 120) : "local" }
+            ? { status: result.status, words, duration: result.duration, engine: typeof result.engine === "string" ? result.engine.slice(0, 120) : "local" }
             : fallback(result.status === "unavailable" ? "unavailable" : "invalid");
           clearTimeout(pending.timer);
           this.pending.delete(result.id);

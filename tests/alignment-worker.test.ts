@@ -25,3 +25,12 @@ test("worker timeout is bounded and stops the child", async () => {
   finally { w.dispose(); }
 });
 
+test("recognized candidates retain probability and normalized transcript through the process boundary", async () => {
+  const w = worker();
+  try {
+    const result = await w.align("two x", Buffer.from("audio"));
+    expect(result.status).toBe("recognized");
+    expect(result.words).toEqual([{text:"2x",start:0.1,end:0.9,probability:0.9}]);
+  } finally { w.dispose(); }
+});
+

@@ -1,5 +1,9 @@
 # Real-audio alignment comparison
 
+Follow-up: the user approved recognition-based phrase timing without further
+downloads. See `2026-10-04-recognition-phrase-fix.md` for the implemented fix and
+passing real-audio results. The findings below describe the earlier baseline.
+
 Scope: keep Gemini audio unchanged; compare base.en and small.en with the same
 CPU int8 configuration, two threads, production 30-second deadline, exact
 transcript checks and current rejection rules. No production default changes

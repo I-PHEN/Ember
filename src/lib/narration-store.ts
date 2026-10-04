@@ -1,5 +1,5 @@
 "use client";
-import { validateWordTiming, type SpeechAlignment } from "./video/speech-alignment";
+import { validateWordTiming, validateRecognizedTiming, type SpeechAlignment } from "./video/speech-alignment";
 
 export interface NarrationTrack { url: string; alignment: SpeechAlignment }
 
@@ -72,9 +72,10 @@ export class NarrationStore {
       const bytes = Uint8Array.from(atob(data.audio), c => c.charCodeAt(0));
       if (!bytes.length) throw new Error("Empty narration audio");
       const raw = data.alignment;
-      const words = raw?.status === "aligned" ? validateWordTiming(text, raw.words, raw.duration) : null;
+      const words = raw?.status === "recognized" ? validateRecognizedTiming(text, raw.words, raw.duration)
+        : raw?.status === "aligned" ? validateWordTiming(text, raw.words, raw.duration) : null;
       const alignment: SpeechAlignment = words
-        ? { status: "aligned", words, duration: raw.duration }
+        ? { status: raw.status, words, duration: raw.duration }
         : { status: ["unavailable", "timeout", "invalid"].includes(raw?.status) ? raw.status : "invalid", words: [] };
       return { url: URL.createObjectURL(new Blob([bytes], { type: data.contentType })), alignment };
     }

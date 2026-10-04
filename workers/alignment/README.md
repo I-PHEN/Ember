@@ -1,9 +1,10 @@
 # Local speech alignment
 
-Keeps the synthesized voice unchanged. Stable-ts aligns the exact audio bytes
-against the exact narration text and returns measured word intervals. The first
-supported language is English. This is forced alignment, not an independent
-check that the speaker pronounced every mathematical expression correctly.
+Keeps the synthesized voice unchanged. The installed Faster-Whisper base.en model
+recognizes the exact audio bytes and returns candidate word intervals. Both Node
+and the browser require full transcript equivalence before using any timings.
+The first supported language is English. No larger model download is needed on
+the development machine; a new deployment still needs the base model installed.
 
 ## Setup
 
@@ -40,15 +41,23 @@ dependencies/model, malformed output or timeout preserve playable audio with an
 explicit failure status. That status is cached with the audio; restart the server
 after installing a missing model to clear cached unavailable results.
 
-Word timestamps must cover the entire normalized transcript, remain ordered and
-fit inside the audio. Invalid intervals and low-probability results are rejected.
-The player maps authored phrase anchors to measured word boundaries and scales
-them for playback speed. It does not fabricate missing word timestamps.
+Recognition is marked `recognized`, not whole-track `aligned`. Candidate spans
+must cover the entire transcript, be finite, ordered, nonnegative and inside the
+audio. Normalization supports English zero through nineteen versus digits and
+compound spans such as `2x`; it does not accept homophones, fuzzy substitutions,
+omissions or missing mathematical signs. Unsupported number formats fall back.
+
+Only action phrases whose constituent spans have positive duration and probability
+at least 0.15 are accepted. A suspect word outside every action phrase does not
+discard otherwise usable phrases. If any authored anchor cannot be validated,
+the scene uses duration-only timing. Probabilities are heuristic filters, not
+calibrated accuracy guarantees. No compound span is split or missing duration
+invented. Playback-speed scaling happens once, after mapping the measured phrase.
 
 ## Verification
 
 `bun test` includes process-protocol, validation and response/cache tests using
-fixtures. `TEST_ALIGNED_AUDIO=1` enables the measured-timestamp scenario in
+fixtures. `TEST_RECOGNIZED_AUDIO=1` enables the recognition timing scenario in
 `tests/player-timing.browser.mjs`. Neither substitutes for listening to real
 generated narration and inspecting board synchronization.
 
@@ -76,6 +85,13 @@ workers/alignment/.venv/Scripts/python.exe workers/alignment/test_audio_decode.p
 ```
 
 PyAV is pinned because Faster-Whisper 1.2.1 uses the `metadata_errors` argument
-removed in newer PyAV releases. The October 4 real Gemini sample decoded after
-this fix, but base.en produced invalid word spans and the live acceptance test
-failed. Local installation alone does not establish production alignment quality.
+removed in newer PyAV releases. The earlier forced-alignment experiment failed
+on real audio. Recognition-based phrase timing passed the three-sample Gemini
+benchmark (16 action phrases) and the browser playback smoke test. This does not
+establish accuracy for all STEM topics or replace a human listening review.
+
+Run all local samples with `bun tests/alignment-benchmark.live.ts scratch/alignment`.
+Set `TEST_REAL_RECOGNITION_DIR=scratch/alignment` when running
+`tests/player-timing.browser.mjs` to use the real WAVs and saved benchmark output.
+Restart an already-running server to clear cached failed alignment artifacts after
+upgrading the worker.

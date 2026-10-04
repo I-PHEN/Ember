@@ -45,7 +45,7 @@ import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
 import { renderFrame } from "@/lib/video/render";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { narrationStore } from "@/lib/narration-store";
-import { phrasesForScene } from "@/lib/video/speech-alignment";
+import { phrasesForScene, recognizedPhrasesForScene } from "@/lib/video/speech-alignment";
 import { cn } from "@/lib/utils";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
@@ -228,7 +228,9 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             const dur = await probeDuration(url);
             if (cancelled) return;
             const effectiveDur = dur / BASE_SPEECH_RATE;
-            const phrases = track.alignment.status === "aligned"
+            const phrases = track.alignment.status === "recognized"
+              ? recognizedPhrasesForScene(script.scenes[idx], idx, track.alignment.words, dur, BASE_SPEECH_RATE)
+              : track.alignment.status === "aligned"
               ? phrasesForScene(script.scenes[idx], idx, track.alignment.words, dur, BASE_SPEECH_RATE)
               : null;
             const scheduled = setSceneAudio(tl, idx, effectiveDur, phrases ?? undefined);

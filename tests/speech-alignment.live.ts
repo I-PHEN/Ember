@@ -4,7 +4,7 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { AlignmentWorker } from "../src/lib/ai/alignment-worker";
-import { phrasesForScene } from "../src/lib/video/speech-alignment";
+import { phrasesForScene, recognizedPhrasesForScene } from "../src/lib/video/speech-alignment";
 import { compileBeatTiming } from "../src/lib/video/timing";
 import type { SolveScene } from "../src/lib/video/types";
 
@@ -28,8 +28,9 @@ try {
   const alignment = await worker.align(narration, audio);
   const elapsedMs = Math.round(performance.now() - started);
   console.log(JSON.stringify({ status: alignment.status, elapsedMs, words: alignment.words.length }));
-  assert.equal(alignment.status, "aligned", "Real audio must align within the production deadline");
-  const phrases = phrasesForScene(scene, 0, alignment.words, alignment.duration!);
+  assert(["aligned","recognized"].includes(alignment.status), "Real audio must produce validated timing within the production deadline");
+  const mapPhrases = alignment.status === "recognized" ? recognizedPhrasesForScene : phrasesForScene;
+  const phrases = mapPhrases(scene, 0, alignment.words, alignment.duration!);
   assert(phrases && phrases.length === scene.beats.length, "Every authored anchor must map to measured words");
   // Synthetic ink durations isolate timing mapping from font/layout geometry.
   const beats = scene.beats.map((beat, i) => ({ id: `s0b${i + 1}`, t0: i, t1: i + 1, say: "say" in beat ? beat.say : undefined }));
@@ -37,7 +38,8 @@ try {
   assert.equal(timing.source, "aligned");
   const warmStart = performance.now();
   const warm = await worker.align(narration, audio);
-  assert.equal(warm.status, "aligned", "Persistent worker must handle a second request");
+  assert.equal(warm.status, alignment.status, "Persistent worker must handle a second request");
+  assert(mapPhrases(scene, 0, warm.words, warm.duration!), "Warm request must retain valid phrase timing");
   const result = { narration, alignment, phrases, timing, coldMs: elapsedMs, warmMs: Math.round(performance.now() - warmStart) };
   await writeFile(`${audioPath}.alignment.json`, JSON.stringify(result, null, 2));
   console.log(JSON.stringify({ result: "PASS", coldMs: result.coldMs, warmMs: result.warmMs, phrases, issues: timing.issues }));

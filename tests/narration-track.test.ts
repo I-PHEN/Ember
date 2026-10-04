@@ -44,3 +44,17 @@ test("old binary narration response remains supported", async () => {
   } finally { globalThis.fetch = original; }
 });
 
+test("recognized track preserves confidence without labelling every word aligned", async () => {
+  const original = globalThis.fetch;
+  const alignment = {status:"recognized" as const,duration:1,words:[{text:"2x",start:0.1,end:0.9,probability:0.9}]};
+  globalThis.fetch = (async () => narrationResponse({...artifact,alignment},true)) as typeof fetch;
+  try {
+    const track = await new NarrationStore().getTrack("two x");
+    expect(track.alignment).toEqual(alignment);
+    URL.revokeObjectURL(track.url);
+    const invalid = await new NarrationStore().getTrack("three x");
+    expect(invalid.alignment.status).toBe("invalid");
+    URL.revokeObjectURL(invalid.url);
+  } finally { globalThis.fetch = original; }
+});
+

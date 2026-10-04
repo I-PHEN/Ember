@@ -2,9 +2,14 @@
 // Run with a dev server: node tests/player-timing.browser.mjs http://localhost:3017
 import assert from "node:assert/strict";
 import puppeteer from "puppeteer-core";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 const base = process.argv[2] ?? "http://localhost:3017";
 const audioDelay = Number(process.env.TEST_AUDIO_DELAY_MS ?? 0);
 const alignedFixture = process.env.TEST_ALIGNED_AUDIO === "1";
+const recognizedFixture = process.env.TEST_RECOGNIZED_AUDIO === "1";
+const realDirectory = process.env.TEST_REAL_RECOGNITION_DIR;
+const realTracks = new Map();
 const browser = await puppeteer.launch({
   executablePath: process.env.CHROME_PATH ?? "C:/Program Files/Google/Chrome/Application/chrome.exe",
   headless: true, args: ["--autoplay-policy=no-user-gesture-required"],
@@ -16,6 +21,18 @@ const lesson = {
     { chapter: "Read entry", narration: "Read row two and column three.", beats: [{ type: "write", text: "A₂₃ = 5", say: "row two" }] },
   ],
 };
+if (realDirectory) {
+  const samples = JSON.parse(await readFile("tests/fixtures/alignment-stem.json", "utf8")).slice(0, 2);
+  const benchmark = JSON.parse(await readFile(path.join(realDirectory, "base.en.benchmark.json"), "utf8"));
+  const ink = [["2 rows", "3 cols", "2 × 3", "r → c"], ["2x + 3 = 11", "−3", "2x = 8", "÷2", "x = 4"]];
+  lesson.scenes = await Promise.all(samples.map(async (sample, index) => {
+    const result = benchmark.results.find(result => result.sample === sample.id);
+    assert.equal(result.alignment.status, "recognized");
+    assert.equal(result.phrases.length, sample.anchors.length);
+    realTracks.set(sample.text, { audio: (await readFile(path.join(realDirectory, `${sample.id}.wav`))).toString("base64"), contentType: "audio/wav", alignment: result.alignment });
+    return { chapter: sample.id, narration: sample.text, beats: sample.anchors.map((say,i) => ({type:"write",text:ink[index][i],say})) };
+  }));
+}
 const wav = Buffer.alloc(44 + 24000 * 2 * 2);
 wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
 wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
@@ -44,17 +61,23 @@ try {
     }
     if (path === "/api/narrate") {
       if (audioDelay) await new Promise(resolve => setTimeout(resolve, audioDelay));
-      if (alignedFixture) {
+      if (realDirectory) {
+        const track = realTracks.get(JSON.parse(request.postData()).text);
+        assert(track, "Unexpected narration request");
+        return request.respond({contentType:"application/json",body:JSON.stringify(track)});
+      }
+      if (alignedFixture || recognizedFixture) {
         const text = JSON.parse(request.postData()).text;
         const tokens = text.match(/[\p{L}\p{N}]+/gu);
         // Deliberately different from proportional estimates, to prove the player
         // consumes measured timestamps rather than silently falling back.
         const words = tokens.map((word, i) => ({
-          text: word, start: i * 0.12, end: (i + 1) * 0.12,
+          text: recognizedFixture && word === "two" ? "2" : word,
+          start: i * 0.12, end: (i + 1) * 0.12, ...(recognizedFixture ? {probability:0.9} : {}),
         }));
         return request.respond({ contentType: "application/json", body: JSON.stringify({
           audio: wav.toString("base64"), contentType: "audio/wav",
-          alignment: { status: "aligned", duration: 2, words },
+          alignment: { status: recognizedFixture ? "recognized" : "aligned", duration: 2, words },
         }) });
       }
       return request.respond({ contentType: "audio/wav", body: wav });
@@ -80,9 +103,14 @@ try {
   const deadline = Date.now() + 20000;
   while (reports.length < 2 && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
   assert.equal(reports.length, 2, "one timing report per loaded narration");
-  assert(reports[0].body.writeEndMs < 4000, "short writing must fit the available speech window without the old eight-second lead-in");
-  if (alignedFixture) {
+  if (!realDirectory) assert(reports[0].body.writeEndMs < 4000, "short writing must fit the available speech window without the old eight-second lead-in");
+  if (alignedFixture || recognizedFixture) {
     assert(reports[0].body.writeEndMs < 2000, "measured anchor times should differ from duration-only scheduling");
+  }
+  if (realDirectory) {
+    assert(reports.every(report => report.body.audioDurationMs > 10000));
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    await page.screenshot({path:path.join(realDirectory,"recognized-player.png"),fullPage:false});
   }
   for (const report of reports) {
     assert.equal(report.path, "/api/video/jobs/browser-fixture/timing");

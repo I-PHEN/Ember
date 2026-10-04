@@ -1,4 +1,4 @@
-"""Persistent, local-only forced alignment. One JSON request/response per line.
+"""Persistent, local-only recognition timing. One JSON request/response per line.
 stdout is exclusively the protocol; logs go to stderr. No transcript logging.
 """
 import base64
@@ -17,7 +17,7 @@ def align(request):
     global model
     import numpy as np
     from faster_whisper.audio import decode_audio
-    import stable_whisper
+    from faster_whisper import WhisperModel
 
     text = request["text"]
     if not isinstance(text, str) or not 0 < len(text) <= 1020:
@@ -32,22 +32,21 @@ def align(request):
     if float(np.sqrt(np.mean(audio ** 2))) < 0.0001:
         return {"status": "invalid", "words": [], "duration": duration}
     if model is None:
-        model = stable_whisper.load_faster_whisper(
+        model = WhisperModel(
             MODEL, device="cpu", compute_type="int8", cpu_threads=2,
             local_files_only=True,
         )
-    result = model.align(audio, text, language="en", verbose=None, vad=False)
-    if result is None:
-        return {"status": "invalid", "words": [], "duration": duration}
+    # Recognize independently. The Node and browser boundaries both require a
+    # complete transcript match before any candidate timings reach the player.
+    segments, _ = model.transcribe(audio, language="en", word_timestamps=True,
+                                  vad_filter=False, condition_on_previous_text=False)
     words = []
-    for segment in result.to_dict()["segments"]:
-        for word in segment.get("words", []):
-            probability = word.get("probability")
-            if probability is not None and probability < 0.15:
-                return {"status": "invalid", "words": [], "duration": duration}
-            words.append({"text": word["word"], "start": word["start"], "end": word["end"]})
-    return {"status": "aligned", "words": words, "duration": duration,
-            "engine": "stable-ts-2.19.1/" + MODEL}
+    for segment in segments:
+        for word in segment.words or []:
+            words.append({"text": word.word, "start": word.start, "end": word.end,
+                          "probability": word.probability})
+    return {"status": "recognized", "words": words, "duration": duration,
+            "engine": "faster-whisper-1.2.1/" + MODEL}
 
 
 def main():

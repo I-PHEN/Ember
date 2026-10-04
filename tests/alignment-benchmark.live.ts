@@ -3,7 +3,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { AlignmentWorker } from "../src/lib/ai/alignment-worker";
-import { phrasesForScene } from "../src/lib/video/speech-alignment";
+import { phrasesForScene, recognizedPhrasesForScene } from "../src/lib/video/speech-alignment";
 import samples from "./fixtures/alignment-stem.json";
 import type { SolveScene } from "../src/lib/video/types";
 
@@ -24,7 +24,9 @@ try {
       const started = performance.now();
       const alignment = await worker.align(sample.text, audio);
       const elapsedMs = Math.round(performance.now() - started);
-      const phrases = alignment.status === "aligned"
+      const phrases = alignment.status === "recognized"
+        ? recognizedPhrasesForScene(scene, 0, alignment.words, alignment.duration!)
+        : alignment.status === "aligned"
         ? phrasesForScene(scene, 0, alignment.words, alignment.duration!) : null;
       const result = { sample: sample.id, repetition, elapsedMs, alignment, phrases };
       results.push(result);
@@ -35,4 +37,4 @@ try {
 const report = { model, productionDeadlineMs: 30000, results };
 await writeFile(path.join(directory, `${model}.benchmark.json`), JSON.stringify(report, null, 2));
 // Failure is a benchmark finding, not a success hidden behind exit 0.
-if (results.some(result => result.alignment.status !== "aligned" || !result.phrases)) process.exitCode = 1;
+if (results.some(result => !result.phrases)) process.exitCode = 1;
