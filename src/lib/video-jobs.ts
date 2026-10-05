@@ -5,7 +5,6 @@ import {
   sanitizeScript,
   sanitizeSceneBeats,
   cleanNarration,
-  isBoardProse,
 } from "./solve-schema";
 import { compileTimeline } from "./video/compile";
 import { measureTimeline, type TimelineMetrics } from "./video/timeline-metrics";
@@ -24,7 +23,8 @@ import {
   SOLVER_SYSTEM,
   solverUser,
 } from "./prompts";
-import { normalizeReviewFix, shouldReview } from "./video/review";
+import { normalizeReviewFix, acceptSceneReview } from "./video/review";
+import { collectSceneReviews } from "./video/review-gate";
 import { advanceProgress, computeWatchProgress } from "./video/progress";
 import { checkSceneLines } from "./video/checker";
 import {
@@ -280,6 +280,9 @@ export function getJob(id: string): JobSnapshot | null {
 
 function snapshot(job: Job): JobSnapshot {
   const now = Date.now();
+  const deliverable = (job.phase === "voicing" || job.phase === "ready") &&
+    job.scenesTotal > 0 && job.stats.reviewedScenes === job.scenesTotal &&
+    job.stats.unreviewedScenes === 0 ? job.script : null;
   /* honest monotonic progress — computed server-side where every phase
      timestamp lives; the client only renders it */
   const pct = advanceProgress(
@@ -294,7 +297,7 @@ function snapshot(job: Job): JobSnapshot {
         scenesDone: job.scenesDone,
         voicesTotal: job.voicesTotal,
         voicesDone: job.voicesDone,
-        script: job.script,
+        script: deliverable,
       },
       now
     )
@@ -344,7 +347,7 @@ function snapshot(job: Job): JobSnapshot {
     voicesDone: job.voicesDone,
     etaWatchMs: Math.max(0, etaWatchMs),
     etaVoiceMs: Math.max(0, etaVoiceMs),
-    script: job.script,
+    script: deliverable,
     error: job.error,
     stats: job.stats,
     progressPct: pct,
@@ -356,12 +359,6 @@ function snapshot(job: Job): JobSnapshot {
 /* lets the job report "studio busy" instead of a misleading parse error
    when the upstream API is rate-limiting the account */
 let lastChatWas429 = false;
-/* REAL pressure: the fallback provider itself is throttling. Gemini
-   429s are routine (that is what the ladder hops over) and must NOT
-   starve the reviewer — only Groq 429s mean the whole ladder is
-   squeezed (found live 2026-09-30: reviews collapsed to a 30% sample
-   during a pure-Gemini outage while Groq was healthy). */
-let lastGroq429 = false;
 
 async function chatJson(
   system: string,
@@ -376,9 +373,8 @@ async function chatJson(
   const r = await chatComplete(system, user, {
     tier,
     thinkingBudget,
-    on429: (entry) => {
+    on429: () => {
       lastChatWas429 = true;
-      if (entry.kind === "groq") lastGroq429 = true;
     },
     onHop: () => {
       if (hopSink) hopSink.providerHops += 1;
@@ -641,54 +637,19 @@ async function runJob(job: Job): Promise<void> {
       }
     };
 
-    /* 2b — REVIEWER (Phase B): dispatched the moment a writer lands,
-       async — voice NEVER waits for review (narration is canonical;
-       the reviewer only ever replaces beats). Collected at merge with
-       a bounded wait; anything unresolved ships as the writer left it. */
-    const REVIEW_COLLECT_MS = 8000;
-    const reviewPromises: Array<Promise<void>> = [];
-    const reviewCounters = { reviewed: 0, unreviewed: 0, fixed: 0 };
-    /* per-scene original checker-flag counts — a reviewer fix may not
-       introduce NEW numeric errors (spec: fix passes the Checker) */
-    const checkerFlagsOf: number[] = [];
+    /* Reviews and voices run in parallel, but delivery requires every review.
+       Only the collector can apply accepted beats; late calls cannot mutate them. */
+    const REVIEW_COLLECT_MS = 30_000;
+    type AcceptedReview = { beats: ReturnType<typeof sanitizeSceneBeats>; fixed: boolean };
+    const reviewPromises: Array<Promise<AcceptedReview | null>> = [];
+    const fixedScenes = new Set<number>();
     const dispatchReview = (
       idx: number,
       chapter: string,
       narration: string,
-      beats: unknown[],
-      forceFlagged = false,
-      checkerFlagged = false
+      beats: unknown[]
     ) => {
-      const proseFlagged =
-        forceFlagged ||
-        checkerFlagged ||
-        beats.some(
-          (b) =>
-            (b as { type?: unknown })?.type === "write" &&
-            isBoardProse(String((b as { text?: unknown }).text ?? ""))
-        );
-      if (!shouldReview(lastGroq429, proseFlagged, Math.random())) {
-        reviewCounters.unreviewed++; // cost-control skip, not a failure
-        return;
-      }
-      /* a fix may not make the board WORSE: compile the scene alone and
-         count layout violations — a fix that adds collisions is rejected
-         (found live 2026-09-30: reviewer repositioning caused them) */
-      const sceneViolations = (clean: unknown[]): number => {
-        try {
-          return auditTimeline(
-            compileTimeline({
-              title: outline.title,
-              question: outline.question,
-              scenes: [{ chapter, narration, beats: clean }],
-            } as never)
-          ).length;
-        } catch {
-          return Infinity; // a fix that crashes compile is rejected too
-        }
-      };
-      reviewPromises.push(
-        (async () => {
+      reviewPromises[idx] = (async (): Promise<AcceptedReview | null> => {
           try {
             const raw = await chatJson(
               REVIEWER_SYSTEM,
@@ -697,34 +658,11 @@ async function runJob(job: Job): Promise<void> {
               job.stats
             );
             const outcome = normalizeReviewFix(extractJson(raw));
-            if (!outcome) {
-              reviewCounters.unreviewed++; // invalid/failed → original ships
-              return;
-            }
-            reviewCounters.reviewed++;
-            if (outcome.verdict === "fixed") {
-              const cleaned = sanitizeSceneBeats(
-                outcome.beats,
-                narration,
-                job.stats,
-                `reviewer fix, scene ${idx + 1}`
-              );
-              const origClean = sanitizeSceneBeats(beats, narration);
-              if (
-                cleaned.length &&
-                sceneViolations(cleaned) <= sceneViolations(origClean) &&
-                checkSceneLines(idx, outcome.beats).flags.length <=
-                  (checkerFlagsOf[idx] ?? 0)
-              ) {
-                results[idx] = { narration: results[idx]?.narration, beats: outcome.beats };
-                reviewCounters.fixed++;
-              }
-            }
+            return acceptSceneReview(outcome, beats, chapter, narration, idx);
           } catch {
-            reviewCounters.unreviewed++;
+            return null;
           }
-        })()
-      );
+        })();
     };
 
     /* 3 ─ scene writers, 3 in flight, staggered to be gentle. Each
@@ -779,7 +717,6 @@ async function runJob(job: Job): Promise<void> {
           const sceneCheck = checkSceneLines(myIndex, stored.beats);
           job.stats.checkerChecked += sceneCheck.checked;
           job.stats.checkerFlags += sceneCheck.flags.length;
-          checkerFlagsOf[myIndex] = sceneCheck.flags.length;
           if (sceneCheck.flags.length) {
             console.warn(
               `[checker] scene ${myIndex + 1}: ${sceneCheck.flags
@@ -791,9 +728,7 @@ async function runJob(job: Job): Promise<void> {
             myIndex,
             outline.scenes[myIndex].chapter,
             narrations[myIndex] ?? "",
-            stored.beats,
-            planted, // the drill must reach the reviewer, sample or not
-            sceneCheck.flags.length > 0
+            stored.beats
           );
           job.scenesDone += 1;
           flushVoices();
@@ -802,21 +737,29 @@ async function runJob(job: Job): Promise<void> {
     );
     await Promise.all(workers);
 
-    /* 3b — collect reviews: bounded. Reviews dispatched with the last
-       writer wave add ~one small call of tail; anything slower ships
-       unreviewed (counted). */
-    await Promise.race([
-      Promise.allSettled(reviewPromises),
-      sleep(REVIEW_COLLECT_MS).then(() =>
-        console.warn("[reviewer] collect cap hit — slower scenes ship unreviewed")
-      ),
-    ]);
-    const pendingReviews =
-      reviewPromises.length - reviewCounters.reviewed - reviewCounters.unreviewed;
-    job.stats.reviewedScenes = reviewCounters.reviewed;
-    job.stats.fixedScenes = reviewCounters.fixed;
-    job.stats.unreviewedScenes =
-      reviewCounters.unreviewed + Math.max(0, pendingReviews);
+    const collectRequired = async (indices: number[]): Promise<boolean> => {
+      const batch = await collectSceneReviews(indices.map(i => reviewPromises[i] ?? Promise.resolve(null)), REVIEW_COLLECT_MS);
+      // Count final scene outcomes, not attempts; rewritten scenes replace prior approvals.
+      const failed = batch.statuses.filter(s => s !== "passed").length;
+      job.stats.reviewedScenes = outline.scenes.length - failed;
+      job.stats.unreviewedScenes = failed;
+      for (const i of indices) fixedScenes.delete(i);
+      if (!batch.passed) {
+        job.script = null;
+        job.phase = "error";
+        job.error = "Lesson held: one or more scenes could not pass review before the deadline. Try again to regenerate the lesson.";
+        job.stats.fixedScenes = fixedScenes.size;
+        return false;
+      }
+      batch.results.forEach((accepted,k) => {
+        const i = indices[k];
+        results[i] = { narration:results[i]?.narration, beats:accepted!.beats };
+        if (accepted!.fixed) fixedScenes.add(i);
+      });
+      job.stats.fixedScenes = fixedScenes.size;
+      return true;
+    };
+    if (!await collectRequired(outline.scenes.map((_,i) => i))) return;
 
     /* 4 ─ merge → sanitize → compile-check → deliver */
     const rawScript = {
@@ -892,9 +835,13 @@ async function runJob(job: Job): Promise<void> {
           if (r) {
             job.stats.writerMs.push(Date.now() - t0);
             results[i] = { narration: results[i]?.narration, beats: r.beats };
+            dispatchReview(i, outline.scenes[i].chapter, narrations[i] ?? "", r.beats);
+          } else {
+            reviewPromises[i] = Promise.resolve(null);
           }
         })
       );
+      if (!await collectRequired(Array.from({length:to-from+1},(_,k)=>from+k))) return;
       const rawScript2 = {
         title: outline.title,
         subject: outline.subject,
@@ -937,6 +884,11 @@ async function runJob(job: Job): Promise<void> {
       }
     });
 
+    if (violations.length || verdict === "mismatch") {
+      job.phase = "error";
+      job.error = "Lesson held: the final board or answer did not pass verification. Try again to regenerate the lesson.";
+      return;
+    }
     job.script = script;
     job.mergedAt = Date.now();
     job.stats.watchableMs = Date.now() - job.createdAt; // true delivery moment (post-rerun)
@@ -944,11 +896,6 @@ async function runJob(job: Job): Promise<void> {
 
     /* 5 ─ let the remaining voices land, then the job is complete */
     await voiceChain;
-    /* reviews that settled after the merge cap still count — refresh
-       so ready-time snapshots are exact */
-    job.stats.reviewedScenes = reviewCounters.reviewed;
-    job.stats.fixedScenes = reviewCounters.fixed;
-    job.stats.unreviewedScenes = reviewCounters.unreviewed;
     job.phase = "ready";
     job.readyAt = Date.now();
   } catch (err) {

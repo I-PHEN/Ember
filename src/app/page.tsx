@@ -1213,6 +1213,9 @@ export default function Page() {
             <p className="text-sm leading-relaxed text-muted-foreground">
               {formError || jobStatus?.error}
             </p>
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Trying again regenerates the lesson and may incur normal generation costs.
+            </p>
             <div className="mt-6 flex gap-3">
               <Button
                 onClick={() =>

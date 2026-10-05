@@ -43,11 +43,14 @@ nothing serializes the pipeline. Verification rides alongside: a BLIND
 SOLVER (t0, question only, reason tier), a pure-Node CHECKER
 (`checker.ts`, constant-identity equation checks per scene at
 writer-land), and a REVIEWER (`review.ts` + `REVIEWER_SYSTEM`, async
-per-scene review-and-fix, collected at merge ≤8s, fallback = original
-beats; fixes must pass sanitize + checker + not add layout violations).
+per-scene review-and-fix for EVERY scene, collected at merge with a 30s
+deadline; failed/timed-out reviews block delivery and offer regeneration.
+Accepted beats must pass sanitize + checker + layout checks; late results
+cannot mutate shipped scenes. Solver-triggered rewrites are reviewed again).
 At merge: solver vs script-answer compare (`solver.ts`, conservative —
 murky = "incomparable"); high-confidence mismatch → ONE rerun of the
-solve-chain scenes with the discrepancy note, never blocks delivery.
+solve-chain scenes with the discrepancy note; a remaining mismatch or final
+layout violation blocks delivery. Voice generation remains parallel.
 Prompts: `src/lib/prompts.ts` (WRITER_SYSTEM is a static prefix — keep
 dynamic content in the user turn). Board discipline: `isBoardProse` +
 `stats.proseDropped/overlapPct/layoutViolations`. Canvas integrity:
