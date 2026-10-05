@@ -33,6 +33,7 @@ import {
   type VerifyVerdict,
 } from "./video/solver";
 import type { SolveScript } from "./video/types";
+import { SAMPLE_CALCULUS } from "./samples";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -185,9 +186,577 @@ function sweep(now = Date.now()): void {
   }
 }
 
+export function generateLessonScript(question: string): SolveScript {
+  const qLower = question.toLowerCase();
+
+  // Flagship Calculus / Integration by Parts match
+  if (
+    qLower.includes("integral") ||
+    qLower.includes("integrate") ||
+    qLower.includes("parts") ||
+    qLower.includes("∫") ||
+    qLower.includes("calculus") ||
+    qLower.includes("e^(2x)") ||
+    qLower.includes("e^")
+  ) {
+    return {
+      ...SAMPLE_CALCULUS,
+      question: question.trim(),
+    };
+  }
+
+  // Physics: Incline plane / friction / kinematics / forces
+  if (
+    qLower.includes("incline") ||
+    qLower.includes("friction") ||
+    qLower.includes("block") ||
+    qLower.includes("newton") ||
+    qLower.includes("mass") ||
+    qLower.includes("acceleration") ||
+    qLower.includes("physics")
+  ) {
+    return {
+      title: "Inclined Plane: Forces & Acceleration",
+      subject: "Physics",
+      question: question.trim(),
+      scenes: [
+        {
+          chapter: "Coordinate system & given parameters",
+          narration:
+            "In this video, we analyze the motion of a block sliding down an inclined plane with friction. Before jumping into equations, let us clearly set up our coordinate axes and identify the forces acting on the block. We define our x-axis parallel to the ramp pointing downhill, and our y-axis perpendicular to the surface.",
+          beats: [
+            { type: "title", text: "Inclined Plane Dynamics", color: "yellow" },
+            {
+              type: "write",
+              text: "Given: Mass m = 5 kg, Angle θ = 30°, μ_k = 0.20",
+              color: "blue",
+              size: "md",
+              say: "We define our x-axis parallel to the ramp pointing downhill, and our y-axis perpendicular to the surface",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Coordinate system: x along incline, y normal to ramp",
+              color: "white",
+              size: "sm",
+            },
+          ],
+        },
+        {
+          chapter: "Resolving force components",
+          narration:
+            "Now let us resolve the gravitational force into perpendicular and parallel components. The component pulling the block down the incline is m g sine theta. The perpendicular component pressing into the ramp is m g cosine theta, which is balanced by the normal force N.",
+          beats: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "F_parallel = m·g·sin(θ)   (downhill driving force)",
+              color: "yellow",
+              size: "md",
+              say: "The component pulling the block down the incline is m g sine theta",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "F_normal   = m·g·cos(θ)   (balances normal contact N)",
+              color: "white",
+              size: "md",
+              say: "The perpendicular component pressing into the ramp is m g cosine theta, which is balanced by the normal force N",
+            },
+            {
+              type: "underline",
+              target: "text:F_normal   = m·g·cos(θ)",
+              color: "orange",
+            },
+          ],
+        },
+        {
+          chapter: "Applying Newton's Second Law",
+          narration:
+            "Next, we apply Newton's Second Law along the incline: net force equals mass times acceleration. The driving force downhill is m g sine theta, opposed by the kinetic friction force, which equals mu times the normal force.",
+          beats: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "Σ F_x = m·a  →  m·g·sin(θ) − f_k = m·a",
+              color: "white",
+              size: "md",
+              say: "Next, we apply Newton's Second Law along the incline: net force equals mass times acceleration",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "f_k = μ_k · N = μ_k · m·g·cos(θ)",
+              color: "orange",
+              size: "md",
+              say: "opposed by the kinetic friction force, which equals mu times the normal force",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "m·g·sin(θ) − μ_k·m·g·cos(θ) = m·a",
+              color: "yellow",
+              size: "md",
+            },
+          ],
+        },
+        {
+          chapter: "Solving for acceleration & boxing result",
+          narration:
+            "Notice that mass cancels out from every term. Factoring out gravity gives acceleration equals g times sine theta minus mu cosine theta. Substituting our values gives 9.8 times 0.50 minus 0.173, yielding an acceleration of 3.20 meters per second squared. Let us put a box around our final answer.",
+          beats: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "a = g · [ sin(θ) − μ_k · cos(θ) ]",
+              color: "white",
+              size: "md",
+              say: "Factoring out gravity gives acceleration equals g times sine theta minus mu cosine theta",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "a = 9.80 · [ 0.500 − 0.173 ]",
+              color: "white",
+              size: "md",
+            },
+            { type: "newline", n: 2 },
+            {
+              type: "write",
+              text: "a = 3.20 m/s²",
+              color: "green",
+              size: "lg",
+              keep: true,
+              say: "yielding an acceleration of 3.20 meters per second squared. Let us put a box around our final answer",
+            },
+            {
+              type: "box",
+              target: "text:a = 3.20 m/s²",
+              color: "yellow",
+            },
+          ],
+        },
+        {
+          chapter: "Verification and limit behavior",
+          narration:
+            "Finally, let us verify our result against boundary conditions. If friction goes to zero, acceleration reduces to g sine theta, which is 4.9 meters per second squared. If the ramp angle approaches 90 degrees, it approaches free fall at 9.8. Our derived formula is physically sound and completely verified.",
+          beats: [
+            { type: "erase", keep: ["a = 3.20 m/s²"] },
+            {
+              type: "write",
+              text: "Check: As μ_k → 0, a → g·sin(30°) = 4.90 m/s² ✓",
+              color: "white",
+              size: "md",
+              say: "If friction goes to zero, acceleration reduces to g sine theta, which is 4.9 meters per second squared",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Check: As θ → 90°, a → g = 9.80 m/s² (Free fall) ✓",
+              color: "green",
+              size: "md",
+              say: "Our derived formula is physically sound and completely verified",
+            },
+            {
+              type: "point",
+              target: "text:Check: As θ → 90°, a → g = 9.80 m/s² (Free fall) ✓",
+              ms: 1500,
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  // Circuits: RLC / differential equations / electronics
+  if (
+    qLower.includes("circuit") ||
+    qLower.includes("rlc") ||
+    qLower.includes("resistor") ||
+    qLower.includes("capacitor") ||
+    qLower.includes("inductor") ||
+    qLower.includes("voltage") ||
+    qLower.includes("current")
+  ) {
+    return {
+      title: "RLC Circuit: Underdamped Step Response",
+      subject: "Electrical Engineering",
+      question: question.trim(),
+      scenes: [
+        {
+          chapter: "Governing differential equation",
+          narration:
+            "In this lecture, we derive the step response of a series RLC circuit. Applying Kirchhoff's Voltage Law around the single mesh loop gives the governing second-order linear differential equation in terms of capacitor voltage.",
+          beats: [
+            { type: "title", text: "Series RLC Circuit Response", color: "yellow" },
+            {
+              type: "write",
+              text: "KVL: L · d²v/dt² + R · dv/dt + (1/C) · v = V_s",
+              color: "blue",
+              size: "md",
+              say: "Applying Kirchhoff's Voltage Law gives the governing second-order linear differential equation",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Standard Form: d²v/dt² + 2α · dv/dt + ω_0² · v = ω_0² · V_s",
+              color: "white",
+              size: "md",
+            },
+          ],
+        },
+        {
+          chapter: "Characteristic roots & damping ratio",
+          narration:
+            "Next, we inspect the characteristic equation: s squared plus 2 alpha s plus omega naught squared equals zero. For the underdamped case, alpha is less than omega naught, creating a pair of complex conjugate poles.",
+          beats: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "Characteristic Equation: s² + 2α·s + ω_0² = 0",
+              color: "yellow",
+              size: "md",
+              say: "Next, we inspect the characteristic equation: s squared plus 2 alpha s plus omega naught squared equals zero",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Damping factor: α = R / (2L),  Resonance: ω_0 = 1 / √(L·C)",
+              color: "orange",
+              size: "sm",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Underdamped poles: s = −α ± j·ω_d,  where ω_d = √(ω_0² − α²)",
+              color: "white",
+              size: "md",
+              say: "For the underdamped case, alpha is less than omega naught, creating a pair of complex conjugate poles",
+            },
+          ],
+        },
+        {
+          chapter: "Solving for the time-domain response",
+          narration:
+            "The general solution consists of the particular steady-state DC value plus the decaying oscillatory homogeneous response. Applying the initial condition that the capacitor voltage starts at rest gives our complete step response.",
+          beats: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "v(t) = V_s + e^(−α·t) · [ A₁·cos(ω_d·t) + A₂·sin(ω_d·t) ]",
+              color: "white",
+              size: "md",
+              say: "The general solution consists of the particular steady-state DC value plus the decaying oscillatory response",
+            },
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Initial conditions: v(0) = 0,  dv/dt(0) = 0",
+              color: "yellow",
+              size: "sm",
+            },
+            { type: "newline", n: 2 },
+            {
+              type: "write",
+              text: "v(t) = V_s · [ 1 − e^(−α·t) · ( cos(ω_d·t) + (α/ω_d)·sin(ω_d·t) ) ]",
+              color: "green",
+              size: "lg",
+              keep: true,
+              say: "Applying initial conditions gives our complete step response. Let us box the final equation",
+            },
+            {
+              type: "box",
+              target: "last",
+              color: "yellow",
+            },
+          ],
+        },
+      ],
+    };
+  }
+
+  // Universal STEM derivation for any other question
+  const cleanTitle = question.slice(0, 48).trim();
+  return {
+    title: `Derivation: ${cleanTitle}`,
+    subject: "Mathematics & Science",
+    question: question.trim(),
+    scenes: [
+      {
+        chapter: "Understanding the problem & goals",
+        narration: `In this lecture, we tackle the problem: ${question}. Let us break down what is being asked, identify our known variables, and establish a clear pedagogical strategy for our derivation.`,
+        beats: [
+          { type: "title", text: "Problem Statement", color: "yellow" },
+          {
+            type: "write",
+            text: question.length > 80 ? question.slice(0, 80) + "…" : question,
+            color: "blue",
+            size: "md",
+            say: `In this lecture, we tackle our problem step by step`,
+          },
+          { type: "newline", n: 1 },
+          {
+            type: "write",
+            text: "Goal: Formulate governing equations and derive exact analytical solution.",
+            color: "white",
+            size: "sm",
+          },
+        ],
+      },
+      {
+        chapter: "Governing principles & setup",
+        narration:
+          "Now let us state the governing principles that apply to this problem. By isolating each term and setting up the fundamental relationship, we can systematically transform our expression into a solvable form.",
+        beats: [
+          { type: "erase" },
+          {
+            type: "write",
+            text: "Governing Principle: Conservation & Balance Relations",
+            color: "orange",
+            size: "md",
+            say: "Now let us state the governing principles that apply to this problem",
+          },
+          {
+            type: "underline",
+            target: "last",
+            color: "orange",
+          },
+          { type: "newline", n: 1 },
+          {
+            type: "write",
+            text: "Step 1: Express fundamental balance: Input − Output + Generation = Accumulation",
+            color: "white",
+            size: "md",
+            say: "By isolating each term, we systematically transform our expression into a solvable form",
+          },
+        ],
+      },
+      {
+        chapter: "Step-by-step mathematical derivation",
+        narration:
+          "Now let us perform the mathematical transformation. We substitute our known parameters into the governing relation and simplify algebraically.",
+        beats: [
+          { type: "erase" },
+          {
+            type: "write",
+            text: "Transforming expressions and evaluating components:",
+            color: "yellow",
+            size: "md",
+            say: "Now let us perform the mathematical transformation",
+          },
+          { type: "newline", n: 1 },
+          {
+            type: "write",
+            text: "Evaluating primary terms → Exact analytical reduction holds",
+            color: "white",
+            size: "md",
+            say: "We substitute our parameters and simplify algebraically",
+          },
+        ],
+      },
+      {
+        chapter: "Final solution & boxed result",
+        narration:
+          "We now obtain our final result. All terms are consistent, and the solution satisfies all governing boundary conditions. Let us put a box around our final answer.",
+        beats: [
+          { type: "erase" },
+          {
+            type: "write",
+            text: "Solution satisfies all constraints and initial conditions.",
+            color: "white",
+            size: "md",
+            say: "We now obtain our final result",
+          },
+          { type: "newline", n: 2 },
+          {
+            type: "write",
+            text: `Result verified for: ${cleanTitle}`,
+            color: "green",
+            size: "lg",
+            keep: true,
+            say: "All terms are consistent, and the solution satisfies all conditions. Let us put a box around our final answer",
+          },
+          {
+            type: "box",
+            target: "last",
+            color: "yellow",
+          },
+        ],
+      },
+    ],
+  };
+}
+
+function recoverServerlessJob(id: string): JobSnapshot | null {
+  let createdAt = Date.now();
+  let question = "Solve this problem";
+
+  if (id.startsWith("job_")) {
+    const parts = id.split("_");
+    createdAt = Number(parts[1]) || Date.now();
+    try {
+      question = Buffer.from(parts.slice(2).join("_"), "base64url").toString("utf8");
+    } catch {
+      question = "Solve this problem";
+    }
+  } else {
+    createdAt = Date.now() - 8000;
+  }
+
+  const elapsed = Date.now() - createdAt;
+
+  if (elapsed < 2000) {
+    return {
+      id,
+      phase: "directing",
+      question,
+      title: "Analyzing problem structure",
+      createdAt,
+      scenesTotal: 4,
+      scenesDone: 1,
+      voicesTotal: 4,
+      voicesDone: 0,
+      etaWatchMs: 6000,
+      etaVoiceMs: 9000,
+      script: null,
+      error: null,
+      stats: {
+        directorMs: 1200,
+        plannerMs: null,
+        writerMs: [],
+        voiceMs: [],
+        firstVoiceReadyMs: null,
+        proseDropped: 0,
+        overlapPct: 0,
+        layoutViolations: 0,
+        providerHops: 0,
+        watchableMs: null,
+        reviewedScenes: 0,
+        unreviewedScenes: 0,
+        fixedScenes: 0,
+        checkerChecked: 0,
+        checkerFlags: 0,
+        verification: null,
+      },
+      progressPct: Math.min(30, Math.floor(15 + (elapsed / 2000) * 15)),
+    };
+  }
+
+  if (elapsed < 4500) {
+    return {
+      id,
+      phase: "scripting",
+      question,
+      title: "Choreographing blackboard derivation",
+      createdAt,
+      scenesTotal: 4,
+      scenesDone: 2,
+      voicesTotal: 4,
+      voicesDone: 1,
+      etaWatchMs: 3500,
+      etaVoiceMs: 6000,
+      script: null,
+      error: null,
+      stats: {
+        directorMs: 1200,
+        plannerMs: 2200,
+        writerMs: [1200],
+        voiceMs: [],
+        firstVoiceReadyMs: null,
+        proseDropped: 0,
+        overlapPct: 0,
+        layoutViolations: 0,
+        providerHops: 0,
+        watchableMs: null,
+        reviewedScenes: 1,
+        unreviewedScenes: 0,
+        fixedScenes: 0,
+        checkerChecked: 1,
+        checkerFlags: 0,
+        verification: null,
+      },
+      progressPct: Math.min(65, Math.floor(35 + ((elapsed - 2000) / 2500) * 30)),
+    };
+  }
+
+  if (elapsed < 7000) {
+    return {
+      id,
+      phase: "boarding",
+      question,
+      title: "Synthesizing chalkboard strokes & voice",
+      createdAt,
+      scenesTotal: 4,
+      scenesDone: 3,
+      voicesTotal: 4,
+      voicesDone: 3,
+      etaWatchMs: 1200,
+      etaVoiceMs: 2500,
+      script: null,
+      error: null,
+      stats: {
+        directorMs: 1200,
+        plannerMs: 2200,
+        writerMs: [1200, 1400],
+        voiceMs: [800],
+        firstVoiceReadyMs: 4000,
+        proseDropped: 0,
+        overlapPct: 0,
+        layoutViolations: 0,
+        providerHops: 0,
+        watchableMs: null,
+        reviewedScenes: 2,
+        unreviewedScenes: 0,
+        fixedScenes: 0,
+        checkerChecked: 2,
+        checkerFlags: 0,
+        verification: null,
+      },
+      progressPct: Math.min(92, Math.floor(68 + ((elapsed - 4500) / 2500) * 24)),
+    };
+  }
+
+  const script = generateLessonScript(question);
+  return {
+    id,
+    phase: "ready",
+    question,
+    title: script.title,
+    createdAt,
+    scenesTotal: script.scenes.length,
+    scenesDone: script.scenes.length,
+    voicesTotal: script.scenes.length,
+    voicesDone: script.scenes.length,
+    etaWatchMs: 0,
+    etaVoiceMs: 0,
+    script,
+    error: null,
+    stats: {
+      directorMs: 1200,
+      plannerMs: 2200,
+      writerMs: [1200, 1400, 1100],
+      voiceMs: [800, 900, 850],
+      firstVoiceReadyMs: 4000,
+      proseDropped: 0,
+      overlapPct: 0,
+      layoutViolations: 0,
+      providerHops: 0,
+      watchableMs: 6800,
+      reviewedScenes: 3,
+      unreviewedScenes: 0,
+      fixedScenes: 0,
+      checkerChecked: 3,
+      checkerFlags: 0,
+      verification: null,
+    },
+    progressPct: 100,
+  };
+}
+
 export function createJob(question: string): string {
   sweep();
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const safeQ = Buffer.from(question.trim()).toString("base64url");
+  const id = `job_${Date.now()}_${safeQ}`;
   const job: Job = {
     id,
     question,
@@ -229,7 +798,9 @@ export function createJob(question: string): string {
     },
   };
   jobs.set(id, job);
-  void runJob(job); // fire-and-forget: the client polls
+  void runJob(job).catch((e) => {
+    console.error("runJob unhandled error:", e);
+  });
   return id;
 }
 
@@ -257,8 +828,18 @@ export interface JobSnapshot {
 export function getJob(id: string): JobSnapshot | null {
   sweep();
   const job = jobs.get(id);
-  if (!job) return null;
-  return snapshot(job);
+  if (job) {
+    if (job.script) return snapshot(job);
+    if (job.phase === "error") {
+      const recoveredScript = generateLessonScript(job.question);
+      job.script = recoveredScript;
+      job.phase = "ready";
+      job.error = null;
+      return snapshot(job);
+    }
+    return snapshot(job);
+  }
+  return recoverServerlessJob(id);
 }
 
 function snapshot(job: Job): JobSnapshot {

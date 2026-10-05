@@ -236,70 +236,22 @@ export default function GoogleAuthPopup() {
               </button>
             ))}
 
-            {/* Use Another Account Button */}
+            {/* Skip for now / Guest Button */}
             <button
               type="button"
-              onClick={() => setStep("another")}
+              onClick={() => handleSelectAccount({ name: "Guest", email: "guest@ember.local", avatarColor: "#9aa0a6" })}
               className="w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition hover:bg-[#303134] active:bg-[#35363a]"
             >
               <div className="w-9 h-9 rounded-full bg-[#303134] border border-[#5f6368] flex items-center justify-center shrink-0">
                 <User className="w-4 h-4 text-[#9aa0a6]" />
               </div>
               <div className="text-sm font-medium text-[#f1f3f4]">
-                Use another account
+                Skip for now (Guest)
               </div>
             </button>
           </div>
         )}
 
-        {/* Use Another Account Input Form */}
-        {step === "another" && (
-          <form onSubmit={handleCustomSubmit} className="mt-6 space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[#bdc1c6] mb-1">
-                Google Email
-              </label>
-              <input
-                type="email"
-                required
-                autoFocus
-                placeholder="youraccount@gmail.com"
-                value={customEmail}
-                onChange={(e) => setCustomEmail(e.target.value)}
-                className="w-full rounded-lg border border-[#5f6368] bg-[#202124] px-3.5 py-2.5 text-sm text-[#f1f3f4] placeholder-[#80868b] focus:border-[#8ab4f8] focus:outline-none focus:ring-1 focus:ring-[#8ab4f8]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#bdc1c6] mb-1">
-                Full Name (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="Your Full Name"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value)}
-                className="w-full rounded-lg border border-[#5f6368] bg-[#202124] px-3.5 py-2.5 text-sm text-[#f1f3f4] placeholder-[#80868b] focus:border-[#8ab4f8] focus:outline-none focus:ring-1 focus:ring-[#8ab4f8]"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => setStep("choose")}
-                className="text-xs font-medium text-[#8ab4f8] hover:underline"
-              >
-                Back to accounts
-              </button>
-              <button
-                type="submit"
-                className="rounded-full bg-[#8ab4f8] px-5 py-2 text-xs font-semibold text-[#202124] transition hover:bg-[#a8c7fa] active:scale-[0.98]"
-              >
-                Next
-              </button>
-            </div>
-          </form>
-        )}
 
         {/* Confirmation Screen */}
         {step === "confirm" && selectedAccount && (

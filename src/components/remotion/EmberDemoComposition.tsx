@@ -64,28 +64,28 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
   const totalSec = Math.floor(durationInFrames / fps);
   const timeFormatted = `${String(Math.floor(currentSec / 60)).padStart(2, "0")}:${String(currentSec % 60).padStart(2, "0")} / ${String(Math.floor(totalSec / 60)).padStart(2, "0")}:${String(totalSec % 60).padStart(2, "0")}`;
 
-  // ================= SCENE BREAKDOWN (50s / 1500 frames) =================
-  // Scene 1: 0 - 360 (0:00 - 0:12) · Problem Composer & Typing
-  // Scene 2: 360 - 720 (0:12 - 0:24) · AI Derivation Planner (Director)
-  // Scene 3: 720 - 1170 (0:24 - 0:39) · Blackboard Canvas Engine & Handwriting
-  // Scene 4: 1170 - 1500 (0:39 - 0:50) · Interactive Office Hours
+  // ================= SCENE BREAKDOWN (25s / 750 frames) =================
+  // Scene 1: 0 - 180 (0:00 - 0:06) · Problem Composer & Typing
+  // Scene 2: 180 - 360 (0:06 - 0:12) · AI Derivation Planner (Director)
+  // Scene 3: 360 - 600 (0:12 - 0:20) · Blackboard Canvas Engine & Handwriting
+  // Scene 4: 600 - 750 (0:20 - 0:25) · Interactive Office Hours
 
   let activeScene = 1;
   let sceneBadge = "01 · PROBLEM COMPOSER";
   let caption =
     "Problem Composer: Paste any calculus, physics, or engineering problem.";
 
-  if (frame >= 1170) {
+  if (frame >= 600) {
     activeScene = 4;
     sceneBadge = "04 · OFFICE HOURS Q&A";
     caption =
       "Office Hours: Clarify any derivation step with Professor Ember in real time.";
-  } else if (frame >= 720) {
+  } else if (frame >= 360) {
     activeScene = 3;
     sceneBadge = "03 · BLACKBOARD STAGE";
     caption =
       "Blackboard Stage: Marker pen hand-writes derivations with calm teacher pacing.";
-  } else if (frame >= 360) {
+  } else if (frame >= 180) {
     activeScene = 2;
     sceneBadge = "02 · DERIVATION PLANNER";
     caption =
@@ -94,45 +94,45 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
 
   // Realistic human cursor with smooth ease-in-out movement
   const getCursor = () => {
-    // Scene 1 (0 to 360): Cursor in composer, then clicks "Start lesson" at (675, 455)
-    if (frame < 360) {
-      if (frame < 180) return { x: 575, y: 420, click: false, visible: true };
-      if (frame < 240) {
-        const p = Math.min(1, Math.max(0, (frame - 180) / 28));
+    // Scene 1 (0 to 180): Cursor in composer, then clicks "Start lesson" at (675, 455)
+    if (frame < 180) {
+      if (frame < 90) return { x: 575, y: 420, click: false, visible: true };
+      if (frame < 120) {
+        const p = Math.min(1, Math.max(0, (frame - 90) / 30));
         const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
         const x = 575 + (675 - 575) * ease;
         const y = 420 + (455 - 420) * ease;
         return { x, y, click: false, visible: true };
       }
-      const click = frame >= 240 && frame <= 270;
+      const click = frame >= 120 && frame <= 140;
       return { x: 675, y: 455, click, visible: true };
     }
     // Scene 2 & 3: Cursor hidden during planning and blackboard solve
-    if (frame < 1170) {
+    if (frame < 600) {
       return { x: -100, y: -100, click: false, visible: false };
     }
-    // Scene 4 (1170 to 1500): Cursor moves to question chips in Office Hours (750, 498)
-    if (frame < 1200) return { x: 500, y: 350, click: false, visible: false };
-    const p = Math.min(1, Math.max(0, (frame - 1200) / 26));
+    // Scene 4 (600 to 750): Cursor moves to question chips in Office Hours (750, 498)
+    if (frame < 620) return { x: 500, y: 350, click: false, visible: false };
+    const p = Math.min(1, Math.max(0, (frame - 620) / 26));
     const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
     const x = 500 + (750 - 500) * ease;
     const y = 350 + (498 - 350) * ease;
-    const click = frame >= 1235 && frame <= 1260;
+    const click = frame >= 650 && frame <= 675;
     return { x, y, click, visible: true };
   };
 
   const cursor = getCursor();
 
-  // Rapid typing in Scene 1 (frames 40 to 180)
+  // Rapid typing in Scene 1 (frames 20 to 100)
   const fullPrompt =
     "Evaluate the indefinite integral ∫ x · e^(2x) dx using integration by parts.";
   const typeCount =
-    frame < 40
+    frame < 20
       ? 0
       : Math.min(
           fullPrompt.length,
           Math.floor(
-            interpolate(frame, [40, 180], [0, fullPrompt.length], {
+            interpolate(frame, [20, 100], [0, fullPrompt.length], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",
             })
@@ -140,24 +140,24 @@ export const EmberDemoComposition: React.FC<DemoProps> = () => {
         );
   const typedText = fullPrompt.slice(0, typeCount);
 
-  // Director Progress in Scene 2 (frames 380 to 690: 6% -> 100%)
-  const directorProgress = interpolate(frame, [380, 690], [6, 100], {
+  // Director Progress in Scene 2 (frames 190 to 345: 6% -> 100%)
+  const directorProgress = interpolate(frame, [190, 345], [6, 100], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Fast, energetic chalk derivation in Scene 3 (frames 720 to 1170: 0 to 52 seconds)
-  const boardTime = interpolate(frame, [720, 1170], [0, 52], {
+  // Fast, energetic chalk derivation in Scene 3 (frames 360 to 600: 0 to 52 seconds)
+  const boardTime = interpolate(frame, [360, 600], [0, 52], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  // Camera scale and pan in Scene 4 (frames 1170 to 1230: zoom into Office Hours)
-  const officeZoom = interpolate(frame, [1170, 1230], [1, 1.32], {
+  // Camera scale and pan in Scene 4 (frames 600 to 630: zoom into Office Hours)
+  const officeZoom = interpolate(frame, [600, 630], [1, 1.32], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const officePanX = interpolate(frame, [1170, 1230], [0, -14], {
+  const officePanX = interpolate(frame, [600, 630], [0, -14], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });

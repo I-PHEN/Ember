@@ -12,9 +12,9 @@ interface Phase {
 
 const PHASES: Phase[] = [
   { title: "Problem Composer", frame: 0 },
-  { title: "Derivation Planner", frame: 360 },
-  { title: "Blackboard Stage", frame: 720 },
-  { title: "Office Hours", frame: 1170 },
+  { title: "Derivation Planner", frame: 180 },
+  { title: "Blackboard Stage", frame: 360 },
+  { title: "Office Hours", frame: 600 },
 ];
 
 export default function RemotionHeroPlayer() {
@@ -26,9 +26,9 @@ export default function RemotionHeroPlayer() {
     const interval = setInterval(() => {
       if (!playerRef.current) return;
       const currentFrame = playerRef.current.getCurrentFrame();
-      if (currentFrame >= 1170) setActivePhase(3);
-      else if (currentFrame >= 720) setActivePhase(2);
-      else if (currentFrame >= 360) setActivePhase(1);
+      if (currentFrame >= 600) setActivePhase(3);
+      else if (currentFrame >= 360) setActivePhase(2);
+      else if (currentFrame >= 180) setActivePhase(1);
       else setActivePhase(0);
     }, 200);
     return () => clearInterval(interval);
@@ -80,7 +80,7 @@ export default function RemotionHeroPlayer() {
           <Player
             ref={playerRef}
             component={EmberDemoComposition}
-            durationInFrames={1500}
+            durationInFrames={750}
             compositionWidth={1920}
             compositionHeight={1080}
             fps={30}
