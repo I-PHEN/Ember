@@ -166,6 +166,14 @@ function easeInOut(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 }
 
+/** Human motor stroke profile: dynamic acceleration & smooth deceleration */
+export function humanStrokeEase(p: number): number {
+  if (p <= 0) return 0;
+  if (p >= 1) return 1;
+  // Cubic smoothstep easing matches natural arm/wrist ballistic movement
+  return p * p * (3 - 2 * p);
+}
+
 function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null {
   const idx = sceneAt(tl, t);
   if (idx < 0) return null;
@@ -186,7 +194,8 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
     }
   }
   if (active) {
-    const p = Math.min(1, (t - activeAbs0) / active.dur);
+    const rawP = Math.min(1, Math.max(0, (t - activeAbs0) / active.dur));
+    const p = humanStrokeEase(rawP);
     const pt = pointAtLen(active, p * active.len);
     // deictic hold (point beat): marker hovers LIFTED off the board pointing toward the term
     if (active.len < 0.5) {
@@ -401,7 +410,8 @@ export function renderFrame(
     for (const s of tl.scenes[i].strokes) {
       const abs0 = start + s.t0;
       if (abs0 > t) continue;
-      const p = Math.min(1, (t - abs0) / s.dur);
+      const rawP = Math.min(1, Math.max(0, (t - abs0) / s.dur));
+      const p = s.kind === "path" ? humanStrokeEase(rawP) : rawP;
       let alpha = 1;
       const et = eraseTime(tl, s);
       if (et !== null && t >= et) {

@@ -46,8 +46,8 @@ import { normSpeechKey } from "../solve-schema";
 const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
-  // px/second — calibrated with 2/3 power law curvature weighting to natural human pace
-  return 70 * (0.8 + (0.2 * cap) / 38);
+  // px/second — calibrated to natural, confident human blackboard pace (~175 px/s)
+  return 175 * (0.85 + (0.15 * cap) / 38);
 }
 
 function polyLen(pts: Pt[]): { cum: number[]; len: number } {
@@ -58,8 +58,7 @@ function polyLen(pts: Pt[]): { cum: number[]; len: number } {
     const dy = pts[i].y - pts[i - 1].y;
     const segLen = Math.hypot(dx, dy);
 
-    // 2/3 Power Law motor control: tight curves and loops add effective kinematic
-    // distance so handwriting decelerates naturally into turns and accelerates on straights
+    // Natural motor control: subtle curvature weighting so curves are fluid, not sluggish
     let turn = 0;
     if (i > 1) {
       const prevDx = pts[i - 1].x - pts[i - 2].x;
@@ -70,7 +69,7 @@ function polyLen(pts: Pt[]): { cum: number[]; len: number } {
       if (diff > Math.PI) diff = 2 * Math.PI - diff;
       turn = diff;
     }
-    const weight = 1.0 + 0.85 * Math.min(2.0, turn);
+    const weight = 1.0 + 0.22 * Math.min(1.4, turn);
     len += segLen * weight;
     cum.push(len);
   }
@@ -168,13 +167,13 @@ function addPaths(
   raw: RawPath[],
   opts?: { gap?: number; speedCap?: number; settle?: number }
 ): PathStroke[] {
-  const gap = opts?.gap ?? 0.18;
+  const gap = opts?.gap ?? 0.048; // Quick natural lift between strokes
   const out: PathStroke[] = [];
   for (const r of raw) {
     if (r.pts.length < 2) continue;
     const { cum, len } = polyLen(r.pts);
     const speed = penSpeed(opts?.speedCap ?? 38);
-    const dur = Math.max(0.15, len / speed);
+    const dur = Math.max(0.065, len / speed);
     const s: PathStroke = {
       kind: "path",
       pts: r.pts,
@@ -189,8 +188,8 @@ function addPaths(
     ctx.scene.strokes.push(s);
     ctx.now += dur + gap;
   }
-  if (out.length && (opts?.settle ?? 0.1) > 0) {
-    ctx.now += opts?.settle ?? 0.1;
+  if (out.length && (opts?.settle ?? 0.06) > 0) {
+    ctx.now += opts?.settle ?? 0.06;
   }
   return out;
 }
@@ -1828,7 +1827,7 @@ function paceSceneToNarration(
     n0: number;
     scale: number;
   }
-  const leadIn = sceneIdx === 0 ? 8.0 : 2.5;
+  const leadIn = sceneIdx === 0 ? 1.8 : 1.2;
   const map: MapEntry[] = [];
   let planned = leadIn;
   let prevEnd = leadIn;
@@ -2033,7 +2032,7 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
       /* audio shorter than planned → do NOT rush the pen past ~0.8×;
        * the scene simply runs a touch longer than the voice (a real
        * professor finishing a line in silence). Rushing reads as AI. */
-      k = Math.max(1.0, Math.min(2.3, k));
+      k = Math.max(0.9, Math.min(1.35, k));
       const anchor = (t: number) => HEAD + (t - HEAD) * k;
       for (const st of s.strokes) {
         st.t0 = anchor(st.t0);

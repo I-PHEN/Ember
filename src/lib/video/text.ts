@@ -261,10 +261,10 @@ export function layoutText(
           : 0;
     const baseY = by - raise;
     const rng = rngFor(seedBase, seedCounter++);
-    const doJit = opts.jitter !== false && cap > 20;
-    // book-neat writing: keep the human touch but never hurt legibility
-    const jRotAmp = doJit ? 0.008 : 0;
-    const jPosAmp = doJit ? Math.min(0.8, cap * 0.012) : 0;
+    const doJit = opts.jitter !== false && cap > 16;
+    // Natural human handwriting touch: organic slant and baseline variation
+    const jRotAmp = doJit ? 0.022 : 0;
+    const jPosAmp = doJit ? Math.min(1.2, cap * 0.020) : 0;
     // glyph-local rotation around its center
     const gx = g.s.length ? g.s : [];
     let gMinX = Infinity;
@@ -300,9 +300,10 @@ export function layoutText(
           y: baseY + jy + (ry - BASELINE) * s,
         };
       });
+      // Apply organic hand jitter across both straight and curved strokes
       const finalPts =
-        stroke.length === 2 && doJit
-          ? jitterPolyline(pts, cap * 0.006, rng)
+        doJit && pts.length >= 2
+          ? jitterPolyline(pts, stroke.length === 2 ? cap * 0.010 : cap * 0.007, rng)
           : pts;
       strokes.push({
         pts: finalPts,
