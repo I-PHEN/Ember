@@ -13,6 +13,7 @@ import type {
   SolveScene,
 } from "./video/types";
 import { FONT } from "./video/font-data";
+import { validateMatrix } from "./video/matrix";
 
 export const MARKER_NAMES: MarkerName[] = [
   "white",
@@ -297,6 +298,21 @@ function sanitizeBeat(raw: unknown, narrationKey: string): Beat | null {
   const type = String(b.type || "").toLowerCase();
 
   switch (type) {
+    case "matrix": {
+      validateMatrix(b);
+      const cellText = (raw: string): string => {
+        const normalized = cleanMathText(raw).replace(/\s+/g, " ").trim();
+        const clean = cleanBoardText(raw, 24);
+        if (clean !== normalized) throw new Error("Matrix entry contains unsupported or oversized notation");
+        return clean;
+      };
+      const rows = b.rows.map(row => row.map(cellText));
+      const beat: Beat = { type: "matrix", id: b.id, rows, label: b.label === undefined ? undefined : cellText(b.label), keep: b.keep === true, color: normColor(b.color, "white"), size: b.size === "lg" || b.size === "sm" ? b.size : "md" };
+      validateMatrix(beat);
+      const say = cleanSay(b.say, narrationKey);
+      if (say) beat.say = say;
+      return beat;
+    }
     case "title": {
       const text = cleanBoardText(String(b.text ?? ""), 48);
       if (!text) return null;

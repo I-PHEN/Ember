@@ -41,6 +41,7 @@ import {
 import { tryCompileExpr } from "@/lib/expr";
 import { captureTimelineTiming, applySceneTiming } from "./timeline-timing";
 import type { BeatTiming, VoiceTiming } from "./timing";
+import { layoutMatrix, type MatrixBeat } from "./matrix";
 
 /* ----------------------------- helpers ---------------------------- */
 
@@ -201,6 +202,16 @@ function movedBBox(_ctx: Ctx, g: Group): BBox {
 
 function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | null {
   const t = (target ?? "last").trim();
+  if (t.startsWith("matrix:")) {
+    const [, id, ...parts] = t.split(":");
+    const root = ctx.groups.find(g => g.boardId === id && !ctx.gone.has(g));
+    if (!root) return null;
+    if (!parts.length) return root;
+    const region = root.regions?.[parts.join(":")];
+    if (!region) return null;
+    // A view, not a second ink group: no duplicated timing/erase ownership.
+    return { ...root, bbox: { ...region, x:root.bbox.x+region.x, y:root.bbox.y+region.y }, anchor:root };
+  }
   if (!t || t === "last") {
     // last group that is still on the board
     for (let i = ctx.groups.length - 1; i >= 0; i--) {
@@ -880,14 +891,16 @@ function buildEmphasis(
     };
     ctx.scene.strokes.push(hl);
     ctx.now += 0.32 + 0.24;
-    groupSinceBeatStart(ctx, undefined, false, crossedAnchor ?? g);
+    const anchor = crossedAnchor ?? g;
+    groupSinceBeatStart(ctx, undefined, false, anchor.boardId ? anchor.anchor ?? anchor : anchor);
     // emphasis marks hang below the line — keep the flow cursor below them
     ctx.lastBottom = Math.max(ctx.lastBottom, hl.rect.y + hl.rect.h + 4);
     return;
   }
 
   addPaths(ctx, raw, { gap: 0.08, speedCap: 30, settle: 0.2 });
-  groupSinceBeatStart(ctx, undefined, false, crossedAnchor ?? g);
+  const anchor = crossedAnchor ?? g;
+  groupSinceBeatStart(ctx, undefined, false, anchor.boardId ? anchor.anchor ?? anchor : anchor);
   // same for boxes/circles/underlines/crossouts: their arcs dip under the
   // text bbox, so record the true ink bottom for the next line's clearance
   let inkBottom = -Infinity;
@@ -1494,6 +1507,24 @@ function buildNumberLine(
 
 /* ------------------------------ table ----------------------------- */
 
+function buildMatrix(ctx: Ctx, beat: MatrixBeat): void {
+  if (ctx.groups.some(g => g.boardId === beat.id && !ctx.gone.has(g))) throw new Error(`Matrix id ${beat.id} is already on the board; reference it instead of redrawing`);
+  const laid = layoutMatrix(beat, BOARD_W - 2*MARGIN_X - 24);
+  const x = MARGIN_X;
+  let y = clearBandDown(ctx, x, Math.max(60, ctx.cursor.y-CAP.md), laid.width, Math.max(60,ctx.cursor.y-CAP.md)+laid.height);
+  if (y+laid.height > MAX_BASELINE+40) {
+    performErase(ctx, undefined);
+    y = clearBandDown(ctx, x, 80, laid.width, 80+laid.height);
+  }
+  if (y+laid.height > MAX_BASELINE+40) throw new Error("Matrix cannot fit beside retained board content");
+  const strokes = addPaths(ctx, laid.strokes.map(s => ({ ...s, pts:s.pts.map(p => ({x:p.x+x,y:p.y+y})) })), { speedCap:laid.cap });
+  const group = makeGroup(ctx, strokes, {x,y,w:laid.width,h:laid.height}, beat.label ?? beat.id, beat.keep ?? false);
+  group.boardId = beat.id;
+  group.regions = laid.regions;
+  ctx.lastBottom = y+laid.height;
+  ctx.cursor = { x:MARGIN_X, y:ctx.lastBottom+LINE_H.md };
+}
+
 function buildTable(ctx: Ctx, beat: Extract<Beat, { type: "table" }>): void {
   const rows = beat.rows.slice(0, 4);
   const headers = (beat.headers ?? []).slice(0, 3);
@@ -1664,6 +1695,9 @@ export function compileTimeline(script: SolveScript): Timeline {
           break;
         case "fraction":
           buildFraction(ctx, beat);
+          break;
+        case "matrix":
+          buildMatrix(ctx, beat);
           break;
         case "box":
         case "circle":

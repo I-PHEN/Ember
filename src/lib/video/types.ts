@@ -154,6 +154,7 @@ export interface ForceArrow {
 }
 
 export type Beat =
+  | { type: "matrix"; id: string; label?: string; rows: string[][]; keep?: boolean; size?: BeatSize; color?: MarkerName; say?: string }
   | { type: "title"; text: string; color?: MarkerName; say?: string }
   | {
       type: "write";
@@ -313,6 +314,9 @@ export interface HighlightStroke {
 export type Stroke = PathStroke | HighlightStroke;
 
 export interface Group {
+  /** Stable structured-board identity and regions relative to bbox. */
+  boardId?: string;
+  regions?: Record<string, BBox>;
   id: string;
   scene: number;
   text?: string;

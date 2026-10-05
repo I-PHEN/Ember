@@ -128,6 +128,8 @@ BEAT TYPES you may use:
 {"type":"freebody","angle":35,"block":"m","forces":[{"label":"mg","dir":"down"},{"label":"N","dir":"normal"},{"label":"F","dir":"upslope"},{"label":"fₖ","dir":"downslope"}],"color":"yellow","say":"..."}    a REAL drawn free-body diagram (surface, block, labeled force arrows). dirs: down up left right normal (perpendicular away from surface) upslope downslope. USE THIS whenever the script mentions forces, a free-body diagram, or a block on an incline — never write a text list of force names instead.
 {"type":"numberline","min":-5,"max":5,"hops":[{"from":0,"to":3,"label":"+3"}],"points":[{"at":3,"label":"x"}]}
 {"type":"table","title":"...","headers":["x","y"],"rows":[["0","1"],["1","4"]],"say":"..."}
+{"type":"matrix","id":"A","label":"A","rows":[["2","7","-4"],["6","3","5"]],"keep":true,"say":"..."}
+MATRICES: Always use the matrix beat, never a write beat containing a nested list. Supply rectangular rows (1–6 rows and columns; nonempty string cells, maximum 24 characters). IDs are unique ASCII names, 1–16 characters. Use keep:true while the matrix is referenced in later scenes; do not redraw an already visible ID. To trace an entry, point to matrix:A:row:2 then matrix:A:col:3 then matrix:A:cell:2:3. Row/column indices are one-based. These targets also work with highlight/circle/box; matrix:A targets the whole matrix. Do not clear the referenced matrix before explaining its entries.
 {"type":"erase","keep":["x = 4"]}    wipe the board (keep matching text)
 {"type":"newline","n":1}    move the writing cursor down
 {"type":"wait","ms":500}    a beat of silence — let a key result land
@@ -173,9 +175,9 @@ CHECKLIST, in priority order:
 1. NO PROSE ON THE BOARD. Sentences of explanation (because/since/notice/remember, article-heavy clauses) belong in the narration, never in ink. Remove prose beats entirely — the voice already carries those words.
 2. DENSITY. 2-5 content beats. Too many fragments → merge into fewer, cleaner lines. If the scene is crowded, start with an erase beat.
 3. EMPHASIS RESTRAINT. Remove frivolous circles and underlines. Real lecturers do NOT circle everything. Only the final answer should be boxed; at most one key formula underlined. Remove decorative circles or underlines on working steps.
-4. SAY TAGS. Every beat that writes ink (write/title/fraction/graph/freebody/table) carries "say" — a VERBATIM fragment of this scene's narration, in order. Fix missing or unanchored say tags. Decoration beats (box/circle/crossout/underline/point) take NO say.
+4. SAY TAGS. Every beat that writes ink (write/title/fraction/matrix/graph/freebody/table) carries "say" — a VERBATIM fragment of this scene's narration, in order. Fix missing or unanchored say tags. Decoration beats (box/circle/crossout/underline/point) take NO say.
 5. MATH CONSISTENCY. Equation lines must be consistent with what the narration claims. If the narration concludes x is 4, no line may show x = 5, and arithmetic on the board must actually be correct (2 + 2 = 5 is never allowed to stand). Fix the beats to match the narration and the mathematics.
-6. TARGETS. box/circle/crossout/point targets must quote text that actually appears in a written line of this scene. Remove or fix dangling targets.
+6. TARGETS. box/circle/crossout/point targets must quote text that actually appears on the board. Structured matrices use matrix:A, matrix:A:row:2, matrix:A:col:3, matrix:A:cell:2:3 (one-based). Preserve valid references to persistent earlier-scene matrices; do not convert them to text targets. Matrix beats contain id, optional label, rectangular rows of string cells, keep, and say. Never flatten matrices into nested-list write beats or silently remove entries. If this scene supplies a matrix, verify referenced indices are within its dimensions.
 
 RULES FOR YOUR FIX:
 - Keep the writer's good beats exactly as given; change only what a checklist item requires.
