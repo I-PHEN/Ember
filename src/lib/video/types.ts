@@ -316,6 +316,7 @@ export type Stroke = PathStroke | HighlightStroke;
 export interface Group {
   /** Stable structured-board identity and regions relative to bbox. */
   boardId?: string;
+  matrixKey?: string;
   regions?: Record<string, BBox>;
   id: string;
   scene: number;

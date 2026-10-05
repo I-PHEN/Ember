@@ -1508,8 +1508,17 @@ function buildNumberLine(
 /* ------------------------------ table ----------------------------- */
 
 function buildMatrix(ctx: Ctx, beat: MatrixBeat): void {
-  if (ctx.groups.some(g => g.boardId === beat.id && !ctx.gone.has(g))) throw new Error(`Matrix id ${beat.id} is already on the board; reference it instead of redrawing`);
   const laid = layoutMatrix(beat, BOARD_W - 2*MARGIN_X - 24);
+  const matrixKey = JSON.stringify(beat.rows);
+  const existing = ctx.groups.find(g => g.boardId === beat.id && !ctx.gone.has(g));
+  if (existing) {
+    if (existing.matrixKey !== matrixKey || (beat.label && beat.label !== existing.text)) {
+      throw new Error(`Matrix id ${beat.id} is already on the board with different content`);
+    }
+    if (beat.keep) existing.keep = true;
+    buildPoint(ctx, {type:"point",target:`matrix:${beat.id}`,ms:900});
+    return;
+  }
   const x = MARGIN_X;
   let y = clearBandDown(ctx, x, Math.max(60, ctx.cursor.y-CAP.md), laid.width, Math.max(60,ctx.cursor.y-CAP.md)+laid.height);
   if (y+laid.height > MAX_BASELINE+40) {
@@ -1520,6 +1529,7 @@ function buildMatrix(ctx: Ctx, beat: MatrixBeat): void {
   const strokes = addPaths(ctx, laid.strokes.map(s => ({ ...s, pts:s.pts.map(p => ({x:p.x+x,y:p.y+y})) })), { speedCap:laid.cap });
   const group = makeGroup(ctx, strokes, {x,y,w:laid.width,h:laid.height}, beat.label ?? beat.id, beat.keep ?? false);
   group.boardId = beat.id;
+  group.matrixKey = matrixKey;
   group.regions = laid.regions;
   ctx.lastBottom = y+laid.height;
   ctx.cursor = { x:MARGIN_X, y:ctx.lastBottom+LINE_H.md };

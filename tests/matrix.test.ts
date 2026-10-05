@@ -61,9 +61,16 @@ test("persistent matrix cell targets follow erasure reflow across scenes", () =>
   expect(auditTimeline(tl)).toEqual([]);
 });
 
-test("duplicate live IDs and oversized glyph layouts fail instead of overlapping", () => {
-  expect(() => compile([matrix,matrix])).toThrow(/already/);
+test("conflicting live IDs and oversized glyph layouts fail instead of overlapping", () => {
+  expect(() => compile([matrix,{...matrix,rows:[["9"]]}])).toThrow(/already/);
   expect(() => compile([{...matrix,rows:[Array(6).fill("W".repeat(24))]}])).toThrow(/wide/);
+});
+
+test("independent writers repeating the identical matrix reference existing ink", () => {
+  const tl = compile([matrix,matrix]);
+  expect(tl.scenes[0].groups.filter(g => g.boardId === "A")).toHaveLength(1);
+  expect(tl.scenes[0].strokes.filter(s => s.kind === "path" && s.width === 0.01)).toHaveLength(1);
+  expect(auditTimeline(tl)).toEqual([]);
 });
 
 test("matrix handwriting uses finite normal-speed strokes", () => {

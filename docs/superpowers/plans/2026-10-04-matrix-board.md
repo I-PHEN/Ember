@@ -30,3 +30,8 @@ expect(beats[0].type).toBe("matrix");
 ## Completed checkpoint evidence
 
 All implementation steps above are complete. Eight matrix tests pass, including reflow targeting and unsupported-symbol rejection; full suite: 157 tests, 412 assertions. Focused lint and production webpack build pass. Typecheck retains only the four known gallery/renderer errors. Geometry previews at 1280x720 and 640x360 were visually inspected: correct 2x3 matrix, brackets, highlighted 5, and subscript answer. Preview command: `bun tests/matrix-preview.ts`. This is deterministic compiler geometry, not yet a new end-to-end generated lesson or an audio listening review. Existing saved lessons are not retroactively rewritten.
+
+October 5 integration correction: separate writers may emit the same persistent
+matrix again. Exact ID/content repetition now points to existing ink rather than
+crashing or redrawing it. Conflicting entries/labels still fail. The ninth matrix
+test reproduces this previously failing case; full suite now has 164 passing tests.

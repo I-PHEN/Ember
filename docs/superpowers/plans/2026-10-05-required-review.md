@@ -36,3 +36,20 @@ Modify `src/lib/video-jobs.ts`, `src/lib/video/review.ts`, and `src/app/page.tsx
 - Existing retry button regenerates the original question; UI now discloses normal generation costs.
 - No live-provider success/failure run or browser retry exercise yet. The final build failed because shared node_modules/ai and node_modules/@ai-sdk/google lack package files. Both directories are empty; two install-related Node processes were observed. Do not repair or replace the shared dependency tree while another install may be active. Typecheck also reports those two missing modules, plus the four established gallery/renderer errors.
 - Production preview has NOT been restarted onto this review-gate change. Rebuild and restart after the dependency install completes, then validate a fresh end-to-end lesson before curating the three judge-facing starters.
+
+## October 5 follow-up
+
+The suspected installers were actually two `npm run dev` processes. Empty AI
+SDK package directories had intact hidden backup directories at the exact locked
+versions. Restored ai and six @ai-sdk packages by copying those backups into the
+empty directories, preserving backups and leaving manifests/lockfiles unchanged.
+Imports and production build passed afterward; typecheck returned to the four
+known errors. The preview was restarted with the mandatory gate.
+
+Live job `muvgy7hv-w8mgkvw5` reviewed all four scenes (four accepted fixes), but
+the combined compiler rejected repeated persistent matrix ID A. API returned
+phase error and no script, confirming blocked delivery on this integration failure.
+It is NOT evidence of a successful complete lesson. Added a regression and narrow
+fix: identical live matrix ID/content means point at existing ink; conflicting
+content remains an error. Full regression suite after the fix: 164 passing tests,
+430 assertions. Another successful complete live lesson is still required.
