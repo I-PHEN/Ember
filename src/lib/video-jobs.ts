@@ -35,6 +35,7 @@ import {
   type VerifyVerdict,
 } from "./video/solver";
 import type { SolveScript } from "./video/types";
+import { SAMPLE_CALCULUS } from "./samples";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -188,9 +189,10 @@ function sweep(now = Date.now()): void {
   }
 }
 
+
 export function createJob(question: string): string {
   sweep();
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const id = crypto.randomUUID();
   const job: Job = {
     id,
     question,
@@ -233,7 +235,9 @@ export function createJob(question: string): string {
     },
   };
   jobs.set(id, job);
-  void runJob(job); // fire-and-forget: the client polls
+  void runJob(job).catch((e) => {
+    console.error("runJob unhandled error:", e);
+  });
   return id;
 }
 
@@ -274,8 +278,7 @@ export function recordSceneTiming(id: string, raw: unknown): "recorded" | "inval
 export function getJob(id: string): JobSnapshot | null {
   sweep();
   const job = jobs.get(id);
-  if (!job) return null;
-  return snapshot(job);
+  return job ? snapshot(job) : null;
 }
 
 function snapshot(job: Job): JobSnapshot {

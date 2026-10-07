@@ -42,42 +42,16 @@ import { tryCompileExpr } from "@/lib/expr";
 import { captureTimelineTiming, applySceneTiming } from "./timeline-timing";
 import type { BeatTiming, VoiceTiming } from "./timing";
 import { layoutMatrix, type MatrixBeat } from "./matrix";
+import {
+  defaultSynthesizer,
+  computeTransitionPause,
+  type StrokeTag,
+} from "./kinematics";
 
 /* ----------------------------- helpers ---------------------------- */
 
 const HEAD = 0.7;
 
-function penSpeed(cap: number): number {
-  // px/second — calibrated with 2/3 power law curvature weighting to natural human pace
-  return 165 * (0.8 + (0.2 * cap) / 38);
-}
-
-function polyLen(pts: Pt[]): { cum: number[]; len: number } {
-  const cum = [0];
-  let len = 0;
-  for (let i = 1; i < pts.length; i++) {
-    const dx = pts[i].x - pts[i - 1].x;
-    const dy = pts[i].y - pts[i - 1].y;
-    const segLen = Math.hypot(dx, dy);
-
-    // 2/3 Power Law motor control: tight curves and loops add effective kinematic
-    // distance so handwriting decelerates naturally into turns and accelerates on straights
-    let turn = 0;
-    if (i > 1) {
-      const prevDx = pts[i - 1].x - pts[i - 2].x;
-      const prevDy = pts[i - 1].y - pts[i - 2].y;
-      const a1 = Math.atan2(dy, dx);
-      const a0 = Math.atan2(prevDy, prevDx);
-      let diff = Math.abs(a1 - a0);
-      if (diff > Math.PI) diff = 2 * Math.PI - diff;
-      turn = diff;
-    }
-    const weight = 1.0 + 0.85 * Math.min(2.0, turn);
-    len += segLen * weight;
-    cum.push(len);
-  }
-  return { cum, len };
-}
 
 export function estimateNarration(text: string): number {
   const words = text.trim().split(/\s+/).filter(Boolean).length;
@@ -94,6 +68,7 @@ interface RawPath {
   pts: Pt[];
   color: MarkerName;
   width: number;
+  tag?: StrokeTag | string;
 }
 
 /* --------------------------- scene state -------------------------- */
@@ -160,35 +135,66 @@ function groupSinceBeatStart(
   makeGroup(ctx, strokes, bb, text, keep, anchor);
 }
 
-/** bake raw polylines into timed strokes */
+/** bake raw polylines into timed strokes using biomechanical graphonomic modeling */
 function addPaths(
   ctx: Ctx,
   raw: RawPath[],
-  opts?: { gap?: number; speedCap?: number; settle?: number }
+  opts?: { gap?: number; speedCap?: number; settle?: number; tag?: StrokeTag | string }
 ): PathStroke[] {
-  const gap = opts?.gap ?? 0.07;
   const out: PathStroke[] = [];
+  let prevPt: Pt | null = null;
+  for (let i = ctx.scene.strokes.length - 1; i >= 0; i--) {
+    const s = ctx.scene.strokes[i];
+    if (s.kind === "path" && s.pts.length) {
+      prevPt = s.pts[s.pts.length - 1];
+      break;
+    }
+  }
+
   for (const r of raw) {
     if (r.pts.length < 2) continue;
-    const { cum, len } = polyLen(r.pts);
-    const speed = penSpeed(opts?.speedCap ?? 38);
-    const dur = Math.max(0.06, len / speed);
+    const tag = r.tag ?? opts?.tag;
+    const nextPt = r.pts[0];
+
+    // Compute transition pause: Fitts' law air flight + hierarchical cognitive hesitation
+    let gap = 0;
+    if (prevPt) {
+      gap = computeTransitionPause(prevPt, nextPt, tag);
+      if (opts?.gap !== undefined) {
+        gap = Math.max(opts.gap, gap);
+      }
+    } else if (opts?.gap !== undefined) {
+      gap = opts.gap;
+    }
+
+    ctx.now += gap;
+
+    const prof = defaultSynthesizer.synthesize(r.pts, r.width, tag);
+    const dur = prof.duration;
+
     const s: PathStroke = {
       kind: "path",
-      pts: r.pts,
+      pts: prof.pts,
       color: r.color,
       width: r.width,
       t0: ctx.now,
       dur,
-      cum,
-      len,
+      cum: prof.cum,
+      len: prof.totalLength,
+      timeLut: prof.timeLut,
+      widths: prof.widths,
+      velocities: prof.velocities,
+      strokeTag: tag,
     };
+
     out.push(s);
     ctx.scene.strokes.push(s);
-    ctx.now += dur + gap;
+    ctx.now += dur;
+    prevPt = prof.pts[prof.pts.length - 1];
   }
-  if (out.length && (opts?.settle ?? 0.1) > 0) {
-    ctx.now += opts?.settle ?? 0.1;
+
+  if (out.length && (opts?.settle ?? 0.18) > 0) {
+    ctx.now += opts?.settle ?? 0.18;
   }
   return out;
 }
@@ -488,7 +494,7 @@ function buildTitle(ctx: Ctx, beat: Extract<Beat, { type: "title" }>): void {
   addPaths(ctx, laid.strokes, { speedCap: cap, settle: 0.18 });
   addPaths(
     ctx,
-    [{ pts: under, color, width: Math.max(2.6, cap * 0.075) }],
+    [{ pts: under, color, width: Math.max(2.6, cap * 0.075), tag: "ballistic-line" }],
     { gap: 0.05, speedCap: cap, settle: 0.22 }
   );
   groupSinceBeatStart(ctx, beat.text);
@@ -787,6 +793,7 @@ function buildFraction(ctx: Ctx, beat: Extract<Beat, { type: "fraction" }>): voi
     pts: roughLine({ x: fx + 2, y: barY }, { x: fx + fracW - 4, y: barY - 2 }, 1.1, rng),
     color,
     width: Math.max(2.4, cap * 0.07),
+    tag: "ballistic-line",
   });
   const denX = fx + (fracW - denW) / 2;
   const denBase = barY + smCap * 0.88;
@@ -841,8 +848,8 @@ function buildEmphasis(
     const x1 = t.bbox.x + t.bbox.w + 4;
     const y0 = t.bbox.y - 4;
     const y1 = t.bbox.y + t.bbox.h + 4;
-    raw.push({ pts: roughLine({ x: x0, y: y0 }, { x: x1, y: y1 }, 1.2, rng), color: "red", width: 2.8 });
-    raw.push({ pts: roughLine({ x: x0, y: y1 }, { x: x1, y: y0 }, 1.2, rng), color: "red", width: 2.8 });
+    raw.push({ pts: roughLine({ x: x0, y: y0 }, { x: x1, y: y1 }, 1.2, rng), color: "red", width: 2.8, tag: "ballistic-line" });
+    raw.push({ pts: roughLine({ x: x0, y: y1 }, { x: x1, y: y0 }, 1.2, rng), color: "red", width: 2.8, tag: "ballistic-line" });
     crossedAnchor = t;
   } else if (beat.type === "box") {
     for (const s of roughRect(
@@ -878,6 +885,7 @@ function buildEmphasis(
       ),
       color,
       width,
+      tag: "ballistic-line",
     });
   }
 

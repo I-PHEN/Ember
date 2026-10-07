@@ -54,8 +54,11 @@ layout violation blocks delivery. Voice generation remains parallel.
 Prompts: `src/lib/prompts.ts` (WRITER_SYSTEM is a static prefix — keep
 dynamic content in the user turn). Board discipline: `isBoardProse` +
 `stats.proseDropped/overlapPct/layoutViolations`. Canvas integrity:
-`layout-audit.ts` + clearance in `compile.ts`. Pen pace: 165 px/s
-professor chalk (tests/pen-pacing.test.ts pins it — do not speed up).
+`layout-audit.ts` + clearance in `compile.ts`. Pen pace uses the deterministic
+`kinematics.ts` profile in canonical board coordinates; preserve the regression
+window in tests/pen-pacing.test.ts. These are Ember calibration values, not
+experimentally validated biological constants. Measured speech timing remains
+owned by timeline-timing.ts; do not reintroduce a second retiming pass.
 Stats worth knowing: `watchableMs` (delivery), `providerHops` (failovers),
 `reviewedScenes/fixedScenes/unreviewedScenes`, `checkerChecked/checkerFlags`,
 `verification {verdict, solverAnswer, scriptAnswer, rerun}`. Progress %

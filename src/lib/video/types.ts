@@ -298,6 +298,14 @@ export interface PathStroke {
   moves?: StrokeMove[];
   /** soft under-glow (emphasis) */
   glow?: boolean;
+  /** monotonic normalized time [0..1] -> normalized arc length [0..1] */
+  timeLut?: number[];
+  /** calligraphic dynamic widths along stroke points */
+  widths?: number[];
+  /** instantaneous tangential velocities along stroke points */
+  velocities?: number[];
+  /** hierarchical motor control tag */
+  strokeTag?: string;
 }
 
 export interface HighlightStroke {

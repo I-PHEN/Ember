@@ -73,10 +73,13 @@ test("independent writers repeating the identical matrix reference existing ink"
   expect(auditTimeline(tl)).toEqual([]);
 });
 
-test("matrix handwriting uses finite normal-speed strokes", () => {
+test("matrix handwriting uses finite bounded kinematic strokes", () => {
   const tl = compile([matrix]);
   for (const s of tl.scenes[0].strokes) if (s.kind === "path") {
     expect(s.dur).toBeGreaterThan(0);
-    expect(s.len/s.dur).toBeLessThanOrEqual(166);
+    expect(Number.isFinite(s.dur)).toBe(true);
+    expect(s.len/s.dur).toBeLessThanOrEqual(2400);
+    expect(s.cum).toHaveLength(s.pts.length);
+    expect(s.timeLut?.at(-1)).toBe(1);
   }
 });

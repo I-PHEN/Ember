@@ -55,6 +55,8 @@
 ---------------------------------------------------------------- */
 
 :root {
+  --font-geist-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-geist-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --radius: 0.75rem;
 
   --board: #16181d;
@@ -147,7 +149,7 @@
 :root {
   --room-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.93 0 0 0 0 0.92 0 0 0 0 0.9 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.ember-home, .ember-watch {
+.ember-home, .ember-watch, .ember-gallery {
   position: relative;
   isolation: isolate;
   color: #f1eee7; --foreground: #f1eee7; --muted-foreground: #a4a5a7;
@@ -159,7 +161,7 @@
     linear-gradient(180deg, #101214 0%, #111315 45%, #0e0f12 100%);
   background-size: 180px 180px, 24px 24px, 100% 100%, 100% 100%, 100% 100%;
 }
-.ember-home { --room-pool: radial-gradient(60% 460px at 50% 240px, #16181b 0%, rgba(22, 24, 27, 0.5) 48%, transparent 80%); }
+.ember-home, .ember-gallery { --room-pool: radial-gradient(60% 460px at 50% 240px, #16181b 0%, rgba(22, 24, 27, 0.5) 48%, transparent 80%); }
 .ember-watch { --room-pool: radial-gradient(50% 300px at 50% 160px, #141619 0%, rgba(20, 22, 25, 0.4) 50%, transparent 80%); }
 .ember-watch-header {
   border-color: #292c30;
@@ -172,7 +174,7 @@
    pseudo-element extending rightward makes the whole screen scroll
    sideways (the 60px shift bug). The gradient is centered and fades
    out long before the edges, so inset: 0 renders identically. */
-.ember-home::before {
+.ember-home::before, .ember-gallery::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -188,7 +190,7 @@
   50% { opacity: 1; transform: translateY(-10px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ember-home::before { animation: none !important; }
+  .ember-home::before, .ember-gallery::before { animation: none !important; }
 }
 .ember-home-header, .ember-home-footer { border-color: #292c30; }
 .ember-home-header {

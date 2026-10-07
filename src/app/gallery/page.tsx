@@ -18,6 +18,8 @@ import { renderToImage } from "@/lib/video/render";
 import { thumbnailTime } from "@/lib/video/thumbnail";
 import { THEMES, totalDuration } from "@/lib/video/types";
 import { cn } from "@/lib/utils";
+import { formatMathTitle } from "@/lib/format-math";
+import { useAuth } from "@/lib/firebase/auth-context";
 
 interface GalleryItem {
   id: string;
@@ -47,6 +49,18 @@ function fmtDate(ts: number): string {
   });
 }
 
+function fmtRelativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return fmtDate(ts);
+}
+
 function fmtDur(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) sec = 0;
   const m = Math.floor(sec / 60);
@@ -55,6 +69,7 @@ function fmtDur(sec: number): string {
 }
 
 export default function GalleryPage() {
+  const { user, openAuthModal } = useAuth();
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -112,38 +127,67 @@ export default function GalleryPage() {
   }, [items, selectedSubject, search]);
 
   const handleWatch = (item: GalleryItem) => {
-    try {
-      window.localStorage.setItem("ember.watch.active", JSON.stringify(item.script));
-      window.location.href = `/?solve=${item.id}`;
-    } catch {
-      window.location.href = "/";
+    const doWatch = () => {
+      try {
+        window.localStorage.setItem("ember.watch.active", JSON.stringify(item.script));
+        window.location.href = `/studio?solve=${item.id}`;
+      } catch {
+        window.location.href = "/studio";
+      }
+    };
+
+    if (!user) {
+      openAuthModal(doWatch);
+      return;
     }
+    doWatch();
+  };
+
+  const handleCreateSolve = () => {
+    if (!user) {
+      openAuthModal(() => {
+        window.location.href = "/studio";
+      });
+      return;
+    }
+    window.location.href = "/studio";
   };
 
   return (
-    <main className="flex min-h-dvh flex-col bg-[#121517] font-sans text-[#f1eee7] selection:bg-[#e6b784]/30 selection:text-[#e6b784]">
+    <main className="ember-gallery flex min-h-dvh flex-col">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b border-[#2b2f33] bg-[#121517]/85 px-6 backdrop-blur-xl sm:px-12">
+      <header className="ember-home-header sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b px-6 backdrop-blur-xl sm:px-12">
         <div className="flex items-center gap-4">
           <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-xl border border-[#34383c] bg-[#171b1d] px-3 py-1.5 text-xs font-semibold text-[#a4a5a7] transition-colors hover:border-[#4a4e53] hover:text-[#f1eee7]"
+            href={user ? "/studio" : "/"}
+            className="flex items-center gap-1.5 rounded-xl border border-[#34383c] bg-[#171b1d] px-3.5 py-1.5 text-xs font-semibold text-[#a4a5a7] transition-all hover:border-[#e6b784]/40 hover:text-[#f1eee7]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Home
+            {user ? "Studio" : "Home"}
           </Link>
           <Wordmark />
         </div>
 
-        <Link href="/">
+        <div className="flex items-center gap-3">
+          {!user && (
+            <button
+              type="button"
+              onClick={() => openAuthModal()}
+              className="rounded-xl border border-[#34383c] bg-[#171b1d] px-3.5 py-1.5 text-xs font-semibold text-[#f1eee7] hover:border-[#e6b784]/40 transition-all"
+            >
+              Sign In
+            </button>
+          )}
+
           <Button
             size="sm"
+            onClick={handleCreateSolve}
             className="rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e] shadow-[0_2px_12px_rgba(230,183,132,0.2)]"
           >
             <Clapperboard className="h-4 w-4 mr-1.5" />
             Create Solve
           </Button>
-        </Link>
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -236,15 +280,18 @@ export default function GalleryPage() {
               <div
                 key={item.id}
                 onClick={() => handleWatch(item)}
-                className="group relative cursor-pointer rounded-2xl border border-[#2b2f33] bg-[#171b1d] p-3 transition-all hover:border-[#e6b784]/40 hover:bg-[#1a1e21] shadow-lg"
+                className="group relative flex flex-col rounded-2xl border border-[#282c31] bg-[#16191b] overflow-hidden transition-all duration-200 hover:border-[#e6b784]/50 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+                role="button"
+                tabIndex={0}
+                aria-label={`Watch ${item.title}`}
               >
-                {/* 16:9 Thumbnail Area */}
-                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+                {/* 16:9 Aspect Ratio Thumbnail Container */}
+                <div className="relative aspect-video w-full overflow-hidden bg-black/90">
                   {thumbs[item.id] ? (
                     <img
                       src={thumbs[item.id]}
                       alt=""
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-zinc-950">
@@ -253,36 +300,45 @@ export default function GalleryPage() {
                   )}
 
                   {/* Play Hover Overlay */}
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    <span className="scale-75 rounded-full bg-[#e6b784] p-3 text-[#191816] transition-transform duration-200 group-hover:scale-100">
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 backdrop-blur-[1px] transition-all duration-200 group-hover:opacity-100">
+                    <span className="scale-75 rounded-full bg-[#e6b784] p-3 text-[#191816] shadow-lg transition-transform duration-200 group-hover:scale-100 flex items-center justify-center">
                       <Play className="h-5 w-5 fill-current ml-0.5" />
                     </span>
                   </div>
 
                   {/* Subject Badge */}
                   {item.script?.subject && (
-                    <div className="absolute top-2.5 left-2.5 rounded-md bg-black/80 px-2 py-0.5 text-[10px] font-semibold text-[#e6b784] border border-[#e6b784]/20 backdrop-blur-sm">
-                      {item.script.subject}
+                    <div className="absolute top-2.5 left-2.5">
+                      <span className="rounded-md bg-black/75 border border-white/10 px-2 py-0.5 text-[10px] font-medium text-[#f1eee7]/90 backdrop-blur-md">
+                        {item.script.subject}
+                      </span>
                     </div>
                   )}
 
-                  {/* YouTube-Style Duration Badge */}
-                  <div className="absolute bottom-2.5 right-2.5 rounded-md bg-black/85 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7] shadow-sm backdrop-blur-sm">
+                  {/* Duration Badge */}
+                  <div className="absolute bottom-2.5 right-2.5 rounded-md bg-black/85 border border-white/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-[#f1eee7] shadow-sm backdrop-blur-md">
                     {durs[item.id] || "3:00"}
                   </div>
                 </div>
 
                 {/* Details */}
-                <div className="mt-3 px-1 space-y-1.5">
-                  <h3 className="line-clamp-1 text-sm font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">
-                    {item.title}
-                  </h3>
-                  <p className="line-clamp-2 text-xs text-[#a4a5a7] leading-relaxed">
-                    {item.description || item.script?.question}
-                  </p>
-                  <div className="pt-2 flex items-center justify-between text-[11px] text-[#8b8d8f] border-t border-[#2b2f33]/60">
-                    <span>By {item.publisher || "Scholar"}</span>
-                    <span>{fmtDate(item.createdAt)}</span>
+                <div className="p-3.5 flex flex-col flex-1 justify-between gap-2.5">
+                  <div>
+                    <h3 className="line-clamp-1 text-sm font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">
+                      {formatMathTitle(item.title)}
+                    </h3>
+                    <p className="line-clamp-2 mt-1 text-xs text-[#8b8d8f] leading-relaxed">
+                      {item.description || item.script?.question}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-[#23272b] pt-2 text-xs text-[#8b8d8f]">
+                    <span className="text-[11px] text-[#a4a5a7]">
+                      By {item.publisher || "Scholar"}
+                    </span>
+                    <span className="text-[11px] font-mono text-[#8b8d8f]">
+                      {fmtRelativeTime(item.createdAt)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -292,7 +348,7 @@ export default function GalleryPage() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-[#2b2f33] px-6 py-8 text-center text-xs text-[#8b8d8f]">
+      <footer className="ember-home-footer mt-auto border-t px-6 py-8 text-center text-xs text-[#8b8d8f]">
         Ember — Every problem, a lesson
       </footer>
     </main>
