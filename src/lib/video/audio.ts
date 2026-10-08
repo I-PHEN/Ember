@@ -63,10 +63,14 @@ export class SceneAudio {
     a.muted = muted;
     const rawDur = Number.isFinite(a.duration) ? a.duration : 0;
     const effectiveDur = rawDur / BASE_SPEECH_RATE;
-    const wantSound = playing && !muted && effectiveDur > 0 && offset < effectiveDur - 0.02;
-    if (!wantSound) {
+    // Muting silences the element without disrupting its decoder or clock.
+    const wantPlayback = playing && effectiveDur > 0 && offset < effectiveDur - 0.02;
+    if (!wantPlayback) {
       if (!a.paused) a.pause();
-      if (playing) a.currentTime = Math.min(offset * BASE_SPEECH_RATE, Math.max(0, rawDur - 0.05));
+      const target = Math.min(offset * BASE_SPEECH_RATE, Math.max(0, rawDur - 0.05));
+      if (rawDur > 0 && Math.abs(a.currentTime - target) > 0.12) {
+        try { a.currentTime = target; } catch { /* metadata is not ready yet */ }
+      }
       return false;
     }
     const audioTarget = offset * BASE_SPEECH_RATE;

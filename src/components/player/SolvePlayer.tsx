@@ -46,6 +46,7 @@ import { chapterSnapshot, chapterSeekTime, type Chapter } from "@/lib/video/chap
 import { renderFrame } from "@/lib/video/render";
 import { timingWarning } from "@/lib/video/timing-warning";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
+import { PlaybackFrameClock } from "@/lib/video/playback-clock";
 import { narrationStore } from "@/lib/narration-store";
 import { phrasesForScene, recognizedPhrasesForScene } from "@/lib/video/speech-alignment";
 import { cn } from "@/lib/utils";
@@ -160,7 +161,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const audioRef = useRef<SceneAudio | null>(null);
     const clockRef = useRef({ t: 0, playing: false, rate: 1, ended: false });
     const rafRef = useRef(0);
-    const lastNowRef = useRef(0);
+    const frameClockRef = useRef(new PlaybackFrameClock());
     const lastUiRef = useRef(0);
     const dirtyRef = useRef(true);
     const scrubRef = useRef<{ active: boolean; wasPlaying: boolean }>({
@@ -213,6 +214,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       audioRef.current = new SceneAudio();
       clockRef.current.t = 0;
       clockRef.current.ended = false;
+      frameClockRef.current.reset();
       lastSceneRef.current = -1;
       readyRef.current = tl.scenes.map(() => false);
       gaveUpRef.current = tl.scenes.map(() => false);
@@ -337,19 +339,16 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const tick = useCallback(
       (now: number) => {
         rafRef.current = requestAnimationFrame((n) => tickFn.current(n));
-        const dt = Math.min(0.1, (now - lastNowRef.current) / 1000);
-        lastNowRef.current = now;
         const c = clockRef.current;
         const totalNow = totalDuration(tl);
+        const idx = sceneAt(tl, c.t);
+        const scene = tl.scenes[idx];
+        const needsVoice = !mini && !!scene.narration && !readyRef.current[idx] && !gaveUpRef.current[idx];
+        // Keep slow-frame elapsed time only across consecutive runnable frames.
+        // Waiting for narration and entering a new scene cannot spend old time.
+        const dt = frameClockRef.current.elapsed(now, idx, c.playing && !scrubRef.current.active && !needsVoice);
 
         if (c.playing && !scrubRef.current.active) {
-          const idx = sceneAt(tl, c.t);
-          const scene = tl.scenes[idx];
-          const needsVoice =
-            !mini &&
-            !!scene.narration &&
-            !readyRef.current[idx] &&
-            !gaveUpRef.current[idx];
           // Freeze only after audio is scheduled (or its retries genuinely failed).
           // Waiting even on the first frame avoids crossing a boundary prematurely.
           if (needsVoice) {
@@ -375,12 +374,14 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         }
 
         if (!mini) {
-          const idx = sceneAt(tl, c.t);
-          const offset = c.t - sceneStart(tl, idx);
+          const audioIdx = sceneAt(tl, c.t);
+          const offset = c.t - sceneStart(tl, audioIdx);
           const b = audioRef.current?.tick(
-            idx,
+            audioIdx,
             offset,
-            c.playing && !scrubRef.current.active && !!readyRef.current[idx] && !gaveUpRef.current[idx],
+            // Start a new scene's audio on its first clocked frame, so a
+            // stalled boundary frame cannot play then rewind that narration.
+            frameClockRef.current.isRunningScene(audioIdx) && !!readyRef.current[audioIdx] && !gaveUpRef.current[audioIdx],
             c.rate,
             muted
           );
@@ -404,7 +405,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     });
 
     useEffect(() => {
-      lastNowRef.current = performance.now();
+      frameClockRef.current.reset();
       rafRef.current = requestAnimationFrame((n) => tickFn.current(n));
       return () => cancelAnimationFrame(rafRef.current);
     }, []);
@@ -414,6 +415,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const seek = useCallback(
       (t: number) => {
         const c = clockRef.current;
+        frameClockRef.current.reset();
         const totalNow = totalDuration(tl);
         c.t = Math.max(0, Math.min(t, Math.max(0, totalNow - 0.01)));
         if (c.t < totalNow - 0.05) c.ended = false;
@@ -441,7 +443,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         lastSceneRef.current = -1;
       }
       c.playing = true;
-      lastNowRef.current = performance.now();
+      frameClockRef.current.reset();
       emitUi();
     }, [emitUi]);
 
@@ -480,7 +482,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             lastSceneRef.current = -1;
           }
           c.playing = true;
-          lastNowRef.current = performance.now();
+          frameClockRef.current.reset();
           emitUi();
         }, 150);
         return () => clearTimeout(id);
