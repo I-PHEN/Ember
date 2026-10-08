@@ -268,6 +268,24 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
     }
   }
 
+  if (next?.travel) {
+    const flight = next.travel;
+    const from = prev ? prev.pts[prev.pts.length - 1] : next.pts[0];
+    const to = next.pts[0];
+    const fromDelta = prev ? strokeDelta(tl, prev, t) : strokeDelta(tl, next, t);
+    const toDelta = strokeDelta(tl, next, t);
+    const gp = flight.dur > 0 ? Math.min(1, Math.max(0, (rel - flight.t0) / flight.dur)) : 0;
+    const e = easeInOut(gp);
+    const arc = Math.sin(Math.PI * gp);
+    return {
+      x: from.x + fromDelta.dx + (to.x + toDelta.dx - from.x - fromDelta.dx) * e + arc * 6,
+      y: from.y + fromDelta.dy + (to.y + toDelta.dy - from.y - fromDelta.dy) * e,
+      color: markerColor(theme, next.color),
+      mode: rel < flight.t0 || flight.dur === 0 ? "rest" : "travel",
+      alpha: 1, lift: 18 + 4 * arc, angle: -0.66 + arc * .08,
+    };
+  }
+
   if (next && next.t0 - rel < 0.85) {
     const from = prev
       ? prev.pts[prev.pts.length - 1]

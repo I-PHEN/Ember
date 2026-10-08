@@ -1,6 +1,6 @@
 // Local visual QA harness: production compiler/renderer, no providers or authentication.
 // bun build tests/kinematics-preview.ts --target browser --outfile scratch/kinematics-preview.js
-import { compileTimeline } from "../src/lib/video/compile";
+import { compileTimeline, setSceneAudio } from "../src/lib/video/compile";
 import { renderFrame } from "../src/lib/video/render";
 import { THEMES, totalDuration } from "../src/lib/video/types";
 
@@ -12,6 +12,7 @@ const timeline = compileTimeline({title:"Matrix handwriting QA",question:"Find a
     {type:"wait",ms:1000},
   ]},
 ]});
+setSceneAudio(timeline, 0, 40);
 const canvas = document.querySelector("canvas")!;
 const context = canvas.getContext("2d")!;
 const slider = document.querySelector("input")!;

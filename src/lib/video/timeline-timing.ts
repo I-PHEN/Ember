@@ -1,9 +1,9 @@
 import type { Timeline, SceneTime, Stroke, Group, EraseSweep, StrokeMove } from "./types";
-import { compileBeatTiming, mapTimingTime, timingScaleAt, type BeatTiming, type VoiceTiming } from "./timing";
+import { compileBeatTiming, mapTimingTime, type BeatTiming, type VoiceTiming } from "./timing";
 
 interface Baseline {
   beats: BeatTiming[];
-  strokes: { target: Stroke; t0: number; dur: number }[];
+  strokes: { target: Stroke; t0: number; dur: number; travel?: { t0: number; dur: number } }[];
   groups: { target: Group; born: number }[];
   erases: { target: EraseSweep; at: number }[];
   erased: { target: Stroke; at: number }[];
@@ -17,8 +17,9 @@ export function captureTimelineTiming(timeline: Timeline, marks: BeatTiming[][])
   const allStrokes = new Set(timeline.scenes.flatMap(scene => scene.strokes));
   timeline.scenes.forEach((scene, index) => {
     baselines.set(scene, {
-      beats: marks[index].map(b => ({ ...b })),
-      strokes: scene.strokes.map(target => ({ target, t0: target.t0, dur: target.dur })),
+      beats: marks[index].map(b => ({ ...b, spans: b.spans?.map(s => ({ ...s })) })),
+      strokes: scene.strokes.map(target => ({ target, t0: target.t0, dur: target.dur,
+        travel: target.kind === "path" && target.travel ? { ...target.travel } : undefined })),
       groups: scene.groups.map(target => ({ target, born: target.born })),
       erases: scene.erases.map(target => ({ target, at: target.at })),
       erased: [...allStrokes].filter(st => st.eraseScene === index && st.eraseAt !== undefined)
@@ -38,9 +39,13 @@ export function applySceneTiming(scene: SceneTime, voice: VoiceTiming): boolean 
   let plan;
   try { plan = compileBeatTiming(base.beats, scene.narration, voice); }
   catch { return false; }
-  for (const { target, t0, dur } of base.strokes) {
+  for (const { target, t0, dur, travel } of base.strokes) {
     target.t0 = mapTimingTime(plan, t0);
-    target.dur = dur * timingScaleAt(plan, t0);
+    target.dur = Math.max(0, mapTimingTime(plan, t0 + dur, "end") - target.t0);
+    if (target.kind === "path" && travel) {
+      const start = mapTimingTime(plan, travel.t0);
+      target.travel = { t0: start, dur: travel.dur === 0 ? 0 : Math.max(0, mapTimingTime(plan, travel.t0 + travel.dur, "end") - start) };
+    }
   }
   for (const { target, born } of base.groups) target.born = mapTimingTime(plan, born);
   for (const { target, at } of base.erases) target.at = mapTimingTime(plan, at);

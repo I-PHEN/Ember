@@ -306,6 +306,8 @@ export interface PathStroke {
   velocities?: number[];
   /** hierarchical motor control tag */
   strokeTag?: string;
+  /** Explicit pen-up flight; any preceding silence is a stationary hold. */
+  travel?: { t0: number; dur: number };
 }
 
 export interface HighlightStroke {

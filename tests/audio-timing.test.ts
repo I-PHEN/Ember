@@ -27,7 +27,7 @@ test("duration-only timing is estimated; long explanations do not slow ink", () 
 });
 test("infeasible audio preserves bounded ink speed and reports overflow", () => {
   const p = compileBeatTiming(beats, "row two column three", { duration: 0.2 });
-  expect(p.windows.every(w => w.scale >= 0.4)).toBe(true);
+  expect(p.windows.every(w => w.scale >= 0.8)).toBe(true);
   expect(p.issues.some(i => i.kind === "overflow")).toBe(true);
   expect(p.writeEnd).toBeGreaterThan(0.2);
 });

@@ -134,6 +134,8 @@ starter recordings, automatic scene repair, and visual redesign are deferred.
 
 ## Review status
 
-Concept approved by the user. Written contract self-reviewed for timing-bound
-consistency, scope, and explicit failure behavior; awaiting user review before
-the implementation plan and code.
+Concept and written contract approved by the user; implemented inline in the
+isolated lesson-foundation worktree. Independent review found a cross-anchor
+unknown-gap omission, now fixed with a red/green regression test. No remaining
+review blockers. Listening and visual realism assessment remain separate from
+the deterministic scheduling checks.

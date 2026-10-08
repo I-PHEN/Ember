@@ -40,11 +40,12 @@ import {
 } from "./hand";
 import { tryCompileExpr } from "@/lib/expr";
 import { captureTimelineTiming, applySceneTiming } from "./timeline-timing";
-import type { BeatTiming, VoiceTiming } from "./timing";
+import type { BeatTiming, TimingSpan, VoiceTiming } from "./timing";
 import { layoutMatrix, type MatrixBeat } from "./matrix";
 import {
   defaultSynthesizer,
   computeTransitionPause,
+  computeFittsFlightDuration,
   type StrokeTag,
 } from "./kinematics";
 
@@ -87,6 +88,7 @@ interface Ctx {
   /* per-beat time marks + the say tag (words spoken while written) —
      the say/write pacer reshapes these into speech-aligned windows */
   beatMarks: BeatMark[];
+  spans: TimingSpan[];
 }
 
 type BeatMark = BeatTiming;
@@ -167,7 +169,13 @@ function addPaths(
       gap = opts.gap;
     }
 
-    ctx.now += gap;
+    const flight = prevPt ? computeFittsFlightDuration(prevPt, nextPt) : 0;
+    const hesitation = Math.max(0, gap - flight);
+    if (hesitation > 0) ctx.spans.push({ kind: "pause", t0: ctx.now, t1: ctx.now + hesitation });
+    ctx.now += hesitation;
+    const travel = { t0: ctx.now, dur: flight };
+    if (flight > 0) ctx.spans.push({ kind: "travel", t0: ctx.now, t1: ctx.now + flight });
+    ctx.now += flight;
 
     const prof = defaultSynthesizer.synthesize(r.pts, r.width, tag);
     const dur = prof.duration;
@@ -185,15 +193,18 @@ function addPaths(
       widths: prof.widths,
       velocities: prof.velocities,
       strokeTag: tag,
+      travel,
     };
 
     out.push(s);
     ctx.scene.strokes.push(s);
+    ctx.spans.push({ kind: "ink", t0: ctx.now, t1: ctx.now + dur });
     ctx.now += dur;
     prevPt = prof.pts[prof.pts.length - 1];
   }
 
   if (out.length && (opts?.settle ?? 0.18) > 0) {
+    ctx.spans.push({ kind: "pause", t0: ctx.now, t1: ctx.now + (opts?.settle ?? 0.18) });
     ctx.now += opts?.settle ?? 0.18;
   }
   return out;
@@ -1651,7 +1662,9 @@ function buildTable(ctx: Ctx, beat: Extract<Beat, { type: "table" }>): void {
 function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
   for (const s of scene.strokes) {
     s.t0 = s.t0 * k;
-    s.dur = Math.max(0.04, s.dur * k);
+    // Scale endpoints consistently: a duration floor would overlap the next span.
+    s.dur *= k;
+    if (s.kind === "path" && s.travel) { s.travel.t0 *= k; s.travel.dur *= k; }
     if (s.eraseScene === sceneIdx && s.eraseAt !== undefined) {
       s.eraseAt = s.eraseAt * k;
     }
@@ -1695,12 +1708,14 @@ export function compileTimeline(script: SolveScript): Timeline {
       startLen: 0,
       crossed: new Set(),
       beatMarks: [],
+      spans: [],
     };
     let lastCap = CAP.md;
     for (const beat of sc.beats) {
       ctx.beatNo++;
       ctx.startLen = scene.strokes.length;
       const markT0 = ctx.now;
+      ctx.spans = [];
       const markSay = (beat as { say?: string }).say;
       switch (beat.type) {
         case "title":
@@ -1760,13 +1775,16 @@ export function compileTimeline(script: SolveScript): Timeline {
           break;
         }
       }
-      ctx.beatMarks.push({ id: `s${sceneIdx}b${ctx.beatNo}`, t0: markT0, t1: ctx.now, say: markSay, fixed: beat.type === "wait" || beat.type === "point" });
+      ctx.beatMarks.push({ id: `s${sceneIdx}b${ctx.beatNo}`, t0: markT0, t1: ctx.now, say: markSay, fixed: beat.type === "wait" || beat.type === "point", spans: ctx.spans });
     }
     scene.writeEnd = ctx.now;
     const estAudio = estimateNarration(scene.narration);
     if (sc.intro) {
       compressScene(scene, 0.5, sceneIdx);
-      for (const mark of ctx.beatMarks) { mark.t0 *= 0.5; mark.t1 *= 0.5; }
+      for (const mark of ctx.beatMarks) {
+        mark.t0 *= 0.5; mark.t1 *= 0.5;
+        for (const span of mark.spans ?? []) { span.t0 *= 0.5; span.t1 *= 0.5; }
+      }
       for (const group of scene.groups) group.born *= 0.5; // signature pace — bumper, not lesson
     }
     scene.dur = Math.max(scene.writeEnd, scene.narration ? estAudio : 0) + 0.5;

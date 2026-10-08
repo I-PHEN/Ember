@@ -44,6 +44,7 @@ import {
 import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
 import { chapterSnapshot, chapterSeekTime, type Chapter } from "@/lib/video/chapters";
 import { renderFrame } from "@/lib/video/render";
+import { timingWarning } from "@/lib/video/timing-warning";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { narrationStore } from "@/lib/narration-store";
 import { phrasesForScene, recognizedPhrasesForScene } from "@/lib/video/speech-alignment";
@@ -612,6 +613,9 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
 
     /* ------------------------- seek bar ---------------------------- */
 
+    // Plans are mutated when measured audio arrives; render state updates with them.
+    const timingNotice = timingWarning(tl);
+
     const sceneStarts = useMemo(() => {
       const arr: number[] = [];
       let acc = 0;
@@ -768,6 +772,12 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         )}
 
         {/* captions (CC) */}
+        {!mini && timingNotice && (
+          <div role="status" title={timingNotice} aria-label={timingNotice}
+            className="absolute right-4 top-14 max-w-[65%] truncate rounded-md bg-amber-950/90 px-2 py-1 text-xs text-amber-100">
+            {timingNotice}
+          </div>
+        )}
         {captionText && (
           <div
             className={cn(
