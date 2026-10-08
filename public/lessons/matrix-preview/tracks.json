@@ -1,0 +1,450 @@
+[
+  {
+    "text": "A matrix is a rectangular arrangement of numbers. This matrix has two rows and three columns. We write its dimensions as two by three. To locate an entry, choose the row first, then the column.",
+    "url": "/lessons/matrix-preview/matrix.wav",
+    "alignment": {
+      "status": "recognized",
+      "words": [
+        {
+          "text": " A",
+          "start": 0,
+          "end": 0.3,
+          "probability": 0.9282824397087097
+        },
+        {
+          "text": " matrix",
+          "start": 0.3,
+          "end": 0.6,
+          "probability": 0.9078363180160522
+        },
+        {
+          "text": " is",
+          "start": 0.6,
+          "end": 0.94,
+          "probability": 0.9980760812759399
+        },
+        {
+          "text": " a",
+          "start": 0.94,
+          "end": 1.02,
+          "probability": 0.996768593788147
+        },
+        {
+          "text": " rectangular",
+          "start": 1.02,
+          "end": 1.44,
+          "probability": 0.9982876181602478
+        },
+        {
+          "text": " arrangement",
+          "start": 1.44,
+          "end": 2.14,
+          "probability": 0.9982296824455261
+        },
+        {
+          "text": " of",
+          "start": 2.14,
+          "end": 2.5,
+          "probability": 0.9985113739967346
+        },
+        {
+          "text": " numbers.",
+          "start": 2.5,
+          "end": 2.82,
+          "probability": 0.9982377290725708
+        },
+        {
+          "text": " This",
+          "start": 3.5,
+          "end": 3.52,
+          "probability": 0.9934602975845337
+        },
+        {
+          "text": " matrix",
+          "start": 3.52,
+          "end": 3.84,
+          "probability": 0.9989161491394043
+        },
+        {
+          "text": " has",
+          "start": 3.84,
+          "end": 4.14,
+          "probability": 0.9979963898658752
+        },
+        {
+          "text": " two",
+          "start": 4.14,
+          "end": 4.38,
+          "probability": 0.871914803981781
+        },
+        {
+          "text": " rows",
+          "start": 4.38,
+          "end": 4.64,
+          "probability": 0.9988629817962646
+        },
+        {
+          "text": " and",
+          "start": 4.64,
+          "end": 4.88,
+          "probability": 0.977403461933136
+        },
+        {
+          "text": " three",
+          "start": 4.88,
+          "end": 5.1,
+          "probability": 0.9925886392593384
+        },
+        {
+          "text": " columns.",
+          "start": 5.1,
+          "end": 5.4,
+          "probability": 0.99870765209198
+        },
+        {
+          "text": " We",
+          "start": 5.96,
+          "end": 6.04,
+          "probability": 0.9970292448997498
+        },
+        {
+          "text": " write",
+          "start": 6.04,
+          "end": 6.2,
+          "probability": 0.9944633841514587
+        },
+        {
+          "text": " its",
+          "start": 6.2,
+          "end": 6.34,
+          "probability": 0.9284151792526245
+        },
+        {
+          "text": " dimensions",
+          "start": 6.34,
+          "end": 6.64,
+          "probability": 0.995890200138092
+        },
+        {
+          "text": " as",
+          "start": 6.64,
+          "end": 7.12,
+          "probability": 0.993171215057373
+        },
+        {
+          "text": " two",
+          "start": 7.12,
+          "end": 7.32,
+          "probability": 0.3491519093513489
+        },
+        {
+          "text": " by",
+          "start": 7.32,
+          "end": 7.48,
+          "probability": 0.9821867942810059
+        },
+        {
+          "text": " three.",
+          "start": 7.48,
+          "end": 7.72,
+          "probability": 0.9833360910415649
+        },
+        {
+          "text": " To",
+          "start": 8.38,
+          "end": 8.44,
+          "probability": 0.9943317174911499
+        },
+        {
+          "text": " locate",
+          "start": 8.44,
+          "end": 8.72,
+          "probability": 0.9955713152885437
+        },
+        {
+          "text": " an",
+          "start": 8.72,
+          "end": 8.94,
+          "probability": 0.9826756715774536
+        },
+        {
+          "text": " entry,",
+          "start": 8.94,
+          "end": 9.34,
+          "probability": 0.9947242140769958
+        },
+        {
+          "text": " choose",
+          "start": 9.76,
+          "end": 9.9,
+          "probability": 0.9929243326187134
+        },
+        {
+          "text": " the",
+          "start": 9.9,
+          "end": 10.1,
+          "probability": 0.9952332377433777
+        },
+        {
+          "text": " row",
+          "start": 10.1,
+          "end": 10.26,
+          "probability": 0.9945171475410461
+        },
+        {
+          "text": " first,",
+          "start": 10.26,
+          "end": 10.58,
+          "probability": 0.986517071723938
+        },
+        {
+          "text": " then",
+          "start": 10.94,
+          "end": 11.04,
+          "probability": 0.9683797359466553
+        },
+        {
+          "text": " the",
+          "start": 11.04,
+          "end": 11.14,
+          "probability": 0.9922492504119873
+        },
+        {
+          "text": " column.",
+          "start": 11.14,
+          "end": 11.36,
+          "probability": 0.9982230067253113
+        }
+      ],
+      "duration": 11.966375,
+      "engine": "faster-whisper-1.2.1/base.en"
+    }
+  },
+  {
+    "text": "Look at row two. Follow row two across the matrix. Now find column three. Pause and locate where row two meets column three. That entry is five. Remember: row first, then column. Row first, then column.",
+    "url": "/lessons/matrix-preview/repeated.wav",
+    "alignment": {
+      "status": "recognized",
+      "words": [
+        {
+          "text": " Look",
+          "start": 0,
+          "end": 0.4,
+          "probability": 0.803724467754364
+        },
+        {
+          "text": " at",
+          "start": 0.4,
+          "end": 0.6,
+          "probability": 0.995125949382782
+        },
+        {
+          "text": " row",
+          "start": 0.6,
+          "end": 0.82,
+          "probability": 0.7369799613952637
+        },
+        {
+          "text": " two.",
+          "start": 0.82,
+          "end": 1.24,
+          "probability": 0.6390750408172607
+        },
+        {
+          "text": " Follow",
+          "start": 2.06,
+          "end": 2.1,
+          "probability": 0.967677652835846
+        },
+        {
+          "text": " row",
+          "start": 2.1,
+          "end": 2.46,
+          "probability": 0.9784254431724548
+        },
+        {
+          "text": " two",
+          "start": 2.46,
+          "end": 2.68,
+          "probability": 0.974967896938324
+        },
+        {
+          "text": " across",
+          "start": 2.68,
+          "end": 2.92,
+          "probability": 0.983127236366272
+        },
+        {
+          "text": " the",
+          "start": 2.92,
+          "end": 3.16,
+          "probability": 0.9979713559150696
+        },
+        {
+          "text": " matrix.",
+          "start": 3.16,
+          "end": 3.36,
+          "probability": 0.9694867134094238
+        },
+        {
+          "text": " Now",
+          "start": 4.14,
+          "end": 4.14,
+          "probability": 0.9921002984046936
+        },
+        {
+          "text": " find",
+          "start": 4.14,
+          "end": 4.36,
+          "probability": 0.8809211850166321
+        },
+        {
+          "text": " column",
+          "start": 4.36,
+          "end": 4.54,
+          "probability": 0.989048421382904
+        },
+        {
+          "text": " three.",
+          "start": 4.54,
+          "end": 4.96,
+          "probability": 0.9342010617256165
+        },
+        {
+          "text": " Pause",
+          "start": 5.58,
+          "end": 5.7,
+          "probability": 0.9743232727050781
+        },
+        {
+          "text": " and",
+          "start": 5.7,
+          "end": 5.92,
+          "probability": 0.9835577607154846
+        },
+        {
+          "text": " locate",
+          "start": 5.92,
+          "end": 6.1,
+          "probability": 0.977514386177063
+        },
+        {
+          "text": " where",
+          "start": 6.1,
+          "end": 6.42,
+          "probability": 0.9982337951660156
+        },
+        {
+          "text": " row",
+          "start": 6.42,
+          "end": 6.58,
+          "probability": 0.9857235550880432
+        },
+        {
+          "text": " two",
+          "start": 6.58,
+          "end": 6.88,
+          "probability": 0.993416428565979
+        },
+        {
+          "text": " meets",
+          "start": 6.88,
+          "end": 7.16,
+          "probability": 0.9969417452812195
+        },
+        {
+          "text": " column",
+          "start": 7.16,
+          "end": 7.4,
+          "probability": 0.9974371194839478
+        },
+        {
+          "text": " three.",
+          "start": 7.4,
+          "end": 7.76,
+          "probability": 0.9936287999153137
+        },
+        {
+          "text": " That",
+          "start": 8.44,
+          "end": 8.54,
+          "probability": 0.9970467686653137
+        },
+        {
+          "text": " entry",
+          "start": 8.54,
+          "end": 8.86,
+          "probability": 0.9990346431732178
+        },
+        {
+          "text": " is",
+          "start": 8.86,
+          "end": 9.2,
+          "probability": 0.9974810481071472
+        },
+        {
+          "text": " five.",
+          "start": 9.2,
+          "end": 9.54,
+          "probability": 0.9600534439086914
+        },
+        {
+          "text": " Remember",
+          "start": 10.2,
+          "end": 10.34,
+          "probability": 0.9975255131721497
+        },
+        {
+          "text": " row",
+          "start": 10.34,
+          "end": 10.94,
+          "probability": 0.6615881323814392
+        },
+        {
+          "text": " first,",
+          "start": 10.94,
+          "end": 11.26,
+          "probability": 0.9681880474090576
+        },
+        {
+          "text": " then",
+          "start": 11.6,
+          "end": 11.72,
+          "probability": 0.9975355863571167
+        },
+        {
+          "text": " column.",
+          "start": 11.72,
+          "end": 11.92,
+          "probability": 0.9970070719718933
+        },
+        {
+          "text": " Row",
+          "start": 12.54,
+          "end": 12.58,
+          "probability": 0.9543008804321289
+        },
+        {
+          "text": " first,",
+          "start": 12.58,
+          "end": 12.86,
+          "probability": 0.9969058632850647
+        },
+        {
+          "text": " then",
+          "start": 13.18,
+          "end": 13.4,
+          "probability": 0.997718095779419
+        },
+        {
+          "text": " column.",
+          "start": 13.4,
+          "end": 13.6,
+          "probability": 0.9993144273757935
+        }
+      ],
+      "duration": 14.286375,
+      "engine": "faster-whisper-1.2.1/base.en"
+    }
+  }
+]

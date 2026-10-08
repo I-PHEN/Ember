@@ -1,6 +1,123 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Landing uses the studio ground; light and recessed surfaces add depth. */
+.ember-landing { background: #0b0d10; color: #f4f4f6; position: relative; isolation: isolate; }
+.ember-landing::before { content: ""; position: absolute; inset: 0 0 auto; height: 900px; pointer-events: none; z-index: -1; background: radial-gradient(ellipse at 75% 32%, #e6b78412, transparent 52%), radial-gradient(ellipse at 12% 8%, #e6b78408, transparent 45%); }
+.landing-width { width: min(1280px, calc(100% - 96px)); margin-inline: auto; }
+.landing-nav { height: 80px; padding: 0 48px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ffffff0d; }
+.landing-nav nav { display: flex; align-items: center; gap: 26px; font-size: 13px; color: #9aa1af; }
+.ember-landing button, .ember-landing a { transition: color .18s, background .18s, border-color .18s; }
+.ember-landing button { cursor: pointer; }
+.ember-landing button:disabled { cursor: default; opacity: .5; }
+.ember-landing :is(button,a,textarea):focus-visible { outline: 2px solid #e6b784; outline-offset: 4px; }
+.ember-landing a:hover { color: #e6b784; }
+.landing-outline, .landing-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border-radius: 10px; padding: 11px 16px; font-size: 12px; font-weight: 600; }
+.landing-outline { border: 1px solid #ffffff18; color: #f4f4f6; background: #12151b; }
+.landing-primary { background: #e6b784; color: #0b0d10; }
+.landing-primary:hover { background: #f1c89c; }
+.landing-outline:hover { border-color: #e6b78466; }
+.landing-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 60px; align-items: center; min-height: 690px; padding-block: 80px 100px; }
+.hero-copy, .hero-lesson { min-width: 0; }
+.landing-eyebrow { color: #e6b784; font-size: 11px; font-weight: 500; letter-spacing: .055em; display: flex; align-items: center; gap: 8px; }
+.ember-dot { height: 5px; width: 5px; border-radius: 50%; background: #e6b784; box-shadow: 0 0 14px #e6b78466; flex-shrink: 0; }
+.hero-copy h1 { font-size: clamp(35px, 3.5vw, 54px); line-height: 1.16; letter-spacing: -.04em; font-weight: 550; margin: 22px 0; }
+.hero-copy h1 span { display: inline-block; color: #e6b784; font-size: 1.05em; font-weight: 400; margin-top: 8px; }
+.hero-description { color: #9aa1af; font-size: 15px; line-height: 1.8; max-width: 450px; }
+.landing-composer { margin-top: 28px; padding: 16px; border: 1px solid #ffffff15; border-radius: 14px; background: linear-gradient(135deg, #16191e, #12151b); box-shadow: inset 0 1px #ffffff05, 0 14px 40px #00000020; }
+.landing-composer:focus-within { border-color: #e6b78466; }
+.landing-composer label { font-size: 12px; font-weight: 500; }
+.landing-composer textarea { display: block; width: 100%; resize: vertical; min-height: 60px; max-height: 180px; background: transparent; font-size: 13px; line-height: 1.65; margin-top: 10px; color: #f4f4f6; border: 0; }
+.landing-composer textarea::placeholder { color: #9aa1af; }
+.composer-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 10px; border-top: 1px solid #ffffff0d; }
+.composer-bottom > span { color: #9aa1af; font-size: 10px; }
+.landing-starters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-block: 14px; font-size: 10px; color: #9aa1af; }
+.landing-starters button { border: 1px solid #ffffff15; border-radius: 6px; padding: 6px 8px; background: #12151b; }
+.landing-starters button:hover { color: #e6b784; border-color: #e6b78455; }
+.landing-caption { font-size: 11px; line-height: 1.6; color: #9aa1af; }
+.lesson-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.lesson-preview-shell { position: relative; border: 1px solid #ffffff18; background: #090b0e; border-radius: 16px; padding: 8px; box-shadow: 0 30px 70px #00000060, 0 0 65px #e6b78406, inset 0 1px #ffffff08; }
+.preview-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 12px 18px; font-size: 13px; }
+.preview-title > span:last-child { font-size: 10px; color: #9aa1af; }
+.preview-placeholder { aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; font-size: 13px; color: #9aa1af; }
+.preview-chapters { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-top: 8px; }
+.preview-chapters button { display: flex; align-items: center; gap: 8px; text-align: left; background: #12151b; border: 1px solid transparent; border-radius: 9px; padding: 12px 10px; color: #9aa1af; font-size: 11px; }
+.preview-chapters button[aria-current] { border-color: #e6b78440; color: #f4f4f6; }
+.preview-chapters button span { font-family: var(--font-geist-mono); color: #e6b784; font-size: 10px; }
+.preview-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; color: #9aa1af; font-size: 11px; }
+.comparison-section, .learning-roadmap { padding-block: 72px; border-top: 1px solid #ffffff12; scroll-margin-top: 20px; }
+.section-intro { max-width: 610px; margin-bottom: 36px; }
+.section-intro h2 { font-size: clamp(28px, 3vw, 40px); line-height: 1.2; letter-spacing: -.035em; margin-block: 16px; font-weight: 500; }
+.section-intro h2 span { color: #9aa1af; }
+.section-intro > p:last-child { color: #9aa1af; line-height: 1.8; font-size: 14px; }
+.comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.comparison-card { border: 1px solid #ffffff15; border-radius: 16px; padding: 28px; background: #12151b; }
+.comparison-label { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; margin-bottom: 28px; }
+.example-question { background: #ffffff05; padding: 14px 18px; border-radius: 10px; font-size: 13px; }
+.chat-answer { font-size: 13px; color: #9aa1af; line-height: 1.9; padding-top: 20px; }
+.chat-answer p + p { margin-top: 12px; }
+.typeset-matrix { display: flex; align-items: center; gap: 18px; margin-block: 20px; color: #f4f4f6; font-family: var(--font-geist-mono); }
+.typeset-matrix > div { display: grid; grid-template-columns: repeat(3, 30px); gap: 8px 12px; text-align: center; border-inline: 2px solid #9aa1af; padding: 5px 12px; }
+.ember-example { background: radial-gradient(ellipse at top right, #e6b78409, transparent 75%), #12151b; border-color: #e6b78430; }
+.ember-example h3 { font-size: 30px; line-height: 1.2; font-weight: 500; letter-spacing: -.02em; }
+.ember-example h3 span { color: #e6b784; display: inline-block; margin-top: 6px; }
+.ember-example > p { font-size: 13px; color: #9aa1af; line-height: 1.9; margin-top: 18px; }
+.comparison-chapters { display: grid; gap: 9px; margin-top: 24px; }
+.comparison-chapters button { text-align: left; display: flex; gap: 16px; align-items: center; padding: 16px; border: 1px solid #ffffff15; border-radius: 10px; background: #090b0e; font-size: 13px; }
+.comparison-chapters button:hover { border-color: #e6b78466; }
+.comparison-chapters button > svg { margin-left: auto; color: #e6b784; }
+.chapter-mark { font-size: 11px; color: #e6b784; font-family: var(--font-geist-mono); }
+.comparison-chapters small { display: block; color: #9aa1af; font-size: 11px; margin-top: 4px; }
+.comparison-footnote { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #9aa1af; border-top: 1px solid #ffffff0d; padding-top: 20px; margin-top: 24px; }
+.architecture-note { display: flex; align-items: center; gap: 18px; padding: 24px 4px 0; color: #9aa1af; }
+.architecture-note > svg { color: #e6b784; flex-shrink: 0; }
+.architecture-note p { font-size: 12px; line-height: 1.8; flex: 1; }
+.architecture-note strong { color: #f4f4f6; font-weight: 500; }
+.architecture-note a { display: flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12px; color: #e6b784; }
+.roadmap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.roadmap-grid article { border-top: 1px solid #ffffff20; padding-top: 20px; }
+.roadmap-status { font-size: 10px; border: 1px solid #ffffff20; border-radius: 5px; padding: 4px 7px; color: #9aa1af; }
+.roadmap-current { border-top-color: #e6b78466 !important; }
+.roadmap-current .roadmap-status { color: #e6b784; border-color: #e6b78440; }
+.roadmap-grid h3 { font-size: 21px; margin-block: 20px 12px; }
+.roadmap-grid p { color: #9aa1af; font-size: 13px; line-height: 1.9; }
+.roadmap-example { display: block; color: #e6b784; font-size: 11px; margin-top: 22px; }
+.roadmap-disclaimer { margin-top: 36px; }
+.landing-footer { border-top: 1px solid #ffffff12; display: flex; align-items: center; gap: 24px; padding-block: 32px; font-size: 12px; color: #9aa1af; }
+.landing-footer > span { margin-right: auto; }
+@media (max-width: 1000px) {
+  .landing-width { width: calc(100% - 48px); }
+  .landing-nav { padding-inline: 24px; }
+  .landing-hero { grid-template-columns: 1fr; gap: 42px; padding-block: 52px 64px; }
+  .hero-copy { max-width: 640px; }
+  .hero-copy h1 { font-size: clamp(36px, 6vw, 54px); }
+  .hero-description { max-width: 560px; }
+  .hero-lesson { width: 100%; max-width: 780px; }
+}
+@media (max-width: 600px) {
+  .landing-width { width: calc(100% - 32px); }
+  .landing-nav { height: 68px; padding-inline: 16px; }
+  .landing-nav nav { gap: 14px; font-size: 11px; }
+  .landing-nav nav > a:first-child { display: none; }
+  .landing-outline { padding: 9px 12px; }
+  .landing-eyebrow { font-size: 10px; letter-spacing: .015em; }
+  .hero-description { font-size: 14px; }
+  .composer-bottom > span { max-width: 100px; }
+  .lesson-heading { align-items: flex-start; }
+  .lesson-heading .landing-caption { font-size: 9px; }
+  .preview-title { padding-inline: 5px; font-size: 12px; }
+  .preview-title > span:last-child { font-size: 9px; }
+  .preview-chapters button { padding: 10px 7px; font-size: 10px; }
+  .comparison-grid, .roadmap-grid { grid-template-columns: 1fr; }
+  .comparison-card { padding: 22px; }
+  .architecture-note { flex-wrap: wrap; }
+  .architecture-note a { margin-left: 37px; }
+  .comparison-section, .learning-roadmap { padding-block: 48px; }
+  .landing-footer { flex-wrap: wrap; gap: 16px; }
+  .landing-footer > span { width: calc(100% - 100px); font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .ember-landing *, .ember-landing *::before { scroll-behavior: auto !important; transition: none !important; } }
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

@@ -47,7 +47,7 @@ import { renderFrame } from "@/lib/video/render";
 import { timingWarning } from "@/lib/video/timing-warning";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { PlaybackFrameClock } from "@/lib/video/playback-clock";
-import { narrationStore } from "@/lib/narration-store";
+import { narrationStore, type NarrationTrack } from "@/lib/narration-store";
 import { phrasesForScene, recognizedPhrasesForScene } from "@/lib/video/speech-alignment";
 import { cn } from "@/lib/utils";
 
@@ -84,6 +84,8 @@ export interface SolvePlayerHandle {
 }
 
 export interface SolvePlayerProps {
+  /** Saved tracks indexed by scene. When supplied, never request fresh speech. */
+  narrationTracks?: readonly NarrationTrack[];
   /** Only supplied when this exact script belongs to a live generation job. */
   jobId?: string;
   script: SolveScript;
@@ -135,6 +137,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
   function SolvePlayer(
     {
       script,
+      narrationTracks,
       jobId,
       themeId,
       onThemeChange,
@@ -232,7 +235,10 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
           if (pick === -1) pick = 0;
           const idx = pending.splice(pick, 1)[0];
           try {
-            const track = await narrationStore.getTrack(tl.scenes[idx].narration!, "jam");
+            const track = narrationTracks
+              ? narrationTracks[idx]
+              : await narrationStore.getTrack(tl.scenes[idx].narration!, "jam");
+            if (!track) throw new Error("Missing saved narration track");
             const url = track.url;
             if (cancelled) return;
             const dur = await probeDuration(url);
@@ -283,7 +289,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       return () => {
         cancelled = true;
       };
-    }, [tl, mini, jobId]);
+    }, [tl, mini, jobId, narrationTracks]);
 
     /* --------------------------- canvas ----------------------------- */
 
