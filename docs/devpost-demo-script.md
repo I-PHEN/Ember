@@ -9,3 +9,11 @@ Known limitations appear in the narration: alignment quality varies; gallery sav
 Visual direction: studio charcoal #0b0d10, surfaces #12151b, chalk #f4f4f6, secondary #9aa1af, Ember amber #e6b784. Native studio typography and board rendering; readable architecture nodes; gentle camera moves; captions separate from equation space. No stock imagery or fake application chrome.
 
 The old public/demo-assets screenshots are not used: they predate the latest UI and include an empty board/loading state.
+
+## Export verification — 2026-10-09
+
+User approved the current script and configured voice API. Generated eight Gemini Aoede narration segments and exported `C:/Users/Michael/Downloads/Ember-Devpost-Demo.mp4`; separate captions are in `C:/Users/Michael/Downloads/Ember-Devpost-Captions.srt`. Media and narration caches remain outside Git.
+
+Verified with ffprobe: 186.901 seconds, 1920×1080, 30 fps, H.264 video, 48 kHz stereo AAC audio, 12,973,215 bytes. Full-file FFmpeg decoding succeeded without reported errors. Reviewed composition stills and an extracted final-export frame. The renderer recovered from one browser crash during export.
+
+These checks establish file integrity, not a complete human listening review. Caption timing is word-count-based and approximate. Watch the complete MP4 and review narration/captions before submission. The prepared walkthrough and prototype limitations remain explicitly disclosed.
