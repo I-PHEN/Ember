@@ -6,22 +6,25 @@ import { recognizedPhrasesForScene, validateRecognizedTiming } from "../src/lib/
 
 describe("lesson-first landing", () => {
   const page = fs.readFileSync("src/app/page.tsx", "utf8");
-  const preview = fs.readFileSync("src/components/landing/LessonPreview.tsx", "utf8");
+  const preview = fs.readFileSync("src/components/landing/ProductWalkthrough.tsx", "utf8");
   const player = fs.readFileSync("src/components/player/SolvePlayer.tsx", "utf8");
   const tracks = JSON.parse(fs.readFileSync("public/lessons/matrix-preview/tracks.json", "utf8"));
-  it("uses the production player and saved speech rather than a simulated tour", () => {
+  it("uses production components for the prepared walkthrough", () => {
     expect(page).not.toContain("RemotionHeroPlayer");
     expect(page).not.toContain("ToggleDemo");
     expect(preview).toContain("<SolvePlayer");
-    expect(preview).toContain("narrationTracks={tracks}");
-    expect(player).toContain("Missing saved narration track");
+    expect(preview).toContain("<GenerateOverlay");
+    expect(preview).toContain("<StudioConsoleTabs");
+    expect(preview).toContain("presentationTime=");
+    expect(player).toContain("if (mini || presenting) return;");
   });
   it("labels comparison and roadmap honestly", () => {
-    expect(page).toContain("Illustrative response");
-    expect(page).toContain("Chat models can explain steps, too.");
-    expect(page.match(/>Planned</g)?.length).toBe(2);
-    expect(page).toContain("Current focus");
-    expect(page).toContain("not a claim of measured learning gains");
+    const comparison = fs.readFileSync("src/components/landing/LearningComparison.tsx", "utf8");
+    expect(comparison).toContain("Illustrative example");
+    expect(comparison).toContain("Chat models can teach steps too.");
+    expect(comparison).toContain("<SolvePlayer");
+    expect(page).not.toContain("learning-roadmap");
+    expect(page).not.toContain("Where we’re going");
     expect(page).not.toContain("any STEM problem");
   });
   it("packages valid recordings for every narrated scene with feasible measured timing", () => {

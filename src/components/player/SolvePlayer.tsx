@@ -84,6 +84,8 @@ export interface SolvePlayerHandle {
 }
 
 export interface SolvePlayerProps {
+  /** Read-only product walkthrough clock; no audio requests or independent playback. */
+  presentationTime?: number;
   /** Saved tracks indexed by scene. When supplied, never request fresh speech. */
   narrationTracks?: readonly NarrationTrack[];
   /** Only supplied when this exact script belongs to a live generation job. */
@@ -137,6 +139,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
   function SolvePlayer(
     {
       script,
+      presentationTime,
       narrationTracks,
       jobId,
       themeId,
@@ -151,6 +154,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     },
     ref
   ) {
+    const presenting = presentationTime !== undefined;
     const tl = useMemo(() => compileTimeline(script), [script]);
     const theme = THEMES[themeId];
     const [durationVersion, bumpDur] = useReducer((x: number) => x + 1, 0);
@@ -179,8 +183,10 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const lastSceneRef = useRef(-1);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [uiT, setUiT] = useState(0);
-    const [playing, setPlaying] = useState(false);
+    const [uiClockT, setUiT] = useState(0);
+    const uiT = presentationTime ?? uiClockT;
+    const [playbackPlaying, setPlaying] = useState(false);
+    const playing = presenting || playbackPlaying;
     const [ended, setEnded] = useState(false);
     const [waiting, setWaiting] = useState(false);
     const [blocked, setBlocked] = useState(false);
@@ -211,7 +217,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
        behind scenes the user isn't watching), everything else in
        playback order */
     useEffect(() => {
-      if (mini) return;
+      if (mini || presenting) return;
       let cancelled = false;
       audioRef.current?.dispose();
       audioRef.current = new SceneAudio();
@@ -289,7 +295,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       return () => {
         cancelled = true;
       };
-    }, [tl, mini, jobId, narrationTracks]);
+    }, [tl, mini, jobId, narrationTracks, presenting]);
 
     /* --------------------------- canvas ----------------------------- */
 
@@ -315,6 +321,12 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       dirtyRef.current = true;
       draw();
     }, [draw]);
+
+    useEffect(() => {
+      if (presentationTime === undefined) return;
+      clockRef.current.t = Math.max(0, Math.min(totalDuration(tl), presentationTime));
+      draw();
+    }, [presentationTime, draw, tl]);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -411,10 +423,11 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     });
 
     useEffect(() => {
+      if (presenting) return;
       frameClockRef.current.reset();
       rafRef.current = requestAnimationFrame((n) => tickFn.current(n));
       return () => cancelAnimationFrame(rafRef.current);
-    }, []);
+    }, [presenting]);
 
     /* -------------------------- controls --------------------------- */
 
@@ -478,7 +491,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     }, [script]);
 
     useEffect(() => {
-      if (autoPlay && !hasAutoPlayedRef.current) {
+      if (!presenting && autoPlay && !hasAutoPlayedRef.current) {
         hasAutoPlayedRef.current = true;
         const id = setTimeout(() => {
           const c = clockRef.current;
@@ -493,7 +506,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         }, 150);
         return () => clearTimeout(id);
       }
-    }, [autoPlay, script, emitUi]);
+    }, [autoPlay, script, emitUi, presenting]);
 
     useEffect(() => {
       if (!seekRequest) return;
@@ -552,10 +565,10 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
 
     /* keyboard */
     useEffect(() => {
-      if (mini) return;
+      if (mini || presenting) return;
       const onKey = (e: KeyboardEvent) => {
         const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
-        if (tag === "input" || tag === "textarea" || tag === "select") return;
+        if (tag === "input" || tag === "textarea" || tag === "select" || tag === "button" || tag === "a") return;
         switch (e.key.toLowerCase()) {
           case " ":
           case "k":
@@ -593,7 +606,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       };
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
-    }, [togglePlay, skip, seek, toggleFullscreen, toggleMute, mini]);
+    }, [togglePlay, skip, seek, toggleFullscreen, toggleMute, mini, presenting]);
 
     /* auto-hide controls */
     const pokeControls = useCallback(() => {

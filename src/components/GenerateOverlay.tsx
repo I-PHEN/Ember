@@ -32,22 +32,26 @@ function fmtLeft(ms: number): string {
 }
 
 /** smooth countdown between polls */
-function useTick(): number {
+function useTick(enabled = true): number {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    if (!enabled) return;
     const t = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(t);
-  }, []);
+  }, [enabled]);
   return now;
 }
 
 interface Props {
+  embedded?: boolean;
+  nowMs?: number;
   status: VideoJobStatus;
   onLeave: () => void;
 }
 
-export default function GenerateOverlay({ status, onLeave }: Props) {
-  const now = useTick();
+export default function GenerateOverlay({ status, onLeave, embedded = false, nowMs }: Props) {
+  const clock = useTick(nowMs === undefined);
+  const now = nowMs ?? clock;
   const elapsed = now - status.at;
   const etaWatch = Math.max(0, status.etaWatchMs - elapsed);
   const etaVoice = Math.max(0, status.etaVoiceMs - elapsed);
@@ -60,9 +64,9 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
+      className={`${embedded ? "relative h-full" : "fixed inset-0 z-50"} flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm`}
+      role={embedded ? "group" : "dialog"}
+      aria-modal={embedded ? undefined : true}
       aria-label="Making your solve video"
     >
       <div className="relative w-full max-w-md rounded-2xl border border-[#34383c] bg-[#171b1d] p-6 shadow-2xl">

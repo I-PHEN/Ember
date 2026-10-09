@@ -55,6 +55,8 @@ import SolvePlayer, {
   type SolvePlayerHandle,
 } from "@/components/player/SolvePlayer";
 import GenerateOverlay from "@/components/GenerateOverlay";
+import { STUDIO_QUESTION_CLASS } from "@/components/studio/question-style";
+import StudioConsoleTabs from "@/components/studio/StudioConsoleTabs";
 import ResumeCard from "@/components/ResumeCard";
 import { SAMPLE_LESSONS } from "@/lib/samples";
 import { useVideoJob } from "@/lib/use-video-job";
@@ -1587,36 +1589,7 @@ export default function Page() {
           {/* Right Column: Studio Console & Office Hours Sidebar (PINNED CONTAINER) */}
           <aside className="w-full lg:w-[420px] xl:w-[460px] shrink-0 h-[460px] lg:h-full border-t lg:border-t-0 lg:border-l border-white/[0.06] bg-[#0e1015] flex flex-col overflow-hidden z-20">
             {/* Top Tab Bar: Chapters vs Office Hours */}
-            <div className="shrink-0 p-3 border-b border-white/[0.06] bg-[#0a0c10]/90">
-              <div className="flex items-center gap-1 rounded-xl border border-white/[0.06] bg-[#07080a] p-1">
-                <button
-                  type="button"
-                  onClick={() => setActiveRightTab("chapters")}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all",
-                    activeRightTab === "chapters"
-                      ? "bg-[#161920] text-[#f4f4f6] shadow-sm border border-white/[0.06]"
-                      : "text-[#8b919e] hover:text-[#f4f4f6]"
-                  )}
-                >
-                  <Layers className="h-3.5 w-3.5 text-[#e6b784]" />
-                  Chapters ({chapterTimes.length})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveRightTab("refine")}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-all",
-                    activeRightTab === "refine"
-                      ? "bg-gradient-to-r from-[#e6b784] to-[#f2ca9e] text-[#141619] shadow-sm font-bold"
-                      : "text-[#8b919e] hover:text-[#f4f4f6]"
-                  )}
-                >
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Office Hours
-                </button>
-              </div>
-            </div>
+            <StudioConsoleTabs activeTab={activeRightTab} chapterCount={chapterTimes.length} onSelect={setActiveRightTab} />
 
 
             {/* Tab 1: Chapters */}
@@ -2233,7 +2206,7 @@ export default function Page() {
               rows={2}
               placeholder="Paste any math, physics, chemistry, or engineering problem…"
               aria-label="Your question"
-              className="min-h-[64px] sm:min-h-[72px] resize-none border-0 bg-transparent px-2.5 py-1 font-sans text-sm leading-relaxed text-[#f4f4f6] placeholder:text-[#6a7180] focus-visible:ring-0"
+              className={STUDIO_QUESTION_CLASS}
             />
 
             {/* Attached Image Preview */}
