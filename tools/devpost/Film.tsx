@@ -10,6 +10,9 @@ import { galleryPublisher } from "../../src/lib/gallery-presentation";
 import "./app.css";
 import "../../node_modules/katex/dist/katex.min.css";
 import "./film.css";
+import "./visual-scenes.css";
+import { DemoBoard, LessonScene, Pipeline, GallerySequence } from "./VisualScenes";
+import { demoDuration } from "./lesson";
 
 type Segment = { id: string; title: string; text: string; duration: number; audio?: string; captions: { start: number; end: number; text: string }[] };
 export type FilmProps = { segments: Segment[]; gallery: { id: string; title: string; description?: string; publisher: string; script: SolveScript }[] };
@@ -50,12 +53,13 @@ function Scene({ segment, gallery }: { segment: Segment; gallery: FilmProps["gal
   const ui = ["question", "watch", "control"].includes(segment.id);
   return <AbsoluteFill className="film-scene" style={{ opacity }}>
     <div className="film-topline"><strong>Ember<span>Every problem, a lesson.</span></strong><span>Introductory university STEM · working prototype</span></div>
-    {opening ? <div className="film-opening"><p className="film-eyebrow">{segment.id === "opening" ? "Make the reasoning visible" : "A learning workspace, not just an answer"}</p><h1>{segment.title}</h1><div className="opening-board"><Board time={segment.id === "opening" ? Math.min(14, sec) : 14} /></div><p className="film-small">Reviewed illustrative chapter · rendered with Ember’s board engine</p></div> : <>
+    {opening ? <div className="film-opening"><p className="film-eyebrow">{segment.id === "opening" ? "Make the reasoning visible" : "A learning workspace, not just an answer"}</p><h1>{segment.title}</h1><div className="opening-board"><DemoBoard time={segment.id === "opening" ? demoDuration * (.1 + .9 * Math.min(1, sec / (duration * .9))) : demoDuration} /></div><p className="film-small">Reviewed worked example · actual stroke renderer · visual progression condensed</p></div> : <>
       <div className="film-title"><span className="film-eyebrow">{segment.id === "architecture" ? "Inside the architecture" : segment.id === "gallery" ? "Community discovery" : "The learning experience"}</span><h2>{segment.title}</h2></div>
-      {ui && <div className="film-product"><StudioTourScene progress={progress} /><span className="film-disclosure">Prepared walkthrough · production UI components{segment.id === "question" ? " · generation condensed" : segment.id === "control" ? " · prepared follow-up" : " · chapter excerpt"}</span></div>}
-      {segment.id === "architecture" && <Architecture seconds={sec} />}
-      {segment.id === "render" && <div className="render-scene"><div className="render-board"><Board time={Math.min(14, sec)} /></div><div className="render-copy"><h3>Structured beats</h3><p>Write · point · erase · diagrams</p><h3>One board timeline</h3><p>Stroke paths · chapters · seeking</p><h3>Speech coordination</h3><p>Narration anchors · pauses · audio timing</p><span>Alignment remains an active area of refinement.</span></div></div>}
-      {segment.id === "gallery" && <div className="film-gallery"><div className="gallery-intro"><h3>Your question might already have a lesson.</h3><p>Explore shared questions.<br />Return to an explanation.</p><span>Gallery overview · saved community entries</span></div><div className="film-gallery-cards">{gallery.slice(0, 3).map(item => <article key={item.id}><div className="gallery-card-board"><span>{item.script.subject || "STEM"}</span><MathCopy text={item.script.question || item.title} /></div><h3><MathCopy text={item.title} /></h3><p><MathCopy text={item.description || item.script.question || ""} /></p><small>By {galleryPublisher(item.publisher)}</small></article>)}{gallery.length === 0 && <article><h3>Community gallery</h3><p>Search questions and explore shared lessons.</p><small>No catalogue entries captured for this render.</small></article>}</div></div>}
+      {segment.id === "question" && <div className="film-product"><StudioTourScene progress={progress} /><span className="film-disclosure">Prepared walkthrough · production UI components · generation condensed</span></div>}
+      {(segment.id === "watch" || segment.id === "control") && <LessonScene seconds={sec} duration={duration} controls={segment.id === "control"} />}
+      {segment.id === "architecture" && <Pipeline seconds={sec} duration={duration} />}
+      {segment.id === "render" && <div className="render-scene"><div className="render-board"><DemoBoard time={demoDuration * (.35 + .65 * Math.min(1, sec / (duration * .7)))} /></div><div className="render-copy"><h3>Structured beats</h3><p>Write · point · erase · diagrams</p><h3>One board timeline</h3><p>Stroke paths · chapters · seeking</p><h3>Speech coordination</h3><p>Narration anchors · pauses · audio timing</p><span>Alignment remains an active area of refinement.</span><div className="demo-waveform">{Array.from({length:32},(_,i)=><i key={i} style={{height:18+Math.sin(i*1.9)**2*45,opacity:sec/duration>i/32?1:.2}} />)}</div><small>Illustrative audio timing—not a measured waveform</small></div></div>}
+      {segment.id === "gallery" && <GallerySequence seconds={sec} duration={duration} items={gallery} />}
     </>}
     <div className="film-caption">{caption}</div>
     {segment.audio && <Audio src={staticFile(segment.audio)} />}

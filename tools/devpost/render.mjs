@@ -14,6 +14,7 @@ if (!cssFiles.length) throw new Error('Build the application first so its produc
 const appCss = (await Promise.all(cssFiles.map(name => fs.readFile(path.join(cssDir, name), 'utf8')))).join('\n');
 await fs.writeFile(path.join(here, 'app.css'), appCss.replaceAll('/fonts/', '../../public/fonts/').replaceAll('/_next/static/media/', '../../.next/static/media/'));
 const preview = process.argv.includes('--preview');
+const stillsOnly = process.argv.includes('--stills-only');
 const script = JSON.parse(await fs.readFile(path.join(here, 'script.json'), 'utf8'));
 let props;
 if (preview) {
@@ -40,9 +41,12 @@ let offset = 0;
 for (const segment of props.segments) {
   const frames = Math.ceil(segment.duration * 30);
   await renderStill({ serveUrl, composition, inputProps: props, frame: offset + Math.min(frames - 13, Math.floor(frames * .6)), output: path.join(scratch, `${segment.id}.png`), imageFormat: 'png' });
+  if (stillsOnly && ['control', 'gallery'].includes(segment.id)) {
+    for (const progress of [.18, .4, .85]) await renderStill({ serveUrl, composition, inputProps: props, frame: offset + Math.floor(frames * progress), output: path.join(scratch, `${segment.id}-${progress}.png`), imageFormat: 'png' });
+  }
   offset += frames;
 }
-if (!preview) {
+if (!preview && !stillsOnly) {
   const outputLocation = process.argv.find(arg => arg.startsWith('--output='))?.slice(9);
   if (!outputLocation || !path.isAbsolute(outputLocation)) throw new Error('Supply an absolute --output= path for the downloadable MP4.');
   try { await fs.access(outputLocation); throw new Error('Output already exists; choose a new filename.'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
