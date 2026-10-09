@@ -70,7 +70,7 @@ function fmtDur(sec: number): string {
 }
 
 export default function GalleryPage() {
-  const { user, openAuthModal } = useAuth();
+  const { user, isGuest, openAuthModal } = useAuth();
   const [items, setItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -137,7 +137,7 @@ export default function GalleryPage() {
       }
     };
 
-    if (!user) {
+    if (!user && !isGuest) {
       openAuthModal(doWatch);
       return;
     }
@@ -145,7 +145,7 @@ export default function GalleryPage() {
   };
 
   const handleCreateSolve = () => {
-    if (!user) {
+    if (!user && !isGuest) {
       openAuthModal(() => {
         window.location.href = "/studio";
       });

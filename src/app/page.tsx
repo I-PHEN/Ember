@@ -14,7 +14,7 @@ const STARTERS = [
   { label: "Forces on an incline", prompt: "Explain the forces on a 5 kg block on a 30 degree incline with friction." },
 ];
 export default function LandingPage() {
-  const { user, loading, openAuthModal } = useAuth();
+  const { user, isGuest, loading, openAuthModal } = useAuth();
   const [prompt, setPrompt] = useState("");
   const showComparison = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -25,7 +25,7 @@ export default function LandingPage() {
   const launch = () => {
     const question = prompt.trim();
     const target = question ? `/studio?prompt=${encodeURIComponent(question)}` : "/studio";
-    if (user) window.location.assign(target);
+    if (user || isGuest) window.location.assign(target);
     else openAuthModal(() => window.location.assign(target));
   };
   return <main className="ember-landing">
@@ -40,7 +40,7 @@ export default function LandingPage() {
           <div className="composer-bottom"><span>Introductory university STEM</span><button className="landing-primary" disabled={loading} type="submit">Create a lesson <ArrowRight size={15} /></button></div>
         </form>
         <div className="landing-starters"><span>Try a question</span>{STARTERS.map(starter => <button key={starter.label} onClick={() => setPrompt(starter.prompt)}>{starter.label}</button>)}</div>
-        <p className="landing-caption">Sign in to create and save lessons.</p>
+        <p className="landing-caption">Try as a guest. History stays in this browser.</p>
         <div className="hero-gallery-invitation"><p>Your question might already have a lesson.</p><Link href="/gallery">Find it in the community gallery <ArrowRight size={14} /></Link></div>
       </div>
     </section>

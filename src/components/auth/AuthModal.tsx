@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2, ArrowRight, Lock, Mail, User, ShieldCheck, ArrowLeft } from "lucide-react";
+import { X, Loader2, ArrowRight, Lock, Mail, User, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/firebase/auth-context";
 
 export default function AuthModal() {
   const {
     isAuthModalOpen,
     closeAuthModal,
+    continueAsGuest,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
@@ -119,7 +120,7 @@ export default function AuthModal() {
       />
 
       {/* Disciplined Dark Modal Window */}
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[#2b2f34] bg-[#14171a] p-6 shadow-2xl shadow-black text-[#f1eee7] sm:p-8 z-10 animate-in fade-in zoom-in-95 duration-150">
+      <div role="dialog" aria-modal="true" aria-label="Explore Ember" className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[#2b2f34] bg-[#14171a] p-6 shadow-2xl shadow-black text-[#f1eee7] sm:p-8 z-10 animate-in fade-in zoom-in-95 duration-150">
         {/* Close Button */}
         <button
           type="button"
@@ -135,14 +136,14 @@ export default function AuthModal() {
           <div className="flex items-center gap-2 mb-2">
             <span className="flex h-2 w-2 rounded-full bg-[#e6b784]" />
             <span className="text-[11px] font-semibold tracking-wider uppercase text-[#e6b784]">
-              Ember Authentication
+              Explore Ember · demo access
             </span>
           </div>
           <h2 className="text-xl font-semibold tracking-tight text-[#f1eee7]">
             {mode === "google"
               ? "Continue with Google"
               : mode === "signin"
-              ? "Sign in to access Ember Studio"
+              ? "Explore Ember Studio"
               : "Create your student account"}
           </h2>
           <p className="mt-1 text-xs text-[#8b8d8f] leading-relaxed">
@@ -155,6 +156,11 @@ export default function AuthModal() {
         </div>
 
         {/* Error message */}
+        <div className="mb-6 rounded-xl border border-[#e6b784]/25 bg-[#e6b784]/5 p-4">
+          <button type="button" disabled={loading} onClick={continueAsGuest} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#e6b784] px-4 py-3 text-sm font-semibold text-[#16181a] hover:bg-[#f2ca9e] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#e6b784] disabled:opacity-50">Continue as guest <ArrowRight className="h-4 w-4" /></button>
+          <p className="mt-3 text-center text-xs leading-relaxed text-[#a4a5a7]">No account needed. History stays in this browser, not in a synced account. Guest access lasts for this tab’s session.</p>
+        </div>
+        <p className="mb-4 text-center text-[11px] text-[#8b8d8f]">The sign-in options below are demo flows, not production authentication. Don’t use a real password.</p>
         {error && (
           <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">
             {error}
@@ -373,8 +379,7 @@ export default function AuthModal() {
 
         {/* Security badge */}
         <div className="mt-6 flex items-center justify-center gap-1.5 border-t border-[#23272b] pt-4 text-[10px] text-[#6b6e73]">
-          <ShieldCheck className="h-3 w-3 text-[#5cdb95]" />
-          <span>Encrypted Session · SQLite &amp; Firebase Compatible</span>
+          <span>Demo access · no account required</span>
         </div>
       </div>
     </div>

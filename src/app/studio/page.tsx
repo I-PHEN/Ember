@@ -217,7 +217,7 @@ export interface ChatThread {
 }
 
 export default function Page() {
-  const { user, loading: authLoading, openAuthModal, signOut } = useAuth();
+  const { user, isGuest, continueAsGuest, loading: authLoading, openAuthModal, signOut } = useAuth();
   const [phase, setPhase] = useState<Phase>("home");
   const [script, setScript] = useState<SolveScript | null>(null);
   const [themeId, setThemeId] = useState<BoardThemeId>("blackboard");
@@ -1381,7 +1381,7 @@ export default function Page() {
   };
 
   /* ============================ AUTH GATE ============================ */
-  if (!authLoading && !user) {
+  if (!authLoading && !user && !isGuest) {
     return (
       <main className="ember-home flex min-h-dvh flex-col items-center justify-center p-6 bg-[#121517] text-[#f1eee7]">
         <div className="w-full max-w-md rounded-2xl border border-[#2b2f34] bg-[#16191b] p-8 text-center shadow-2xl">
@@ -1389,17 +1389,18 @@ export default function Page() {
             <Lock className="h-6 w-6" />
           </div>
           <h2 className="text-xl font-semibold text-[#f1eee7]">
-            Sign in to access Ember Studio
+            Enter Ember Studio
           </h2>
           <p className="mt-2 text-xs text-[#8b8d8f] leading-relaxed">
-            Ember Studio requires an account to generate live blackboard derivations, save your solves history, and chat with Professor Ember.
+            Explore the studio as a guest. History stays in this browser and is not synced to an account.
           </p>
           <div className="mt-6 flex flex-col gap-3">
+            <Button onClick={continueAsGuest} className="w-full rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]">Continue as guest</Button>
             <Button
               onClick={() => openAuthModal()}
               className="w-full rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]"
             >
-              Sign In to Continue
+              Demo sign in
             </Button>
             <Link
               href="/"
@@ -2023,6 +2024,7 @@ export default function Page() {
           </Link>
 
           {/* User Profile Avatar Dropdown (Shown only in Home) */}
+          {isGuest && <span className="text-[11px] text-[#9aa0a6]">Guest · browser-only history</span>}
           {user && (
             <div className="relative border-l border-white/[0.08] pl-2.5" ref={profileMenuRef}>
               <button
