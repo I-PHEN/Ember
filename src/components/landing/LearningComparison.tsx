@@ -9,7 +9,7 @@ export default function LearningComparison() {
   const [replay, setReplay] = useState(0);
   const choose = (next: typeof view) => { setView(next); setReplay(value => value + 1); };
   return <section id="comparison" className="landing-width comparison-section">
-    <div className="section-intro"><p className="landing-eyebrow">Same idea. A different way in.</p><h2>Don’t just read the step.<br /><span>Work through it.</span></h2><p>A written answer is useful. A lesson gives you somewhere to pause, revisit, and ask why. Try one small step below.</p></div>
+    <div className="section-intro"><p className="landing-eyebrow">Same idea. A different way in.</p><h2 id="comparison-heading" tabIndex={-1}>Don’t just read the step.<br /><span>Work through it.</span></h2><p>A written answer is useful. A lesson gives you somewhere to pause, revisit, and ask why. Try one small step below.</p></div>
     <div className="comparison-workspace">
       <div className="comparison-shared-question"><span>The question</span><p>For ∫ x · e<sup>2x</sup> dx, why choose u = x?</p></div>
       <div className="comparison-learning-grid">

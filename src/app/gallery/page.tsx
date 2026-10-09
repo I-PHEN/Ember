@@ -18,7 +18,8 @@ import { renderToImage } from "@/lib/video/render";
 import { thumbnailTime } from "@/lib/video/thumbnail";
 import { THEMES, totalDuration } from "@/lib/video/types";
 import { cn } from "@/lib/utils";
-import { formatMathTitle } from "@/lib/format-math";
+import MathCopy from "@/components/MathCopy";
+import { galleryPublisher } from "@/lib/gallery-presentation";
 import { useAuth } from "@/lib/firebase/auth-context";
 
 interface GalleryItem {
@@ -283,6 +284,7 @@ export default function GalleryPage() {
                 className="group relative flex flex-col rounded-2xl border border-[#282c31] bg-[#16191b] overflow-hidden transition-all duration-200 hover:border-[#e6b784]/50 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
                 role="button"
                 tabIndex={0}
+                onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); handleWatch(item); } }}
                 aria-label={`Watch ${item.title}`}
               >
                 {/* 16:9 Aspect Ratio Thumbnail Container */}
@@ -324,17 +326,17 @@ export default function GalleryPage() {
                 {/* Details */}
                 <div className="p-3.5 flex flex-col flex-1 justify-between gap-2.5">
                   <div>
-                    <h3 className="line-clamp-1 text-sm font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">
-                      {formatMathTitle(item.title)}
+                    <h3 className="gallery-math-copy line-clamp-2 text-sm font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">
+                      <MathCopy text={item.title} />
                     </h3>
-                    <p className="line-clamp-2 mt-1 text-xs text-[#8b8d8f] leading-relaxed">
-                      {item.description || item.script?.question}
-                    </p>
+                    <div className="gallery-math-copy line-clamp-2 mt-1 text-xs text-[#8b8d8f] leading-relaxed">
+                      <MathCopy text={item.description || item.script?.question || ""} />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between border-t border-[#23272b] pt-2 text-xs text-[#8b8d8f]">
                     <span className="text-[11px] text-[#a4a5a7]">
-                      By {item.publisher || "Scholar"}
+                      By {galleryPublisher(item.publisher)}
                     </span>
                     <span className="text-[11px] font-mono text-[#8b8d8f]">
                       {fmtRelativeTime(item.createdAt)}

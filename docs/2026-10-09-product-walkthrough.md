@@ -17,3 +17,9 @@ Verification: deterministic stage/reversal/cursor tests, saved-recording regress
 ## Comparison refinement
 
 The user identified duplicated product storytelling between the hero and the scroll journey. Remove the hero walkthrough and center the question composer; retain the single scroll-driven journey. Replace equal-width comparison cards with one shared question and a board-first workspace. Keep the written explanation compact, and use real player actions to replay writing or inspect the completed step. A clearly labelled prepared follow-up explains why the choice simplifies the integral. The comparison demonstrates format and control, not a claim of superior model intelligence.
+
+## Community discovery
+
+Promote shared questions through a secondary hero invitation and a distinct scroll-driven typography scene: find, explore, return. Keep studio palette and Geist typography; use the cursor to sweep highlights and align phrases rather than repeat the app tour. Respect reduced motion with settled text and an ordinary gallery link. Navigation explicitly scrolls and focuses the comparison heading, bypassing framework fragment handling. Gallery copy renders safe Markdown math using the existing KaTeX stack. Preserve named publishers; label legacy anonymous identities as Ember Community without inventing authors or changing database records.
+
+Replay audit: public gallery currently persists script JSON, not saved audio tracks. Studio loads the script and the player may request narration. Do not promise instant/no-generation replay or token savings. Persisted audio and measured timing, plus authenticated ownership of publishing, are separate follow-up work; the current API selects the first database user when publishing and must not be described as reliable creator attribution.

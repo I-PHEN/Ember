@@ -178,6 +178,30 @@
 .preview-chapters button[aria-current] { border-color: #e6b78440; color: #f4f4f6; }
 .preview-chapters button span { font-family: var(--font-geist-mono); color: #e6b784; font-size: 10px; }
 .preview-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; color: #9aa1af; font-size: 11px; }
+.hero-gallery-invitation { margin: 26px auto 0; padding-top: 22px; border-top: 1px solid #ffffff12; max-width: 440px; font-size: 12px; }
+.hero-gallery-invitation p { color: #9aa1af; margin-bottom: 8px; }
+.hero-gallery-invitation a { display: inline-flex; gap: 8px; align-items: center; color: #e6b784; }
+.gallery-math-copy .katex { font-size: 1em; }
+.gallery-math-copy .katex-display { margin: 0; display: inline; }
+.community-journey { border-top: 1px solid #ffffff12; }
+.community-animated { height: 210vh; }
+.community-pin { padding-block: 70px; display: grid; grid-template-columns: 1fr 1.1fr; gap: 60px; align-items: center; min-height: 650px; }
+.community-animated .community-pin { position: sticky; top: 0; min-height: 100svh; }
+.community-text-scene { height: 370px; position: relative; container-type: size; border-radius: 24px; background: radial-gradient(ellipse at 55% 45%, #e6b7840c, transparent 70%); }
+.community-phrase { position: absolute; font-size: clamp(18px, 2.1vw, 28px); letter-spacing: -.025em; white-space: nowrap; }
+.community-phrase-0 { top: 16%; left: 6%; }
+.community-phrase-1 { top: 43%; left: 18%; }
+.community-phrase-2 { top: 70%; left: 6%; }
+.community-phrase span { position: relative; z-index: 0; }
+.community-phrase i { position: absolute; inset: 45% -5px -3px; background: #e6b78426; z-index: -1; border-bottom: 1px solid #e6b78480; }
+.community-cursor { position: absolute; top: 0; left: 0; width: 28px; height: 36px; pointer-events: none; filter: drop-shadow(0 3px 4px #0008); }
+@media (max-width: 800px) {
+  .community-pin { grid-template-columns: 1fr; gap: 20px; padding-block: 40px; }
+  .community-text-scene { height: 260px; }
+  .community-phrase { font-size: clamp(16px, 3.8vw, 24px); }
+  .community-animated { height: 180vh; }
+}
+@media (prefers-reduced-motion: reduce) { .community-animated { height: auto; } .community-animated .community-pin { position: static; min-height: auto; } }
 .comparison-section, .learning-roadmap { padding-block: 72px; border-top: 1px solid #ffffff12; scroll-margin-top: 20px; }
 .section-intro { max-width: 610px; margin-bottom: 36px; }
 .section-intro h2 { font-size: clamp(28px, 3vw, 40px); line-height: 1.2; letter-spacing: -.035em; margin-block: 16px; font-weight: 500; }
