@@ -29,7 +29,7 @@ export default function LandingPage() {
     else openAuthModal(() => window.location.assign(target));
   };
   return <main className="ember-landing">
-    <header className="landing-nav"><Link href="/" aria-label="Ember home"><Wordmark /></Link><nav aria-label="Main navigation"><a href="#comparison" onClick={showComparison}>Why Ember</a><Link href="/gallery">Gallery</Link><button className="landing-outline" disabled={loading} onClick={launch}>Open studio <ArrowRight size={14} /></button></nav></header>
+    <header className="landing-nav"><Link href="/" aria-label="Ember home"><Wordmark /></Link><nav aria-label="Main navigation"><a href="#comparison" onClick={showComparison}>Why Ember</a><Link href="/gallery">Community gallery</Link><button className="landing-outline" disabled={loading} onClick={launch}>Open studio <ArrowRight size={14} /></button></nav></header>
     <section className="landing-hero landing-width hero-focused">
       <div className="hero-copy">
         <p className="landing-eyebrow"><span className="ember-dot" /> Your question, taught on a blackboard.</p>
@@ -48,6 +48,6 @@ export default function LandingPage() {
     <LearningComparison />
     <CommunityJourney />
     <section className="landing-width current-benefits"><div className="section-intro"><p className="landing-eyebrow">Built for the way you learn</p><h2>A lesson you can work with.</h2></div><div className="benefits-grid"><article><BookOpen size={21} /><h3>Follow the reasoning</h3><p>See the derivation take shape on a board, with an explanation alongside it.</p></article><article><RotateCcw size={21} /><h3>Return to a step</h3><p>Pause, change speed, and use chapters to revisit the part that needs another look.</p></article><article><MessageSquare size={21} /><h3>Ask the next question</h3><p>Ask Ember to clarify a step or adjust the explanation without leaving the lesson.</p></article></div></section>
-    <footer className="landing-footer landing-width"><Wordmark /><span>Every problem, a lesson.</span><Link href="/how-it-works">How it works</Link><Link href="/gallery">Gallery</Link></footer>
+    <footer className="landing-footer landing-width"><Wordmark /><span>Every problem, a lesson.</span><Link href="/how-it-works">How it works</Link><Link href="/gallery">Community gallery</Link></footer>
   </main>;
 }

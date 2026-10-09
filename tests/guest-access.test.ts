@@ -15,6 +15,8 @@ describe("guest demo access", () => {
   it("allows guest entry throughout the requested workflow", () => {
     expect(fs.readFileSync("src/app/studio/page.tsx", "utf8")).toContain("!user && !isGuest");
     expect(fs.readFileSync("src/app/gallery/page.tsx", "utf8")).toContain("!user && !isGuest");
+    expect(fs.readFileSync("src/app/gallery/page.tsx", "utf8")).toContain('href={user || isGuest ? "/studio" : "/"}');
+    expect(fs.readFileSync("src/app/gallery/page.tsx", "utf8")).toContain('{user || isGuest ? "Studio" : "Home"}');
     expect(fs.readFileSync("src/app/page.tsx", "utf8")).toContain("user || isGuest");
     const modal = fs.readFileSync("src/components/auth/AuthModal.tsx", "utf8");
     expect(modal).toContain("Continue as guest");

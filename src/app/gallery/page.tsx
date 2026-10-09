@@ -160,11 +160,11 @@ export default function GalleryPage() {
       <header className="ember-home-header sticky top-0 z-30 flex h-20 shrink-0 items-center justify-between border-b px-6 backdrop-blur-xl sm:px-12">
         <div className="flex items-center gap-4">
           <Link
-            href={user ? "/studio" : "/"}
+            href={user || isGuest ? "/studio" : "/"}
             className="flex items-center gap-1.5 rounded-xl border border-[#34383c] bg-[#171b1d] px-3.5 py-1.5 text-xs font-semibold text-[#a4a5a7] transition-all hover:border-[#e6b784]/40 hover:text-[#f1eee7]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            {user ? "Studio" : "Home"}
+            {user || isGuest ? "Studio" : "Home"}
           </Link>
           <Wordmark />
         </div>
