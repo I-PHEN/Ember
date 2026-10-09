@@ -17,3 +17,9 @@ User approved the current script and configured voice API. Generated eight Gemin
 Verified with ffprobe: 186.901 seconds, 1920×1080, 30 fps, H.264 video, 48 kHz stereo AAC audio, 12,973,215 bytes. Full-file FFmpeg decoding succeeded without reported errors. Reviewed composition stills and an extracted final-export frame. The renderer recovered from one browser crash during export.
 
 These checks establish file integrity, not a complete human listening review. Caption timing is word-count-based and approximate. Watch the complete MP4 and review narration/captions before submission. The prepared walkthrough and prototype limitations remain explicitly disclosed.
+
+## Visual revision export
+
+Exported `C:/Users/Michael/Downloads/Ember-Devpost-Demo-v2.mp4` with the original cached narration unchanged. Closer player framing, a complete reviewed worked example, prepared cursor pause/rewind/follow-up, parallel writer visualization and gallery search replace the earlier sparse scenes. Frontend-design guided the restrained warm-charcoal palette and product-led framing. The gallery preview is explicitly a reviewed excerpt, not live replay of the captured script; that script has existing timing/writing defects which were not modified or hidden in production.
+
+Verified v2: 186.901 seconds, 1920×1080 at 30 fps, H.264 + stereo 48 kHz AAC, 14,418,189 bytes. Full-file decoding succeeded with no reported errors; reviewed interaction stills and a frame extracted from the final MP4. TypeScript and scoped lint passed; both new visual tests passed, including deterministic board layout auditing. Original video remains intact. Human review of the full movie and approximate caption timing is still recommended before submission.
