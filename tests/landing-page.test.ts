@@ -27,6 +27,17 @@ describe("lesson-first landing", () => {
     expect(page).not.toContain("Where we’re going");
     expect(page).not.toContain("any STEM problem");
   });
+  it("has one product journey and an interactive, board-first comparison", () => {
+    const comparison = fs.readFileSync("src/components/landing/LearningComparison.tsx", "utf8");
+    expect(page).not.toContain("ProductWalkthrough");
+    expect(page).toContain("<ScrollLearningFlow");
+    expect(comparison).toContain("Watch the step");
+    expect(comparison).toContain("See it complete");
+    expect(comparison).toContain("Why this choice?");
+    expect(comparison).toContain("Prepared follow-up example");
+    expect(comparison).toContain("seekRequest=");
+    expect(comparison).toContain("showChapterLabel={false}");
+  });
   it("packages valid recordings for every narrated scene with feasible measured timing", () => {
     expect(tracks.length).toBe(LANDING_LESSON.scenes.length);
     const tl = compileTimeline(LANDING_LESSON);

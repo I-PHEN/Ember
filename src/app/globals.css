@@ -121,6 +121,36 @@
 .landing-primary:hover { background: #f1c89c; }
 .landing-outline:hover { border-color: #e6b78466; }
 .landing-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 60px; align-items: center; min-height: 690px; padding-block: 80px 100px; }
+.landing-hero.hero-focused { display: block; min-height: auto; padding-block: 80px 72px; }
+.hero-focused .hero-copy { max-width: 720px; margin-inline: auto; text-align: center; }
+.hero-focused .landing-eyebrow, .hero-focused .landing-starters { justify-content: center; }
+.hero-focused .hero-description { max-width: 550px; margin-inline: auto; }
+.hero-focused .landing-composer { max-width: 610px; margin-inline: auto; text-align: left; }
+.comparison-workspace { border: 1px solid #ffffff18; border-radius: 20px; overflow: hidden; background: linear-gradient(125deg, #161a21, #0e1116 65%); box-shadow: 0 25px 65px #00000025; }
+.comparison-shared-question { padding: 24px 30px; border-bottom: 1px solid #ffffff12; display: flex; gap: 30px; align-items: baseline; }
+.comparison-shared-question > span { color: #e6b784; font-size: 11px; white-space: nowrap; }
+.comparison-shared-question p { font-size: clamp(16px, 1.7vw, 21px); color: #f4f4f6; }
+.comparison-learning-grid { display: grid; grid-template-columns: minmax(220px, .75fr) minmax(0, 1.8fr); }
+.comparison-reading { padding: 28px; border-right: 1px solid #ffffff12; }
+.comparison-board { min-width: 0; padding: 28px; }
+.comparison-reading .chat-answer { padding-top: 0; }
+.comparison-board .comparison-label { margin-bottom: 16px; }
+.comparison-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+.comparison-actions button { display: flex; align-items: center; gap: 7px; padding: 10px 12px; font-size: 11px; color: #aeb5c1; border: 1px solid #ffffff18; border-radius: 8px; transition: background .15s, border-color .15s; }
+.comparison-actions button:hover { border-color: #e6b78477; }
+.comparison-actions button[aria-pressed="true"] { background: #e6b78418; border-color: #e6b78455; color: #f2d0aa; }
+.comparison-response { min-height: 100px; padding-top: 20px; }
+.comparison-response p { font-size: 13px; color: #aeb5c1; line-height: 1.8; }
+.comparison-response .landing-eyebrow { margin-bottom: 8px; font-size: 10px; }
+@media (max-width: 800px) {
+  .comparison-learning-grid { grid-template-columns: 1fr; }
+  .comparison-reading { border-right: 0; border-bottom: 1px solid #ffffff12; }
+  .comparison-board { padding: 20px 12px; }
+  .comparison-board .comparison-label, .comparison-response, .comparison-actions { margin-inline: 8px; }
+  .comparison-shared-question { padding: 20px; display: block; }
+  .comparison-shared-question p { margin-top: 8px; }
+  .landing-hero.hero-focused { padding-block: 54px 48px; }
+}
 .hero-copy, .hero-lesson { min-width: 0; }
 .landing-eyebrow { color: #e6b784; font-size: 11px; font-weight: 500; letter-spacing: .055em; display: flex; align-items: center; gap: 8px; }
 .ember-dot { height: 5px; width: 5px; border-radius: 50%; background: #e6b784; box-shadow: 0 0 14px #e6b78466; flex-shrink: 0; }

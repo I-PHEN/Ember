@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, MessageSquare, RotateCcw } from "lucide-react";
 import Wordmark from "@/components/Wordmark";
 import { useAuth } from "@/lib/firebase/auth-context";
-import ProductWalkthrough from "@/components/landing/ProductWalkthrough";
 import ScrollLearningFlow from "@/components/landing/ScrollLearningFlow";
 import LearningComparison from "@/components/landing/LearningComparison";
 
@@ -24,7 +23,7 @@ export default function LandingPage() {
   };
   return <main className="ember-landing">
     <header className="landing-nav"><Link href="/" aria-label="Ember home"><Wordmark /></Link><nav aria-label="Main navigation"><Link href="#comparison">Why Ember</Link><Link href="/gallery">Gallery</Link><button className="landing-outline" disabled={loading} onClick={launch}>Open studio <ArrowRight size={14} /></button></nav></header>
-    <section className="landing-hero landing-width">
+    <section className="landing-hero landing-width hero-focused">
       <div className="hero-copy">
         <p className="landing-eyebrow"><span className="ember-dot" /> Your question, taught on a blackboard.</p>
         <h1>Understand the steps.<br /><span className="font-hand">Not just the answer.</span></h1>
@@ -36,7 +35,6 @@ export default function LandingPage() {
         <div className="landing-starters"><span>Try a question</span>{STARTERS.map(starter => <button key={starter.label} onClick={() => setPrompt(starter.prompt)}>{starter.label}</button>)}</div>
         <p className="landing-caption">Sign in to create and save lessons.</p>
       </div>
-      <div className="hero-lesson"><ProductWalkthrough /></div>
     </section>
     <ScrollLearningFlow />
     <LearningComparison />

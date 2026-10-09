@@ -13,3 +13,7 @@ Scroll uses one progress source, spring smoothing, four equal stages mapped to t
 Comparison shows the same assignment step as an illustrative written answer and a playable, silent production board. No external navigation is needed to understand it. No learning-gain claims or future-feature roadmap remain.
 
 Verification: deterministic stage/reversal/cursor tests, saved-recording regression tests, full existing suite, lint, strict production build, and browser checks of stages, scroll reversal, focus styling, and mobile overflow. Devpost video creation remains out of scope.
+
+## Comparison refinement
+
+The user identified duplicated product storytelling between the hero and the scroll journey. Remove the hero walkthrough and center the question composer; retain the single scroll-driven journey. Replace equal-width comparison cards with one shared question and a board-first workspace. Keep the written explanation compact, and use real player actions to replay writing or inspect the completed step. A clearly labelled prepared follow-up explains why the choice simplifies the integral. The comparison demonstrates format and control, not a claim of superior model intelligence.

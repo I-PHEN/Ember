@@ -84,6 +84,8 @@ export interface SolvePlayerHandle {
 }
 
 export interface SolvePlayerProps {
+  /** Hide a redundant chapter badge when the surrounding UI labels the excerpt. */
+  showChapterLabel?: boolean;
   /** Read-only product walkthrough clock; no audio requests or independent playback. */
   presentationTime?: number;
   /** Saved tracks indexed by scene. When supplied, never request fresh speech. */
@@ -140,6 +142,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     {
       script,
       presentationTime,
+      showChapterLabel = true,
       narrationTracks,
       jobId,
       themeId,
@@ -786,7 +789,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
 
         {/* chapter chip (top-left) — hidden during the trademark intro,
             where the board itself is the brand */}
-        {!mini && !inIntro && (controlsOn || !playing) && (
+        {showChapterLabel && !mini && !inIntro && (controlsOn || !playing) && (
           <div className="pointer-events-none absolute left-4 top-4 max-w-[70%] rounded-lg bg-black/55 px-3 py-1.5 text-[13px] font-medium text-white/90 backdrop-blur-sm">
             {chapter}
           </div>
