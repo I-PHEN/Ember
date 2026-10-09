@@ -23,7 +23,7 @@ import {
   SOLVER_SYSTEM,
   solverUser,
 } from "./prompts";
-import { normalizeReviewFix, acceptSceneReview } from "./video/review";
+import { normalizeReviewFix, acceptSceneReview, sceneReviewIssues, reviewSceneWithRetry } from "./video/review";
 import { collectSceneReviews } from "./video/review-gate";
 import { advanceProgress, computeWatchProgress } from "./video/progress";
 import { checkSceneLines } from "./video/checker";
@@ -424,7 +424,8 @@ async function callDirector(job: Job): Promise<Outline | null> {
       const outline = normalizeOutline(extractJson(raw));
       job.directorMs = Date.now() - stageT0;
       job.stats.directorMs = job.directorMs;
-      if (outline) return outline;
+      // The model may plan an example, but must never rewrite the student's supplied givens.
+      if (outline) return { ...outline, question: job.question };
     } catch (e) {
       console.error("director attempt failed:", e instanceof Error ? e.message : e);
     }
@@ -642,7 +643,7 @@ async function runJob(job: Job): Promise<void> {
 
     /* Reviews and voices run in parallel, but delivery requires every review.
        Only the collector can apply accepted beats; late calls cannot mutate them. */
-    const REVIEW_COLLECT_MS = 30_000;
+    const REVIEW_COLLECT_MS = 60_000;
     type AcceptedReview = { beats: ReturnType<typeof sanitizeSceneBeats>; fixed: boolean };
     const reviewPromises: Array<Promise<AcceptedReview | null>> = [];
     const fixedScenes = new Set<number>();
@@ -652,20 +653,19 @@ async function runJob(job: Job): Promise<void> {
       narration: string,
       beats: unknown[]
     ) => {
-      reviewPromises[idx] = (async (): Promise<AcceptedReview | null> => {
-          try {
+      reviewPromises[idx] = reviewSceneWithRetry<AcceptedReview>(async (feedback, attempt) => {
             const raw = await chatJson(
               REVIEWER_SYSTEM,
-              reviewerUser(chapter, narration, JSON.stringify(beats)),
+              reviewerUser(chapter, narration, JSON.stringify(beats)) + (feedback ? `\n\nPREVIOUS REVIEW FAILED LOCAL VALIDATION:\n${feedback}\nCorrect the affected beats. Do not repeat a pass verdict for an invalid board.` : ""),
               "fast",
               job.stats
             );
             const outcome = normalizeReviewFix(extractJson(raw));
-            return acceptSceneReview(outcome, beats, chapter, narration, idx);
-          } catch {
-            return null;
-          }
-        })();
+            const accepted = acceptSceneReview(outcome, beats, chapter, narration, idx);
+            const issues = accepted ? [] : sceneReviewIssues(outcome, beats, chapter, narration, idx);
+            if (!accepted) console.warn(`[review] scene ${idx + 1}, attempt ${attempt + 1}: ${issues.join("; ")}`);
+            return { accepted, issues };
+        });
     };
 
     /* 3 ─ scene writers, 3 in flight, staggered to be gentle. Each
@@ -750,7 +750,11 @@ async function runJob(job: Job): Promise<void> {
       if (!batch.passed) {
         job.script = null;
         job.phase = "error";
-        job.error = "Lesson held: one or more scenes could not pass review before the deadline. Try again to regenerate the lesson.";
+        const timedOut = batch.statuses.some(status => status === "timed-out");
+        const affected = indices.filter((_, k) => batch.statuses[k] !== "passed").map(i => i + 1).join(", ");
+        job.error = timedOut
+          ? `Scene review timed out (scenes ${affected}). The lesson was not released. Please try again when the AI provider is less busy.`
+          : `Scene review could not validate scenes ${affected} after a repair attempt. The lesson was not released. Try a more focused question.`;
         job.stats.fixedScenes = fixedScenes.size;
         return false;
       }

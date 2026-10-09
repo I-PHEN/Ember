@@ -34,6 +34,7 @@ SCHEMA:
 {"title": string, "subject": string, "question": string, "scenes": [{"chapter": string, "summary": string}]}
 
 PLANNING RULES — THE LECTURE ARC (how a real class solves a question):
+- Preserve the student's supplied question and numerical givens. Never invent missing parameters for a concrete problem. If a friction coefficient is absent, use symbolic mu and explain that a numerical answer requires it. Distinguish static from kinetic friction and state any motion assumptions explicitly. Representative examples for topic-only requests must be labelled as examples, not original givens.
 - 6 to 10 scenes. Each scene becomes ~35-50 seconds of calm video (total ~4-5 minutes for a full university solve). Long or multi-part problems deserve MORE scenes (one move each), not longer scenes.
 - Scene 1 "Understanding the problem": the narration first EXPLAINS what is going on in plain words (no math yet). The board gathers the parameters: a short GIVEN list (each value with its units) and a "Find:" line naming the unknown. This is the professor reading the question with the class before touching it.
 - Scene 2 "The plan": state the approach in 1-2 moves, the rule/formula that will be used. Decide HERE whether a graph, number line, table or a real free-body diagram genuinely helps the explanation and say so in the summary — visualizing is a choice, not a default.
