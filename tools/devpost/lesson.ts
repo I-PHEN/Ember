@@ -14,3 +14,11 @@ export const DEMO_LESSON: SolveScript = { ...SAMPLE_CALCULUS, scenes: [{ chapter
 ] }] };
 export const demoTimeline = compileTimeline(DEMO_LESSON);
 export const demoDuration = totalDuration(demoTimeline);
+
+/** Excerpts advance at 0.95× authored ink speed, then hold the completed step. */
+export function writingClock(step: number, seconds: number) {
+  const group = demoTimeline.scenes[0].groups[step];
+  const start = Math.max(0, group.born - .35);
+  const end = Math.max(...group.strokes.map(stroke => stroke.t0 + stroke.dur)) + .45;
+  return Math.min(end, start + Math.max(0, seconds) * .95);
+}

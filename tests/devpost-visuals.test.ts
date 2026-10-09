@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DEMO_LESSON, demoTimeline, demoDuration } from '../tools/devpost/lesson';
+import { DEMO_LESSON, demoTimeline, demoDuration, writingClock } from '../tools/devpost/lesson';
 import { auditTimeline } from '../src/lib/video/layout-audit';
 import fs from 'node:fs';
 
@@ -19,4 +19,14 @@ test('visual revision preserves narration and discloses prepared sequences', () 
   expect(visuals).not.toContain('geminiTTS');
   expect(visuals).not.toContain('fetch(');
   expect(visuals).toContain('String.raw');
+});
+test('visible writing never fast-forwards the authored stroke clock', () => {
+  for (const step of [0,2,5]) {
+    for (let sec = 0; sec < 30; sec += .1) {
+      const advance = writingClock(step, sec + .1) - writingClock(step, sec);
+      expect(advance).toBeGreaterThanOrEqual(0);
+      expect(advance).toBeLessThanOrEqual(.095000001);
+    }
+    expect(writingClock(step, 1000)).toBe(writingClock(step, 2000));
+  }
 });

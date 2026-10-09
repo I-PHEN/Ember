@@ -1,4 +1,14 @@
-.film-root { font-family:Arial,sans-serif; }
+.film-root { font-family:Arial,sans-serif; background:#272722; }
+.film-scene { background:radial-gradient(ellipse at 95% 5%,#b8793c66,transparent 60%),radial-gradient(ellipse at 0% 100%,#e6b78426,transparent 65%),linear-gradient(135deg,#31312a,#242722 55%,#3a2e25); }
+.film-topline { border-color:#e6b78440; }
+.film-topline strong { color:#e6b784; }
+.film-caption { background:#241f1ceb; border:1px solid #e6b78420; }
+.opening-board,.render-board { border:1px solid #e6b78455; background:#202321; box-shadow:0 20px 80px #0005,0 0 50px #e6b78412; }
+.demo-studio,.demo-gallery-browser { background:#252a28; border-color:#e6b78455; }
+.demo-studio header,.demo-gallery-browser header { background:#e6b7840b; }
+.pipeline-node,.demo-answer,.gallery-demo-results article { background:#29302d; border-color:#e6b78435; }
+.pipeline-artifact { background:#e6b78414; }
+.demo-studio aside { border-color:#e6b78430; }
 .film-topline { padding-bottom:16px; }
 .film-title h2 { font-size:44px; }
 .opening-board { width:1280px; height:510px; }
@@ -31,3 +41,7 @@
 .gallery-demo-results { display:flex; gap:24px; padding:0 50px; }.gallery-demo-results article { width:530px; background:#16191b; border:1px solid #282c31; border-radius:14px; overflow:hidden; }.gallery-demo-thumbnail { height:230px; position:relative; overflow:hidden; }.gallery-demo-thumbnail > span { position:absolute; left:46%; top:42%; background:#e6b784; color:#191816; padding:12px; border-radius:50%; }.gallery-demo-results h4 { font-size:22px; padding:15px 20px 0; }.gallery-demo-results p { font-size:16px; color:#9aa1af; padding:10px 20px; line-height:1.4; }.gallery-demo-results small { display:block; border-top:1px solid #ffffff10; padding:10px 20px; font-size:14px; color:#9aa1af; }.gallery-demo-disclosure { position:absolute; bottom:12px; right:24px; font-size:16px; color:#9aa1af; }
 .demo-gallery-replay { width:1120px; margin:16px auto 0; }.gallery-replay-label { display:flex; gap:12px; align-items:center; height:42px; color:#e6b784; font-size:19px; }.gallery-replay-label span { margin-left:auto; font-size:14px; color:#9aa1af; }.replay-title { font-size:22px; margin-top:12px; }
 .gallery-demo-thumbnail { height:180px; }
+.demo-studio,.demo-gallery-browser { background:#252a28; border-color:#e6b78455; }
+.pipeline-node,.demo-answer,.gallery-demo-results article { background:#29302d; border-color:#e6b78435; }
+.pipeline-artifact { background:#e6b78414; }
+.demo-studio aside { border-color:#e6b78430; }

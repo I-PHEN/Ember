@@ -9,7 +9,7 @@ import { galleryPublisher } from '../../src/lib/gallery-presentation';
 import { SAMPLE_CALCULUS } from '../../src/lib/samples';
 import { renderFrame } from '../../src/lib/video/render';
 import { THEMES } from '../../src/lib/video/types';
-import { DEMO_LESSON, demoTimeline, demoDuration } from './lesson';
+import { DEMO_LESSON, demoTimeline, demoDuration, writingClock } from './lesson';
 import type { FilmProps } from './Film';
 
 const ease = (time: number, start: number, end: number) => {
@@ -27,13 +27,15 @@ export function Cursor({ x, y, click = false }: { x: number; y: number; click?: 
 export function LessonScene({ seconds, duration, controls = false }: { seconds: number; duration: number; controls?: boolean }) {
   const p = seconds / duration;
   const refining = controls && p > .53;
-  const boardTime = controls ? (p < .16 ? demoDuration * .72 : p < .30 ? demoDuration * .72 : p < .46 ? demoDuration * (.72 - ease(p, .30, .46) * .28) : demoDuration * .44) : demoDuration * (.08 + Math.min(.92, p * 1.12));
+  const pausedAt = writingClock(4, 1000);
+  const revisitedAt = writingClock(2, 1000);
+  const boardTime = controls ? (p < .30 ? pausedAt : p < .46 ? pausedAt - ease(p, .30, .46) * (pausedAt - revisitedAt) : revisitedAt) : writingClock(2, seconds);
   const paused = controls && p > .16;
   const label = !controls ? 'A problem becomes a worked explanation' : p < .3 ? 'Pause on the difficult step' : p < .53 ? 'Rewind without starting again' : 'Ask why this choice works';
   const x = !controls ? 1100 : refining ? 1390 + ease(p, .53, .64) * 100 : p < .30 ? 800 - ease(p, .02, .16) * 755 : 45 + ease(p, .30, .42) * 540;
   const y = refining ? 110 : 660;
   return <div className="demo-studio">
-    <header><Wordmark /><span>Integration by parts</span><small>Prepared product sequence · board timing condensed</small></header>
+    <header><Wordmark /><span>Integration by parts</span><small>Prepared excerpt · natural-paced writing</small></header>
     <div className="demo-studio-body"><div className="demo-player"><SolvePlayer script={DEMO_LESSON} themeId="blackboard" presentationTime={boardTime} showChapterLabel={false} />
       {controls && <div className="demo-transport"><span>{paused ? <Play size={24} /> : <Pause size={24} />}</span><div className="demo-track"><i style={{ width: `${boardTime / demoDuration * 100}%` }} /></div><span>{Math.floor(boardTime)}s</span><span>1×</span></div>}
     </div><aside><StudioConsoleTabs activeTab={refining ? 'refine' : 'chapters'} chapterCount={6} onSelect={() => {}} />
@@ -69,7 +71,7 @@ export function Pipeline({ seconds, duration }: { seconds: number; duration: num
 export function GallerySequence({ seconds, duration, items }: { seconds: number; duration: number; items: FilmProps['gallery'] }) {
   const p = seconds / duration;
   const entry = items[0];
-  if (p > .57 && entry) return <div className="demo-gallery-replay"><div className="gallery-replay-label"><ArrowLeft size={22} /> Community gallery → lesson preview <span>Reviewed excerpt of this question · prepared, not live replay</span></div><SolvePlayer script={DEMO_LESSON} themeId="blackboard" presentationTime={demoDuration * Math.min(1, .12 + (p-.57)*2)} /><div className="replay-title"><MathCopy text={entry.title} /></div></div>;
+  if (p > .57 && entry) return <div className="demo-gallery-replay"><div className="gallery-replay-label"><ArrowLeft size={22} /> Community gallery → lesson preview <span>Reviewed excerpt of this question · prepared, not live replay</span></div><SolvePlayer script={DEMO_LESSON} themeId="blackboard" presentationTime={demoDuration} /><div className="replay-title"><MathCopy text={entry.title} /></div></div>;
   const query = 'integration'.slice(0, Math.floor(ease(p,.07,.27)*11));
   const visible = items.filter(item => !query || `${item.title} ${item.description || ''} ${item.script.question}`.toLowerCase().includes(query));
   return <div className="demo-gallery-browser"><header><span>← Studio</span><Wordmark /><span>Create Solve</span></header><div className="gallery-heading"><small>Community Solves</small><h3>The Library of Thought.</h3><p>Search or explore community lectures.</p></div><div className="gallery-search"><Search size={22} />{query || <span>Search across questions, topics, or equations…</span>}<i /></div><div className="gallery-filters">{['All','Calculus','Mechanics','Physics','ODEs','Circuits','Chemistry'].map(name => <span className={name==='All'?'selected':''} key={name}>{name}</span>)}</div><div className="gallery-demo-results">{visible.slice(0,2).map(item=><article key={item.id} style={{borderColor:p>.37?'#e6b784':'#282c31'}}><div className="gallery-demo-thumbnail"><DemoBoard time={demoDuration} /><span><Play size={25}/></span></div><h4><MathCopy text={item.title}/></h4><p><MathCopy text={item.description || item.script.question}/></p><small>By {galleryPublisher(item.publisher)}</small></article>)}{!visible.length&&<p>No captured community entries match this search.</p>}</div><div className="gallery-demo-disclosure">Prepared gallery sequence · actual saved catalogue entry</div><Cursor x={interpolate(p,[0,.25,.45],[1200,800,540],{extrapolateRight:'clamp'})} y={interpolate(p,[0,.25,.45],[100,215,405],{extrapolateRight:'clamp'})} click={p>.46&&p<.53}/></div>;
