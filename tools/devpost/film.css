@@ -1,0 +1,39 @@
+.film-root { background:#0b0d10; color:#f4f4f6; font-family:Arial,sans-serif; }
+.film-scene { background:radial-gradient(ellipse at 75% 25%,#e6b7840d,transparent 60%); padding:54px 90px 105px; }
+.film-topline { display:flex; justify-content:space-between; align-items:center; color:#9aa1af; font-size:20px; border-bottom:1px solid #ffffff14; padding-bottom:24px; }
+.film-topline strong { color:#f4f4f6; font-size:37px; letter-spacing:-1.5px; display:flex; gap:24px; align-items:center; }
+.film-topline strong span { font-size:17px; color:#9aa1af; font-weight:400; letter-spacing:0; }
+.film-eyebrow { font-size:20px; color:#e6b784; letter-spacing:.06em; }
+.film-title { margin:20px 0 12px; }
+.film-title h2 { font-size:49px; line-height:1.1; letter-spacing:-1.8px; font-weight:500; margin:9px 0; }
+.film-product { width:1100px; margin:0 auto; }
+.film-product .studio-tour-viewport { border-radius:18px; }
+.film-product .studio-tour-scene { font-family:Arial,sans-serif; }
+.film-disclosure { display:block; color:#9aa1af; font-size:18px; text-align:center; margin-top:14px; }
+.film-caption { position:absolute; bottom:32px; left:160px; right:160px; min-height:55px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:25px; line-height:1.4; color:#f4f4f6; background:#0b0d10e6; border-radius:10px; padding:12px 28px; }
+.film-progress { position:absolute; left:0; bottom:0; height:3px; width:100%; background:#e6b784; transform-origin:left; }
+.film-opening { text-align:center; padding-top:40px; }
+.film-opening h1 { font-size:79px; font-weight:500; letter-spacing:-3px; margin:15px 0 30px; }
+.opening-board { width:1150px; height:465px; overflow:hidden; border:1px solid #ffffff18; border-radius:22px; margin:auto; }
+.film-board { width:100%; height:100%; display:block; object-fit:contain; }
+.film-small { color:#9aa1af; font-size:18px; margin:15px; }
+.architecture { margin-top:60px; }
+.architecture-input { border:1px solid #e6b78444; border-radius:12px; padding:16px 24px; width:310px; margin-bottom:30px; color:#e6b784; font-size:23px; }
+.architecture-chain { display:flex; align-items:center; gap:12px; }
+.architecture-node { flex:1; min-width:0; height:200px; border:1px solid #ffffff20; border-radius:16px; background:#12151b; padding:24px 18px; position:relative; }
+.architecture-node span { color:#e6b784; font-size:17px; }
+.architecture-node h3 { font-size:24px; font-weight:500; line-height:1.3; margin:14px 0 10px; }
+.architecture-node p { font-size:19px; color:#9aa1af; line-height:1.4; }
+.node-active { border-color:#e6b784; box-shadow:0 0 45px #e6b78418; }
+.architecture-arrow { color:#e6b784; font-size:25px; }
+.writer-stack { display:flex; gap:6px; position:absolute; right:14px; top:16px; }.writer-stack i { width:7px; height:20px; background:#e6b784; border-radius:3px; }
+.architecture-rail { display:flex; align-items:center; justify-content:center; gap:40px; margin:50px 0 24px; border-top:1px dashed #e6b78444; padding-top:30px; }
+.architecture-rail > div { border:1px solid #ffffff15; border-radius:12px; padding:20px 30px; }
+.architecture-rail h3 { font-size:24px; margin-bottom:12px; font-weight:500; }.architecture-rail p { font-size:19px; line-height:1.5; color:#9aa1af; }.architecture-rail > span { font-size:28px; color:#e6b784; }
+.architecture-note { color:#9aa1af; font-size:18px; text-align:center; }
+.render-scene { display:grid; grid-template-columns:1120px 1fr; gap:60px; align-items:center; margin-top:70px; }
+.render-board { height:580px; border:1px solid #ffffff15; border-radius:20px; overflow:hidden; }
+.render-copy h3 { font-size:31px; font-weight:500; margin-top:28px; }.render-copy p { color:#9aa1af; font-size:23px; line-height:1.6; margin-top:10px; }.render-copy span { color:#e6b784; font-size:19px; display:block; margin-top:35px; line-height:1.5; }
+.film-gallery { display:grid; grid-template-columns:520px 1fr; gap:70px; margin-top:65px; align-items:center; }
+.gallery-intro h3 { font-size:46px; line-height:1.2; font-weight:500; letter-spacing:-1.6px; }.gallery-intro p { font-size:27px; color:#9aa1af; line-height:1.5; margin-top:28px; }.gallery-intro span { color:#e6b784; font-size:18px; display:block; margin-top:28px; }
+.film-gallery-cards { display:flex; gap:20px; }.film-gallery-cards article { width:520px; border:1px solid #ffffff18; border-radius:18px; background:#12151b; overflow:hidden; }.gallery-card-board { min-height:235px; padding:35px; background:#090b0e; font-size:30px; }.gallery-card-board > span { color:#e6b784; font-size:18px; display:block; margin-bottom:25px; }.film-gallery-cards h3 { padding:24px 24px 0; font-size:25px; }.film-gallery-cards p { padding:20px 24px; color:#9aa1af; font-size:21px; line-height:1.5; }.film-gallery-cards small { display:block; padding:20px 24px; color:#9aa1af; font-size:18px; border-top:1px solid #ffffff10; }.film-gallery .katex { font-size:1em; }

@@ -75,3 +75,4 @@ agent-ctx/
 # local sqlite dev database
 prisma/db/
 /scratch/
+/tools/devpost/app.css
