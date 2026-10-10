@@ -1,0 +1,2 @@
+-- Reserved legacy preparation name. Ember table creation is recorded in
+-- 20261010000000_initial, which sorts before dispatch changes.

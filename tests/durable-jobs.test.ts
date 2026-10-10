@@ -14,6 +14,8 @@ async function setup() {
   const client = new PrismaClient({ datasources: { db: { url } } });
   const sql = await readFile(new URL("../prisma/migrations/20261010_durable_generation/migration.sql", import.meta.url), "utf8");
   for (const statement of sql.split(";").filter(s => s.trim())) await client.$executeRawUnsafe(statement);
+  const hosted = await readFile(new URL("../prisma/migrations/20261010_hosted_dispatch/migration.sql", import.meta.url), "utf8");
+  for (const statement of hosted.split(";").filter(s => s.trim())) await client.$executeRawUnsafe(statement);
   const store = new DurableJobStore(client);
   cleanups.push(async () => { await client.$disconnect(); await rm(directory, { recursive: true, force: true }); });
   return { store, client, url };

@@ -228,6 +228,13 @@ export function useVideoJob(
           | { jobId?: string; error?: string }
           | null;
         if (!res.ok || !data?.jobId) {
+          // A failed dispatch still has a durable identity. Preserve it for recovery.
+          if (data?.jobId) {
+            writeActiveJob({ id: data.jobId, question: text });
+            questionRef.current = text;
+            setOverlayOpen(false);
+            beginPolling(data.jobId);
+          }
           throw new Error(data?.error || "The tutor couldn't start that one.");
         }
         writeActiveJob({ id: data.jobId, question: text });

@@ -1,0 +1,3 @@
+-- Reserved legacy preparation name. The failed isolated-branch attempt was
+-- marked rolled back after confirming zero applied steps. Dispatch changes
+-- are recorded in 20261010010000_hosted_dispatch in the correct order.

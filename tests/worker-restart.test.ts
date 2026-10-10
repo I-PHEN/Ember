@@ -46,3 +46,27 @@ test("a killed worker resumes the same job without repeating saved stages or aud
   const state = JSON.parse((await client.videoJobRecord.findUniqueOrThrow({ where: { id } })).state);
   expect(await store.readAudio(state.checkpoint.voices[0])).not.toBeNull();
 }, 30_000);
+
+test("an orderly hosted slice resumes without repeating saved stages or recordings", async () => {
+  const { store, client, url, directory } = await testStore();
+  const id = await createJob("Solve x+1=2", store);
+  const log = join(directory, "slice-provider-calls.log");
+  for (const mode of ["slice", "finish"]) {
+    const child = Bun.spawn([process.execPath, "run", "tests/fixtures/video-worker.ts", url, log, mode], {
+      stdout: "pipe", stderr: "pipe",
+    });
+    const code = await child.exited;
+    if (code !== 0) throw new Error(await new Response(child.stderr).text());
+    if (mode === "slice") {
+      const row = await client.videoJobRecord.findUniqueOrThrow({ where: { id } });
+      expect(row.attempts).toBe(0);
+      expect(JSON.parse(row.state).checkpoint.voices[0]).toBeTruthy();
+      expect(row.status).not.toBe("error");
+    }
+  }
+  expect((await getJob(id, store))?.phase).toBe("ready");
+  const calls = (await readFile(log, "utf8")).trim().split("\n");
+  for (const stage of ["director", "planner", "writer-0", "audio-0", "audio-1"]) {
+    expect(calls.filter(call => call === stage)).toHaveLength(1);
+  }
+}, 20_000);

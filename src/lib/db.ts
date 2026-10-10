@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client'
+import { PrismaClient as PostgresClient } from '@prisma/postgres-client'
+import { databaseConfig } from './database-config'
 
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:./db/custom.db";
-}
+const config = databaseConfig(process.env.DATABASE_URL, process.env.VERCEL === '1');
+process.env.DATABASE_URL = config.url;
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -10,6 +11,9 @@ const globalForPrisma = globalThis as unknown as {
 
 export const db =
   globalForPrisma.prisma ??
-  new PrismaClient()
+  // Both clients are generated from identical models. Keep one application API.
+  (config.provider === 'postgresql'
+    ? new PostgresClient({ datasources: { db: { url: config.url } } }) as unknown as PrismaClient
+    : new PrismaClient({ datasources: { db: { url: config.url } } }))
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db

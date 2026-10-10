@@ -28,6 +28,7 @@ const providers: EngineProviders = {
       const index = Number(user.match(/YOUR SCENE: scene (\d+)/)?.[1]) - 1;
       record(`writer-${index}`);
       if (mode === "interrupt" && index === 1) await Bun.sleep(30_000);
+      if (mode === "slice" && index === 1) await Bun.sleep(3000);
       data = { narration: narrations[index], beats: [
         { type: "write", text: index === 0 ? "x + 1 = 2" : "x = 1", say: narrations[index], keep: index === 1 },
         ...(index === 1 ? [{ type: "box" }] : []),
@@ -43,5 +44,5 @@ const providers: EngineProviders = {
 try {
   const claim = await store.claimNext();
   if (!claim) throw new Error("No resumable job");
-  await runClaimedJob(claim, store, providers);
+  await runClaimedJob(claim, store, providers, mode === "slice" ? { sliceMs: 1000 } : {});
 } finally { await client.$disconnect(); }

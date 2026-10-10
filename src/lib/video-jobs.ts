@@ -186,7 +186,7 @@ function ewma(prev: number, sample: number): number {
 
 /* ------------------------------ store ------------------------------ */
 
-export async function createJob(question: string, store = jobStore): Promise<string> {
+export async function createJob(question: string, store = jobStore, dailyLimit?: number): Promise<string> {
   const id = `job_${randomUUID()}`;
   const job: Job = {
     id,
@@ -230,7 +230,7 @@ export async function createJob(question: string, store = jobStore): Promise<str
       verification: null,
     },
   };
-  await store.insert(job);
+  await store.insert(job, dailyLimit);
   return id;
 }
 
@@ -540,13 +540,19 @@ export interface EngineProviders {
   synthesize: typeof speak;
 }
 
+class SliceExpiredError extends Error {}
+
 export async function runClaimedJob(
   claim: { id: string; token: string },
   store: DurableJobStore = jobStore,
   providers: EngineProviders = { complete: chatComplete, synthesize: speak },
-): Promise<void> {
+  options: { sliceMs?: number } = {},
+): Promise<"complete" | "yielded"> {
   const job = await store.read<Job>(claim.id);
-  if (!job || job.phase === "ready" || job.phase === "error") return;
+  if (!job || job.phase === "ready" || job.phase === "error") {
+    await store.release(claim.id, claim.token);
+    return "complete";
+  }
   let leaseLost = false;
   let acceptingWrites = true;
   let persistError: unknown;
@@ -566,21 +572,48 @@ export async function runClaimedJob(
     }).catch(() => { leaseLost = true; });
   }, 10_000);
   let executionTimer: ReturnType<typeof setTimeout> | undefined;
+  let yielded = false;
+  const assertActive = () => {
+    if (leaseLost || !acceptingWrites) throw new LeaseLostError();
+  };
+  const guardedProviders: EngineProviders = {
+    complete: async (...args) => {
+      assertActive();
+      const result = await providers.complete(...args);
+      assertActive();
+      return result;
+    },
+    synthesize: async (...args) => {
+      assertActive();
+      const result = await providers.synthesize(...args);
+      assertActive();
+      return result;
+    },
+  };
   try {
     await Promise.race([
-      runJob(job, save, store, providers),
+      runJob(job, save, store, guardedProviders),
       new Promise<never>((_, reject) => {
-        executionTimer = setTimeout(() => reject(new Error("Video worker execution exceeded 15 minutes")), 15 * 60_000);
+        executionTimer = setTimeout(() => reject(options.sliceMs !== undefined
+          ? new SliceExpiredError("Execution slice finished")
+          : new Error("Video worker execution exceeded 15 minutes")), options.sliceMs ?? 15 * 60_000);
       }),
     ]);
     await writes;
     if (persistError) throw persistError;
+  } catch (error) {
+    if (!(error instanceof SliceExpiredError)) throw error;
+    yielded = true;
   } finally {
     acceptingWrites = false;
     clearTimeout(executionTimer);
     clearInterval(heartbeat);
-    await store.release(job.id, claim.token);
+    await writes;
+    if (yielded && !leaseLost && !persistError) await store.yieldClaim(job.id, claim.token);
+    else await store.release(job.id, claim.token);
   }
+  if (persistError) throw persistError;
+  return yielded ? "yielded" : "complete";
 }
 
 async function runJob(
