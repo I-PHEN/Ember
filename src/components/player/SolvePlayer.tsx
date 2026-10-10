@@ -1,4 +1,5 @@
 "use client";
+import { storedAudioKey } from "@/lib/video/recorded-audio";
 
 /* ------------------------------------------------------------------
    SolvePlayer — a real video player for AI-generated solve videos.
@@ -215,7 +216,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
           if (pick === -1) pick = 0;
           const idx = pending.splice(pick, 1)[0];
           try {
-            const url = await narrationStore.get(tl.scenes[idx].narration!, "jam");
+            const url = await narrationStore.get(tl.scenes[idx].narration!, "jam", storedAudioKey(script.scenes[idx]));
             if (cancelled) return;
             const dur = await probeDuration(url);
             if (cancelled) return;

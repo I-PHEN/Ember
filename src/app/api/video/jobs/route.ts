@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const jobId = createJob(question);
+    const jobId = await createJob(question);
     return NextResponse.json({ jobId });
   } catch (err) {
     console.error("create video job failed:", err);

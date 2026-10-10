@@ -76,3 +76,25 @@ model GalleryPost {
   upvotes        Int          @default(0)
   createdAt      DateTime     @default(now())
 }
+
+// Durable execution state; all writers are fenced by the lease token.
+model VideoJobRecord {
+  id          String   @id
+  state       String
+  status      String
+  leaseToken  String?
+  leaseUntil  DateTime?
+  attempts    Int      @default(0)
+  nextRunAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status, nextRunAt, leaseUntil])
+}
+
+// Audio is persisted before a scene can count as voiced.
+model NarrationAsset {
+  key         String   @id
+  data        Bytes
+  createdAt   DateTime @default(now())
+}

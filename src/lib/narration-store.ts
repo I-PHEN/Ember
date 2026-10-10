@@ -41,17 +41,19 @@ interface TransientError extends Error {
   retryAfterMs?: number;
 }
 
-class NarrationStore {
+export class NarrationStore {
   private cache = new Map<string, Promise<string>>();
   private inflight = new Map<string, Promise<string>>();
 
-  private async attempt(text: string, voice: string): Promise<string> {
-    const r = await fetch("/api/narrate", {
+  private async attempt(text: string, voice: string, audioKey?: string): Promise<string> {
+    const r = await fetch(audioKey ? `/api/narrate/${audioKey}` : "/api/narrate", audioKey ? {
+      cache: "no-store",
+    } : {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, voice }),
     });
-    if (r.status === 429 || r.status >= 500) {
+    if (r.status === 429 || r.status >= 500 || (audioKey && r.status === 404)) {
       const err = new Error(
         `narrate ${r.status}`
       ) as TransientError;
@@ -69,7 +71,7 @@ class NarrationStore {
     return URL.createObjectURL(blob);
   }
 
-  private fetchWithPatience(text: string, voice: string): Promise<string> {
+  private fetchWithPatience(text: string, voice: string, audioKey?: string): Promise<string> {
     return (async () => {
       let lastErr: TransientError | null = null;
       for (let a = 0; a < ATTEMPT_GAPS.length; a++) {
@@ -79,11 +81,11 @@ class NarrationStore {
           await sleep(Math.max(ATTEMPT_GAPS[a], hint));
         }
         try {
-          return await withTimeout(this.attempt(text, voice), ATTEMPT_TIMEOUT);
+          return await withTimeout(this.attempt(text, voice, audioKey), ATTEMPT_TIMEOUT);
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
           // permanent client-side failure (bad request / bad body) — stop
-          if (/^narrate 4\d\d$/.test(msg) && !/^narrate 429$/.test(msg)) {
+          if (/^narrate 4\d\d$/.test(msg) && !/^narrate 429$/.test(msg) && !(audioKey && msg === "narrate 404")) {
             throw e;
           }
           lastErr = e as TransientError;
@@ -94,11 +96,11 @@ class NarrationStore {
   }
 
   /** single-flight fetch — one request per (voice, text) at a time */
-  private fetchOnce(text: string, voice: string): Promise<string> {
-    const key = `${voice}::${text}`;
+  private fetchOnce(text: string, voice: string, audioKey?: string): Promise<string> {
+    const key = audioKey ?? `${voice}::${text}`;
     let p = this.inflight.get(key);
     if (!p) {
-      const raw = this.fetchWithPatience(text, voice);
+      const raw = this.fetchWithPatience(text, voice, audioKey);
       /* one promise, three jobs: dedupe (inflight), self-cleanup on
          settle, and a no-op rejection observer — a failed fetch must
          never surface as an unhandled "narrate 429" runtime error,
@@ -112,11 +114,11 @@ class NarrationStore {
     return p;
   }
 
-  get(text: string, voice = "jam"): Promise<string> {
-    const key = `${voice}::${text}`;
+  get(text: string, voice = "jam", audioKey?: string): Promise<string> {
+    const key = audioKey ?? `${voice}::${text}`;
     let p = this.cache.get(key);
     if (!p) {
-      p = this.fetchOnce(text, voice);
+      p = this.fetchOnce(text, voice, audioKey);
       this.cache.set(key, p);
       // drop failures so a later get() can start fresh
       p.catch(() => {

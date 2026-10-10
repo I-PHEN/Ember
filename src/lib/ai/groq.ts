@@ -59,6 +59,7 @@ export async function groqChat(
   }
   const r = await fetch(BASE, {
     method: "POST",
+    signal: AbortSignal.timeout(60_000),
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${key}`,

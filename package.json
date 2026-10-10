@@ -6,6 +6,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev -p 3000",
+    "worker": "bun run src/workers/video-worker.ts",
+    "db:jobs:init": "prisma db execute --file prisma/migrations/20261010_durable_generation/migration.sql --schema prisma/schema.prisma",
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { peekCache, speak } from "@/lib/tts-queue";
+import { ensureRecordedAudio } from "@/lib/jobs/audio-assets";
 
 export const maxDuration = 120;
 
@@ -45,10 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "speed out of range" }, { status: 400 });
     }
 
-    const cached = peekCache(text, voice, speed);
-    if (cached) return audioResponse(cached);
-
-    const { buffer } = await speak(text, voice, speed);
+    const { buffer } = await ensureRecordedAudio(text, voice);
     return audioResponse(buffer);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Voice generation failed.";

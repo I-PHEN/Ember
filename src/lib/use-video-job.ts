@@ -137,7 +137,7 @@ export function useVideoJob(
     failsRef.current = 0;
     const snap: VideoJobStatus = { ...s, at: Date.now() };
     setStatus(snap);
-    if (snap.script && !deliveredRef.current) {
+    if (snap.script && snap.phase !== "error" && !deliveredRef.current) {
       deliveredRef.current = true;
       writeActiveJob(null); // the script is in the client now — safe
       onScriptRef.current(snap.script, {
@@ -155,7 +155,7 @@ export function useVideoJob(
       try {
         const r = await fetch(`/api/video/jobs/${id}`, { cache: "no-store" });
         if (r.status === 404) {
-          // job expired (server restarted or >35 min) — surface it
+          // A missing durable job must never be replaced with another lesson.
           stopPolling();
           writeActiveJob(null);
           setStatus({
@@ -173,7 +173,7 @@ export function useVideoJob(
             script: null,
             progressPct: 0,
             error:
-              "This video expired — finished videos are kept in your history, unfinished jobs for about 35 minutes.",
+              "This video job could not be found. Your saved lessons are still in your history.",
             at: Date.now(),
           });
           return;

@@ -58,6 +58,7 @@ async function call(model: string, body: unknown): Promise<Record<string, unknow
   }
   const r = await fetch(`${BASE}/${model}:generateContent`, {
     method: "POST",
+    signal: AbortSignal.timeout(60_000),
     headers: {
       "Content-Type": "application/json",
       "x-goog-api-key": key,
