@@ -96,7 +96,8 @@ export function useVideoJob(
   onScript: (
     script: SolveScript,
     opts: { autoWatch: boolean; jobId: string }
-  ) => void
+  ) => void,
+  enabled = true
 ) {
   const [status, setStatus] = useState<VideoJobStatus | null>(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -215,6 +216,7 @@ export function useVideoJob(
   /** kick off a fresh generation (from the form) */
   const start = useCallback(
     async (question: string) => {
+      if (!enabled) return;
       const text = question.trim();
       if (!text) return;
       setFormError("");
@@ -239,18 +241,19 @@ export function useVideoJob(
         setFormError(e instanceof Error ? e.message : "Something went wrong.");
       }
     },
-    [beginPolling]
+    [beginPolling, enabled]
   );
 
   /** boot-time resume (localStorage) — returns true if a job was found */
   const resumeFromStorage = useCallback((): boolean => {
+    if (!enabled) return false;
     const aj = readActiveJob();
     if (!aj) return false;
     questionRef.current = aj.question;
     setOverlayOpen(false);
     beginPolling(aj.id);
     return true;
-  }, [beginPolling]);
+  }, [beginPolling, enabled]);
 
   /** user chose "come back later" — keep polling, keep storage */
   const leave = useCallback(() => setOverlayOpen(false), []);

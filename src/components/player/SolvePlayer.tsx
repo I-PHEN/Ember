@@ -88,6 +88,8 @@ export interface SolvePlayerProps {
   showChapterLabel?: boolean;
   /** Read-only product walkthrough clock; no audio requests or independent playback. */
   presentationTime?: number;
+  /** Offline presentation transport state; never affects normal playback. */
+  presentationPaused?: boolean;
   /** Saved tracks indexed by scene. When supplied, never request fresh speech. */
   narrationTracks?: readonly NarrationTrack[];
   /** Only supplied when this exact script belongs to a live generation job. */
@@ -142,6 +144,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     {
       script,
       presentationTime,
+      presentationPaused = false,
       showChapterLabel = true,
       narrationTracks,
       jobId,
@@ -189,7 +192,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const [uiClockT, setUiT] = useState(0);
     const uiT = presentationTime ?? uiClockT;
     const [playbackPlaying, setPlaying] = useState(false);
-    const playing = presenting || playbackPlaying;
+    const playing = presenting ? !presentationPaused : playbackPlaying;
     const [ended, setEnded] = useState(false);
     const [waiting, setWaiting] = useState(false);
     const [blocked, setBlocked] = useState(false);

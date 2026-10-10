@@ -12,6 +12,8 @@ node tools/devpost/render.mjs --output=C:/Users/Michael/Downloads/Ember-Devpost-
 
 Install renderer dependencies with `bun install` inside `tools/devpost` first. A production `.next/static/css` build is required. Output narration, manifests, previews, and caption files stay in ignored `scratch/devpost`. Narration caches are keyed by script and voice, so retries do not regenerate unchanged audio. Existing MP4 outputs are never overwritten.
 
+In a worktree with a shared `node_modules` junction, use `node node_modules/next/dist/bin/next build --webpack`; Turbopack rejects dependencies outside its filesystem root. Do not replace or delete the shared dependency directory to work around that restriction.
+
 Preview frames must be visually reviewed. Final captions are approximate word-count timings, not forced alignment, and need human review against the audio. Listen to the final narration and verify the MP4 before submitting. No music, third-party lecture footage, inflated benchmarks, or production-auth claims are included.
 
 ## Visual revision
@@ -23,3 +25,5 @@ The captured gallery script currently has timing warnings and malformed writing.
 For additional interaction QA frames using cached narration, run `node tools/devpost/render.mjs --stills-only`. Export the revision to a separate filename such as `C:/Users/Michael/Downloads/Ember-Devpost-Demo-v2.mp4`. The original MP4 is preserved.
 
 Version three removes accelerated stroke playback. `writingClock` selects a step at an edit boundary, advances its ink at 0.95× authored speed, then holds that completed step. Opening, assignment and final-answer excerpts cover different parts of the derivation; gallery/closing views show a completed snapshot. Rewind remains a clearly illustrated seek, not forward writing. Warm charcoal (#272722), copper atmosphere (#b8793c), amber (#e6b784), warm brown (#3a2e25), and raised green-charcoal panels (#29302d) separate the presentation from the dark production board. Narration and duration remain unchanged.
+
+Version four replaces the presentation shells with the actual studio and gallery route components, filling the 1920×1080 composition without scaling, padding, borders, or outer titles. Their production backgrounds, responsive layout, player controls and Office Hours are unchanged. An isolated context supplies prepared state; a read-only auth provider, disabled job hook, and presentation guards prevent session restoration, gallery fetches, resume/generation, history writes and fresh narration. It is a rendered offline walkthrough, not a recording of live interactions. The architecture is the sole full-screen explanatory cutaway. Narration and natural ink speed remain unchanged.

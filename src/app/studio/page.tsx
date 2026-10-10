@@ -6,6 +6,7 @@
 ------------------------------------------------------------------- */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDemoPresentation } from "@/lib/demo-presentation";
 import {
   ArrowRight,
   AlertTriangle,
@@ -217,11 +218,15 @@ export interface ChatThread {
 }
 
 export default function Page() {
+  const presentation = useDemoPresentation();
   const { user, isGuest, continueAsGuest, loading: authLoading, openAuthModal, signOut } = useAuth();
-  const [phase, setPhase] = useState<Phase>("home");
-  const [script, setScript] = useState<SolveScript | null>(null);
+  const [livePhase, setPhase] = useState<Phase>("home");
+  const phase = presentation?.phase ?? livePhase;
+  const [liveScript, setScript] = useState<SolveScript | null>(null);
+  const script = presentation ? presentation.script : liveScript;
   const [themeId, setThemeId] = useState<BoardThemeId>("blackboard");
-  const [question, setQuestion] = useState("");
+  const [liveQuestion, setQuestion] = useState("");
+  const question = presentation?.question ?? liveQuestion;
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [sampleThumbs, setSampleThumbs] = useState<Record<string, string>>({});
@@ -239,11 +244,14 @@ export default function Page() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   /* Studio & Refinement State */
-  const [activeRightTab, setActiveRightTab] = useState<"chapters" | "refine">("chapters");
+  const [liveRightTab, setActiveRightTab] = useState<"chapters" | "refine">("chapters");
+  const activeRightTab = presentation?.tab ?? liveRightTab;
   const [scriptVersions, setScriptVersions] = useState<SolveScript[]>([]);
   const [currentVersionIdx, setCurrentVersionIdx] = useState(0);
-  const [refineChat, setRefineChat] = useState<RefineMessage[]>([]);
-  const [refineInstruction, setRefineInstruction] = useState("");
+  const [liveRefineChat, setRefineChat] = useState<RefineMessage[]>([]);
+  const refineChat = presentation?.messages ?? liveRefineChat;
+  const [liveInstruction, setRefineInstruction] = useState("");
+  const refineInstruction = presentation?.instruction ?? liveInstruction;
   const [isRefining, setIsRefining] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
@@ -296,7 +304,8 @@ export default function Page() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   /* Player Timestamp Tracking for Q&A */
-  const [playerTime, setPlayerTime] = useState(0);
+  const [livePlayerTime, setPlayerTime] = useState(0);
+  const playerTime = presentation?.boardTime ?? livePlayerTime;
   const [playerSceneIdx, setPlayerSceneIdx] = useState(0);
   const [activeSolveId, setActiveSolveId] = useState<string | null>(null);
 
@@ -306,6 +315,7 @@ export default function Page() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    if (presentation) return;
     setThemeId(defaultTheme());
     setHistory(loadHistory());
     fetch("/api/gallery")
@@ -318,6 +328,7 @@ export default function Page() {
 
   // Check for solve passed via /gallery or direct link
   useEffect(() => {
+    if (presentation) return;
     try {
       const activeRaw = window.localStorage.getItem("ember.watch.active");
       if (activeRaw) {
@@ -347,6 +358,8 @@ export default function Page() {
     }
     setSampleThumbs(thumbs);
     setSampleDurs(durs);
+
+    if (presentation) return;
 
     setHistory((entries) => {
       const refreshed = entries.map((entry) => {
@@ -800,7 +813,7 @@ export default function Page() {
   // Auto-scroll chat to latest message
   useEffect(() => {
     if (activeRightTab === "refine") {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      chatEndRef.current?.scrollIntoView({ behavior: presentation ? "instant" : "smooth" });
     }
   }, [refineChat, isRefining, activeRightTab]);
 
@@ -912,10 +925,10 @@ export default function Page() {
     [persist, watch]
   );
 
-  const job = useVideoJob(handleScript);
+  const job = useVideoJob(handleScript, !presentation);
   const {
-    status: jobStatus,
-    overlayOpen,
+    status: liveJobStatus,
+    overlayOpen: liveOverlayOpen,
     formError,
     busy: jobBusy,
     start: startJob,
@@ -924,6 +937,8 @@ export default function Page() {
     clear: clearJob,
     resumeFromStorage,
   } = job;
+  const jobStatus = presentation?.jobStatus ?? liveJobStatus;
+  const overlayOpen = presentation ? !!presentation.jobStatus : liveOverlayOpen;
 
   const generate = useCallback(
     (q: string) => {
@@ -945,6 +960,7 @@ export default function Page() {
   }, [jobStatus, watch]);
 
   useEffect(() => {
+    if (presentation) return;
     resumeFromStorage();
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -1525,7 +1541,9 @@ export default function Page() {
                 jobId={timingSource?.script === script ? timingSource.jobId : undefined}
                 themeId={themeId}
                 onThemeChange={changeTheme}
-                autoPlay
+                autoPlay={!presentation}
+                presentationTime={presentation?.boardTime}
+                presentationPaused={presentation?.paused}
                 seekRequest={seekReq}
                 onChaptersChange={handleChaptersChange}
                 onTimeUpdate={handleTimeUpdate}
@@ -2406,7 +2424,7 @@ export default function Page() {
 
       {/* Generation Overlay */}
       {overlayOpen && jobStatus && !jobStatus.script && jobStatus.phase !== "error" && (
-        <GenerateOverlay status={jobStatus} onLeave={leaveJob} />
+        <GenerateOverlay status={jobStatus} onLeave={leaveJob} nowMs={presentation ? 0 : undefined} />
       )}
 
       {/* Error Overlay */}

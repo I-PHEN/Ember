@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import MathCopy from "@/components/MathCopy";
 import { galleryPublisher } from "@/lib/gallery-presentation";
 import { useAuth } from "@/lib/firebase/auth-context";
+import { useDemoPresentation } from "@/lib/demo-presentation";
 
 interface GalleryItem {
   id: string;
@@ -70,15 +71,37 @@ function fmtDur(sec: number): string {
 }
 
 export default function GalleryPage() {
+  const presentation = useDemoPresentation();
   const { user, isGuest, openAuthModal } = useAuth();
-  const [items, setItems] = useState<GalleryItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [liveItems, setItems] = useState<GalleryItem[]>([]);
+  const items = presentation?.gallery ?? liveItems;
+  const [liveLoading, setLoading] = useState(true);
+  const loading = presentation ? false : liveLoading;
+  const [liveSearch, setSearch] = useState("");
+  const search = presentation?.search ?? liveSearch;
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [durs, setDurs] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    if (presentation) {
+      const newThumbs: Record<string, string> = {};
+      const newDurs: Record<string, string> = {};
+      for (const item of presentation.gallery ?? []) {
+        try {
+          const tl = compileTimeline(item.script);
+          newDurs[item.id] = fmtDur(totalDuration(tl));
+          newThumbs[item.id] = renderToImage(tl, THEMES.blackboard, thumbnailTime(tl), 480);
+        } catch { newDurs[item.id] = "—"; }
+      }
+      let active = true;
+      Promise.resolve().then(() => {
+        if (!active) return;
+        setThumbs(newThumbs);
+        setDurs(newDurs);
+      });
+      return () => { active = false; };
+    }
     fetch("/api/gallery")
       .then((r) => r.json())
       .then((d) => {

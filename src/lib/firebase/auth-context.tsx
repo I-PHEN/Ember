@@ -38,6 +38,16 @@ const GUEST_KEY = "ember.auth.guest";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Isolated filming session: no session restoration, authentication, or writes. */
+export function ReadOnlyAuthProvider({ children }: { children: ReactNode }) {
+  const unavailable = async (): Promise<FirebaseUser> => { throw new Error("Authentication is disabled in the offline presentation"); };
+  return <AuthContext.Provider value={{ user: null, loading: false, isGuest: true,
+    continueAsGuest: () => {}, signInWithGoogle: unavailable, signInWithEmail: unavailable,
+    signUpWithEmail: unavailable, signOut: async () => {}, openAuthModal: () => {},
+    closeAuthModal: () => {}, isAuthModalOpen: false, authModalCallback: null,
+  }}>{children}</AuthContext.Provider>;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
