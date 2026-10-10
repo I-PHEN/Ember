@@ -14,8 +14,12 @@ await fs.mkdir(audioDir, { recursive: true });
 type ScriptSegment = { id: string; title: string; text: string };
 type Caption = { start: number; end: number; text: string };
 const script: ScriptSegment[] = JSON.parse(await fs.readFile(path.join(here, 'script.json'), 'utf8'));
-const segments: (ScriptSegment & { duration: number; audio: string; audioDuration: number; captions: Caption[]; audioQuality: { rms: number; peak: number } })[] = [];
+const segments: (ScriptSegment & { duration: number; audio: string; audioDuration: number; audioGain: number; captions: Caption[]; audioQuality: { rms: number; peak: number } })[] = [];
 const voice = 'Aoede';
+const voiceProfile = {
+  model: 'gemini-3.1-flash-tts-preview',
+  direction: 'One speaker: a warm, clear female documentary narrator, with a neutral American accent. Maintain the same natural mid-register voice throughout. Conversational, confident and measured, approximately 150 words per minute. No character voices, no dramatic pitch changes, no music. This is one chapter of the same continuous Ember product demonstration. Do not read these directions.',
+};
 let subtitleIndex = 0;
 let elapsed = 0;
 const subtitles: string[] = [];
@@ -25,14 +29,14 @@ const timestamp = (seconds: number) => {
 };
 for (const segment of script) {
   if (!/^[a-z]+$/.test(segment.id)) throw new Error('Invalid segment ID.');
-  const hash = createHash('sha256').update(`${voice}:${segment.text}`).digest('hex').slice(0, 16);
+  const hash = createHash('sha256').update(JSON.stringify({ voice, voiceProfile, text: segment.text })).digest('hex').slice(0, 16);
   const name = `${segment.id}-${hash}.wav`;
   const file = path.join(audioDir, name);
   let wav: Buffer;
   try { wav = await fs.readFile(file); } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     console.log(`Synthesizing ${segment.id} with configured Gemini voice API.`);
-    wav = await geminiTTS(segment.text, voice);
+    wav = await geminiTTS(segment.text, voice, voiceProfile);
     await fs.writeFile(file, wav);
   }
   // Existing Gemini helper emits canonical mono PCM WAV with a 44-byte header.
@@ -57,8 +61,10 @@ for (const segment of script) {
     captions.push({ start: startSec, end: endSec, text });
     subtitles.push(`${++subtitleIndex}\n${timestamp(elapsed + startSec)} --> ${timestamp(elapsed + endSec)}\n${text}\n`);
   }
-  const duration = Math.ceil((audioDuration + .8) * 30) / 30;
-  segments.push({ ...segment, duration, audio: `audio/${name}`, audioDuration, captions, audioQuality: { rms, peak } });
+  // Give the demonstrated new line time to finish at natural authored speed.
+  const duration = Math.ceil((audioDuration + (segment.id === 'control' ? 7 : .8)) * 30) / 30;
+  const audioGain = Math.min(.085 / rms, .90 / peak);
+  segments.push({ ...segment, duration, audio: `audio/${name}`, audioDuration, audioGain, captions, audioQuality: { rms, peak } });
   elapsed += duration;
   console.log(`${segment.id}: ${audioDuration.toFixed(1)}s, peak ${peak.toFixed(3)}`);
 }
@@ -73,6 +79,6 @@ try {
   catch { gallery = []; }
   console.warn(gallery.length ? 'Using the previously captured gallery snapshot, not live catalogue data.' : 'No gallery snapshot captured. The film will label the empty catalogue.');
 }
-await fs.writeFile(path.join(scratch, 'manifest.json'), JSON.stringify({ segments, gallery }, null, 2));
+await fs.writeFile(path.join(scratch, 'manifest.json'), JSON.stringify({ segments, gallery, narration: { voice, ...voiceProfile, modelFallback: false } }, null, 2));
 await fs.writeFile(path.join(scratch, 'Ember-Devpost-Captions.srt'), subtitles.join('\n'));
 console.log(`Prepared ${elapsed.toFixed(1)}s. Captions require human timing review.`);

@@ -47,8 +47,17 @@ export function LessonScene({ seconds, duration, controls = false }: { seconds: 
 
 export function Pipeline({ seconds, duration }: { seconds: number; duration: number }) {
   const p = seconds / duration;
-  const active = Math.min(5, Math.floor(p * 6));
-  const artifacts = ['Question → learning goal', 'Plan → spoken explanation', 'Transcript → parallel board scenes', 'Scene review → bounded repair', 'Layout + supported arithmetic checks', 'Structured lesson → playback'];
+  // Hold this one map throughout the explanation; focus follows the narrated stages.
+  const active = p < .19 ? 0 : p < .30 ? 1 : p < .46 ? 2 : p < .63 ? 3 : p < .77 ? 4 : 5;
+  const artifacts = ['Director → learning arc', 'Transcript planner → spoken explanation', 'Parallel writers → board choreography', 'Reviewer → inspect and repair', 'Compiler → deterministic checks', 'Independent solver → answer comparison'];
+  const explanations = [
+    'Organize the question into a teachable sequence.',
+    'Write the reasoning the student will hear.',
+    'Create board scenes against the same transcript.',
+    'Review scenes; bound repair attempts instead of retrying forever.',
+    'Inspect layout and arithmetic supported by the checker.',
+    'Compare with a separately produced answer—not a proof of correctness.',
+  ];
   const nodes = [ ['Director', 60, 100], ['Transcript planner', 335, 100], ['Scene reviewer', 1040, 100], ['Compiler + checks', 1320, 100] ] as const;
   const writerX = 690;
   const paths = ['M300 150 H335', 'M580 150 C640 150 630 65 690 65', 'M580 150 H690', 'M580 150 C640 150 630 235 690 235', 'M930 65 C985 65 980 150 1040 150', 'M930 150 H1040', 'M930 235 C985 235 980 150 1040 150', 'M1280 150 H1320', 'M335 175 V365 H1035', 'M1560 175 V365 H1280'];
@@ -61,10 +70,10 @@ export function Pipeline({ seconds, duration }: { seconds: number; duration: num
     })}</svg>
     {nodes.map(([name,x,y],i) => <div className={`pipeline-node ${active === [0,1,3,4][i] ? 'active' : ''}`} style={{ left:x,top:y }} key={name}><small>{['Learning arc','Spoken explanation','Review + repair','Board integrity'][i]}</small><h3>{name}</h3></div>)}
     {[0,1,2].map(i => <div className={`pipeline-node writer ${active === 2 ? 'active' : ''}`} style={{left:writerX,top:15+i*85}} key={i}><span>Writer {i+1}</span><small>{['Introduce','Explain','Conclude'][i]} · illustrative allocation</small><div className="writer-progress" style={{transform:`scaleX(${ease(p,.28+i*.015,.48+i*.015)})`}} /></div>)}
-    <div className="pipeline-node solver" style={{left:335,top:330}}><small>Runs alongside planning/writing</small><h3>Independent solver</h3></div>
+    <div className={`pipeline-node solver ${active === 5 ? 'active' : ''}`} style={{left:335,top:330}}><small>Runs alongside planning/writing</small><h3>Independent solver</h3></div>
     <div className="pipeline-node delivery" style={{left:1040,top:330}}><small>Checked script → player</small><h3>Delivery gate</h3></div>
     <div className="pipeline-node voice" style={{left:1320,top:330}}><small>Parallel queue + cache</small><h3>Voice synthesis</h3></div>
-    </div><div className="pipeline-footnote">Illustrative data flow · solver comparisons can remain unresolved · checks are not proof of correctness</div>
+    </div><div className="pipeline-explanation"><span>{['PLAN','NARRATE','CHOREOGRAPH','REVIEW','CHECK','COMPARE'][active]}</span><p>{explanations[active]}</p><div className="pipeline-stage-track">{artifacts.map((_,i)=><i key={i} style={{background:i<=active?'#e6b784':'#626760'}} />)}</div></div><div className="pipeline-footnote">Illustrative data flow · solver comparisons can remain unresolved · checks are not proof of correctness</div>
   </div>;
 }
 

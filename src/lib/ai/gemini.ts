@@ -121,14 +121,16 @@ const TTS_FALLBACKS = [
 
 /** Gemini TTS → a WAV buffer (PCM is returned as base64 L16 mono; we
  *  wrap it with a RIFF header so the player keeps eating audio/wav). */
-export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
-  const models = [...new Set(TTS_FALLBACKS)];
+export async function geminiTTS(text: string, voice: string, profile?: { model: string; direction: string }): Promise<Buffer> {
+  // A filmed narration must not silently switch models between chapters.
+  // Live lesson generation retains its existing availability fallbacks.
+  const models = profile ? [profile.model] : [...new Set(TTS_FALLBACKS)];
   let lastError: unknown = null;
 
   for (const model of models) {
     try {
       const data = await call(model, {
-        contents: [{ parts: [{ text }] }],
+        contents: [{ parts: [{ text: profile ? `${profile.direction}\n\nRead only this transcript:\n${text}` : text }] }],
         generationConfig: {
           responseModalities: ["AUDIO"],
           speechConfig: {

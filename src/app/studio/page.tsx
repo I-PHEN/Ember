@@ -247,8 +247,10 @@ export default function Page() {
   /* Studio & Refinement State */
   const [liveRightTab, setActiveRightTab] = useState<"chapters" | "refine">("chapters");
   const activeRightTab = presentation?.tab ?? liveRightTab;
-  const [scriptVersions, setScriptVersions] = useState<SolveScript[]>([]);
-  const [currentVersionIdx, setCurrentVersionIdx] = useState(0);
+  const [liveScriptVersions, setScriptVersions] = useState<SolveScript[]>([]);
+  const scriptVersions = presentation?.versions ?? liveScriptVersions;
+  const [liveCurrentVersionIdx, setCurrentVersionIdx] = useState(0);
+  const currentVersionIdx = presentation?.versionIdx ?? liveCurrentVersionIdx;
   const [liveRefineChat, setRefineChat] = useState<RefineMessage[]>([]);
   const refineChat = presentation?.messages ?? liveRefineChat;
   const [liveInstruction, setRefineInstruction] = useState("");

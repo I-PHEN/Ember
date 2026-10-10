@@ -7,13 +7,13 @@ import { DemoPresentationProvider, type DemoPresentation } from "../../src/lib/d
 import type { SolveScript } from "../../src/lib/video/types";
 import { BookOpen, Network, MessagesSquare } from "lucide-react";
 import { Pipeline, Cursor } from "./VisualScenes";
-import { DEMO_LESSON, demoDuration, writingClock } from "./lesson";
+import { DEMO_LESSON, EDITED_DEMO_LESSON, demoDuration, writingClock, editedWritingClock } from "./lesson";
 import "./app.css";
 import "../../node_modules/katex/dist/katex.min.css";
 import "./visual-scenes.css";
 import "./fullscreen.css";
 
-type Segment = { id: string; title: string; text: string; duration: number; audio?: string; captions: { start: number; end: number; text: string }[] };
+type Segment = { id: string; title: string; text: string; duration: number; audio?: string; audioGain?: number; captions: { start: number; end: number; text: string }[] };
 export type FilmProps = { segments: Segment[]; gallery: { id: string; title: string; description?: string; publisher: string; script: SolveScript; upvotes?: number; views?: number; createdAt?: number }[] };
 const fps = 30;
 const question = "Evaluate the integral of x times e^(2x) using integration by parts.";
@@ -23,31 +23,34 @@ function Scene({ segment, gallery }: { segment: Segment; gallery: FilmProps["gal
   const sec = useCurrentFrame() / fps;
   const p = sec / segment.duration;
   const control = segment.id === "control";
-  const refining = control && p >= .53;
-  const galleryView = segment.id === "gallery" && p < .63;
+  const refining = control && p >= .36;
+  const communityRefining = segment.id === "gallery" && p >= .60;
+  const edited = (control && p >= .60) || (communityRefining && p >= .78);
+  const galleryView = segment.id === "gallery" && p < .48;
   const entering = segment.id === "question";
   const architecture = segment.id === "architecture";
-  const diagram = architecture && ((p >= .14 && p < .38) || (p >= .54 && p < .82));
-  const home = (segment.id === "opening" && p < .10) || (entering && p < .87) || (architecture && p < .14);
+  const diagram = architecture;
+  const home = (segment.id === "opening" && p < .10) || (entering && p < .87);
   const paused = writingClock(4, 1000);
   const revisited = writingClock(2, 1000);
-  const boardTime = segment.id === "opening" ? writingClock(0, Math.max(0, sec-segment.duration*.10))
-    : architecture ? (p < .82 ? writingClock(3,Math.max(0,sec-segment.duration*.38)) : demoDuration)
+  const boardTime = edited ? editedWritingClock(control ? Math.max(0,sec-segment.duration*.60) : 1000)
+    : segment.id === "opening" ? writingClock(0, Math.max(0, sec-segment.duration*.10))
     : segment.id === "watch" ? writingClock(2, sec)
     : segment.id === "render" ? writingClock(5, sec)
-    : control ? (p < .3 ? paused : p < .46 ? paused - ease(p,.3,.46)*(paused-revisited) : revisited)
+    : control ? (p < .27 ? paused : p < .34 ? paused - ease(p,.27,.34)*(paused-revisited) : revisited)
     : entering ? writingClock(0, Math.max(0, sec-segment.duration*.87)) : demoDuration;
   const generation = entering && p >= .43 && p < .87;
   const value: DemoPresentation = {
-    phase: home ? "home" : "watch", script: home ? null : DEMO_LESSON,
+    phase: home ? "home" : "watch", script: home ? null : edited ? EDITED_DEMO_LESSON : DEMO_LESSON,
+    versions: edited ? [DEMO_LESSON, EDITED_DEMO_LESSON] : [DEMO_LESSON], versionIdx: edited ? 1 : 0,
     question: entering ? question.slice(0, Math.floor(ease(p,.03,.35)*question.length)) : architecture ? question : "",
-    boardTime, paused: (control && p >= .10) || segment.id === "close" || segment.id === "gallery", tab: refining ? "refine" : "chapters",
+    boardTime, paused: (control && p >= .10) || segment.id === "close" || segment.id === "gallery", tab: refining || communityRefining ? "refine" : "chapters",
     themeId: segment.id === "opening" || entering ? "blackboard" : control && p >= .23 ? "paper" : "whiteboard",
     themeMenuOpen: control && p >= .15 && p < .27,
-    instruction: refining && p < .72 ? "Why do we choose u = x?".slice(0,Math.floor(ease(p,.55,.70)*23)) : "",
-    messages: refining && p >= .72 ? [
-      {role:"user",content:"Why do we choose u = x?"},
-      ...(p >= .78 ? [{role:"ember" as const,mode:"answer" as const,content:"Choose **u = x** because differentiating the polynomial makes it simpler: $du = dx$. Integrating the exponential gives $v = \\frac12 e^{2x}$. This removes x from the remaining integral."}] : []),
+    instruction: (refining || communityRefining) && !edited ? "Show the integration of e^(2x) as a separate step.".slice(0,Math.floor(ease(p,control ? .38 : .60,control ? .54 : .75)*48)) : "",
+    messages: (refining || communityRefining) && p >= (control ? .56 : .76) ? [
+      {role:"user",content:"Show the integration of e^(2x) as a separate step."},
+      ...(edited ? [{role:"ember" as const,mode:"edit" as const,content:"I've added the intermediate step: $\\int e^{2x}\\,dx=\\frac12 e^{2x}$. The revised board makes the integration explicit. You can compare this version with the original."}] : []),
     ] : [],
     gallery: gallery.map(item=>({...item,upvotes:item.upvotes??0,views:item.views??0,createdAt:item.createdAt??0})),
     search: galleryView ? "integration".slice(0,Math.floor(ease(p,.12,.34)*11)) : "",
@@ -57,31 +60,31 @@ function Scene({ segment, gallery }: { segment: Segment; gallery: FilmProps["gal
   const disclosure = segment.id === "close" ? "Future direction · API and live tutoring are planned, not available today"
     : architecture ? "Illustrative architecture · checks do not prove correctness"
     : generation ? "Prepared generation sequence · condensed, not a speed benchmark"
-    : refining ? "Actual Office Hours UI · prepared exchange, not a live response"
+    : refining || communityRefining ? "Actual Office Hours UI · prepared exchange, not a live response"
     : segment.id === "gallery" && !galleryView ? "Reviewed excerpt of this question · not a live gallery replay"
     : "Actual Ember interface · prepared offline walkthrough";
   const cx = control ? p < .11 ? 500+(72-500)*ease(p,.02,.10)
     : p < .16 ? 72+(870-72)*ease(p,.11,.15)
     : p < .23 ? 870+(790-870)*ease(p,.17,.22)
-    : p < .30 ? 790+(726-790)*ease(p,.27,.30)
-    : p < .46 ? 726+(379-726)*ease(p,.30,.46)
-    : p < .55 ? 379+(1320-379)*ease(p,.46,.53)
-    : 1320+(1190-1320)*ease(p,.55,.62) : 610+(1000-610)*ease(p,.35,.42);
+    : p < .27 ? 790+(726-790)*ease(p,.24,.27)
+    : p < .34 ? 726+(379-726)*ease(p,.27,.34)
+    : p < .38 ? 379+(1320-379)*ease(p,.34,.37)
+    : 1320+(1190-1320)*ease(p,.38,.44) : 610+(1000-610)*ease(p,.35,.42);
   const cy = control ? p < .11 ? 360+(566-360)*ease(p,.02,.10)
     : p < .16 ? 566
     : p < .23 ? 566+(518-566)*ease(p,.17,.22)
-    : p < .30 ? 518+(537-518)*ease(p,.27,.30)
-    : p < .46 ? 537 : p < .55 ? 537+(95-537)*ease(p,.46,.53)
-    : 95+(770-95)*ease(p,.55,.62) : 380+(466-380)*ease(p,.35,.42);
+    : p < .27 ? 518+(537-518)*ease(p,.24,.27)
+    : p < .34 ? 537 : p < .38 ? 537+(95-537)*ease(p,.34,.37)
+    : 95+(770-95)*ease(p,.38,.44) : 380+(466-380)*ease(p,.35,.42);
   return <AbsoluteFill className="full-screen-film">
     {segment.id === "close" ? <FutureClosing progress={p}/>
       : diagram ? <AbsoluteFill className="full-screen-architecture"><div><span>INSIDE EMBER</span><h1>One lesson. A coordinated crew.</h1></div><Pipeline seconds={sec} duration={segment.duration}/></AbsoluteFill>
       : <div className="full-screen-app" inert><ReadOnlyAuthProvider><DemoPresentationProvider value={value}>{galleryView ? <GalleryPage/> : <StudioPage/>}</DemoPresentationProvider></ReadOnlyAuthProvider></div>}
     {entering && !generation && home && <Cursor x={cx} y={cy} click={p>.41&&p<.43}/>}
-    {control && <Cursor x={cx} y={cy} click={(p>.095&&p<.12)||(p>.145&&p<.17)||(p>.22&&p<.245)||(p>.51&&p<.55)}/>}
+    {control && <Cursor x={cx} y={cy} click={(p>.095&&p<.12)||(p>.145&&p<.17)||(p>.22&&p<.245)||(p>.36&&p<.38)}/>}
     <div className="full-screen-disclosure">{disclosure}</div>
     {caption && <div className="full-screen-caption">{caption}</div>}
-    {segment.audio && <Audio src={staticFile(segment.audio)} volume={.82}/>}
+    {segment.audio && <Audio src={staticFile(segment.audio)} volume={.82*(segment.audioGain??1)}/>}
   </AbsoluteFill>;
 }
 

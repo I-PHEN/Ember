@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { DEMO_LESSON, demoTimeline, demoDuration, writingClock } from '../tools/devpost/lesson';
+import { DEMO_LESSON, EDITED_DEMO_LESSON, editedTimeline, editedWritingClock, demoTimeline, demoDuration, writingClock } from '../tools/devpost/lesson';
 import { auditTimeline } from '../src/lib/video/layout-audit';
 import fs from 'node:fs';
 
@@ -89,4 +89,26 @@ test('offline presentation disables generation and resume without changing live 
   expect(studio).toContain('useVideoJob(handleScript, !presentation)');
   expect(studio).toContain('autoPlay={!presentation}');
   expect(studio).toContain('presentationTime={presentation?.boardTime}');
+});
+
+test('architecture holds its diagram and the demo shows genuine editing UI', () => {
+  const film = fs.readFileSync('tools/devpost/Film.tsx', 'utf8');
+  expect(film).toContain('const diagram = architecture;');
+  expect(film).not.toContain('(architecture && p <');
+  expect(film).toContain('mode:"edit"');
+  expect(film).toContain('versions: edited ? [DEMO_LESSON, EDITED_DEMO_LESSON]');
+  expect(auditTimeline(editedTimeline)).toEqual([]);
+  expect(JSON.stringify(EDITED_DEMO_LESSON)).toContain('∫ e^(2x) dx = ½ e^(2x)');
+  for(let sec=0;sec<20;sec+=.1) expect(editedWritingClock(sec+.1)-editedWritingClock(sec)).toBeLessThanOrEqual(.095000001);
+});
+
+test('narration names themes and community revisions without internal storage copy', () => {
+  const script = JSON.parse(fs.readFileSync('tools/devpost/script.json','utf8')) as {id:string;text:string}[];
+  expect(script.find(s=>s.id==='control')?.text).toContain('a blackboard, a whiteboard, or paper');
+  expect(script.find(s=>s.id==='gallery')?.text).toContain('not overwriting the original community post');
+  expect(script.find(s=>s.id==='gallery')?.text).not.toContain('store lesson scripts');
+  const prepare=fs.readFileSync('tools/devpost/prepare.ts','utf8');
+  expect(prepare).toContain('voice, voiceProfile, text: segment.text');
+  expect(prepare).toContain('geminiTTS(segment.text, voice, voiceProfile)');
+  expect(prepare).toContain('modelFallback: false');
 });

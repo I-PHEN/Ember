@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { pcmToWav, normalizeVoice, EMBER_VOICE } from "../src/lib/ai/gemini";
+import { pcmToWav, normalizeVoice, EMBER_VOICE, geminiTTS } from "../src/lib/ai/gemini";
 
 describe("pcmToWav", () => {
   test("wraps PCM in a valid RIFF header", () => {
@@ -26,4 +26,28 @@ describe("normalizeVoice", () => {
     expect(normalizeVoice("Kore")).toBe("Kore");
     expect(normalizeVoice("Charon")).toBe("Charon");
   });
+});
+
+test("fixed narration profile keeps its voice and directions and never falls back", async () => {
+  const previousFetch = globalThis.fetch;
+  const previousKey = process.env.GEMINI_API_KEY;
+  process.env.GEMINI_API_KEY = 'local-test-placeholder';
+  const requests: {url:string;body:Record<string,unknown>}[]=[];
+  const profile = {model:'fixed-test-model',direction:'One consistent narrator.'};
+  try {
+    globalThis.fetch = (async (url, init) => {
+      requests.push({url:String(url),body:JSON.parse(String(init?.body))});
+      return new Response('Unavailable', {status:503});
+    }) as typeof fetch;
+    await expect(geminiTTS('Read this.', 'Aoede', profile)).rejects.toThrow('503');
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toContain('/fixed-test-model:generateContent');
+    expect(JSON.stringify(requests[0].body)).toContain('Aoede');
+    expect(JSON.stringify(requests[0].body)).toContain('One consistent narrator.');
+    expect(JSON.stringify(requests[0].body)).toContain('Read only this transcript:');
+  } finally {
+    globalThis.fetch = previousFetch;
+    if(previousKey===undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY=previousKey;
+  }
 });

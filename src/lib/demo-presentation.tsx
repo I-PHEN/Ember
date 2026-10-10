@@ -9,6 +9,8 @@ export interface DemoPresentation {
   phase: "home" | "watch";
   question: string;
   script: SolveScript | null;
+  versions?: SolveScript[];
+  versionIdx?: number;
   boardTime: number;
   paused?: boolean;
   themeId?: BoardThemeId;

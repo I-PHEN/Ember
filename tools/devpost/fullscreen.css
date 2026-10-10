@@ -4,16 +4,22 @@
 .full-screen-app *, .full-screen-app *::before, .full-screen-app *::after { animation:none !important; transition:none !important; caret-color:transparent; }
 .full-screen-disclosure { position:absolute; left:16px; bottom:10px; z-index:60; padding:5px 10px; border-radius:6px; background:#0b0d10e8; color:#a0a6b2; font-size:11px; }
 .full-screen-caption { position:absolute; z-index:60; bottom:40px; left:100px; right:100px; width:fit-content; max-width:1240px; margin:auto; padding:8px 14px; border-radius:8px; background:#0b0d10ed; color:#f4f4f6; text-align:center; font-size:18px; line-height:1.4; }
-.full-screen-architecture { padding:60px; background:radial-gradient(ellipse at 80% 15%,#e6b78412,transparent 65%),#0b0d10; }
+.full-screen-architecture { padding:40px 60px; background:radial-gradient(ellipse at 80% 15%,#b8793c25,transparent 65%),#20231f; }
 .full-screen-architecture > div:first-child > span { color:#e6b784; font-size:18px; letter-spacing:.13em; }
-.full-screen-architecture h1 { font-size:42px; font-weight:500; letter-spacing:-1.8px; margin:14px 0 30px; }
+.full-screen-architecture h1 { font-size:42px; font-weight:500; letter-spacing:-1.8px; margin:14px 0 20px; }
 .full-screen-architecture .demo-pipeline { margin-top:0; }
 .full-screen-architecture .pipeline-node.solver { height:115px; }
 .full-screen-architecture .pipeline-node.solver h3 { font-size:19px; margin-top:8px; }
 .full-screen-architecture .pipeline-artifact strong { font-size:22px; }
+.full-screen-architecture .pipeline-artifact { height:85px; }
 .full-screen-architecture .pipeline-artifact > :last-child { font-size:21px; }
-.full-screen-architecture .pipeline-map { transform:scale(.78); transform-origin:top left; margin:25px 0 -85px; }
-.full-screen-architecture .pipeline-footnote { font-size:14px; }
+.full-screen-architecture .pipeline-map { transform:scale(.78); transform-origin:top left; margin:15px 0 -85px; }
+.full-screen-architecture .pipeline-footnote { position:absolute; bottom:12px; left:360px; right:20px; font-size:12px; }
+.pipeline-explanation { display:flex; align-items:center; gap:20px; margin:4px 0 14px; padding:14px 18px; border-radius:10px; background:#e6b78412; }
+.pipeline-explanation > span { color:#e6b784; font:13px monospace; letter-spacing:.1em; min-width:105px; }
+.pipeline-explanation p { font-size:19px; color:#f6efdd; margin:0; }
+.pipeline-stage-track { display:flex; gap:5px; margin-left:auto; }
+.pipeline-stage-track i { width:15px; height:4px; border-radius:2px; }
 .future-closing { background:radial-gradient(ellipse at 85% 10%,#e6b78450,transparent 55%),#f6efdd; color:#37322a; padding:65px 70px; }
 .future-label { color:#8b5a27; font-size:13px; letter-spacing:.14em; }
 .future-closing h1 { font-size:51px; letter-spacing:-1.8px; font-weight:550; line-height:1.12; margin:20px 0 35px; }
