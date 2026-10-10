@@ -224,7 +224,8 @@ export default function Page() {
   const phase = presentation?.phase ?? livePhase;
   const [liveScript, setScript] = useState<SolveScript | null>(null);
   const script = presentation ? presentation.script : liveScript;
-  const [themeId, setThemeId] = useState<BoardThemeId>("blackboard");
+  const [liveThemeId, setThemeId] = useState<BoardThemeId>("blackboard");
+  const themeId = presentation?.themeId ?? liveThemeId;
   const [liveQuestion, setQuestion] = useState("");
   const question = presentation?.question ?? liveQuestion;
   const [attachedImage, setAttachedImage] = useState<string | null>(null);
@@ -1544,6 +1545,7 @@ export default function Page() {
                 autoPlay={!presentation}
                 presentationTime={presentation?.boardTime}
                 presentationPaused={presentation?.paused}
+                presentationThemeMenuOpen={presentation?.themeMenuOpen}
                 seekRequest={seekReq}
                 onChaptersChange={handleChaptersChange}
                 onTimeUpdate={handleTimeUpdate}

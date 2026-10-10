@@ -2,11 +2,26 @@
 /* Production pages occupy the entire composition: no frame, padding, or scaling. */
 .full-screen-app { position:absolute; inset:0; width:100%; height:100%; overflow:hidden; }
 .full-screen-app *, .full-screen-app *::before, .full-screen-app *::after { animation:none !important; transition:none !important; caret-color:transparent; }
-.full-screen-disclosure { position:absolute; left:24px; bottom:14px; z-index:60; padding:5px 10px; border-radius:6px; background:#0b0d10e8; color:#a0a6b2; font-size:13px; }
-.full-screen-caption { position:absolute; z-index:60; bottom:52px; left:190px; right:190px; width:fit-content; max-width:1540px; margin:auto; padding:9px 18px; border-radius:8px; background:#0b0d10ed; color:#f4f4f6; text-align:center; font-size:24px; line-height:1.4; }
-.full-screen-architecture { padding:90px 100px; background:radial-gradient(ellipse at 80% 15%,#e6b78412,transparent 65%),#0b0d10; }
+.full-screen-disclosure { position:absolute; left:16px; bottom:10px; z-index:60; padding:5px 10px; border-radius:6px; background:#0b0d10e8; color:#a0a6b2; font-size:11px; }
+.full-screen-caption { position:absolute; z-index:60; bottom:40px; left:100px; right:100px; width:fit-content; max-width:1240px; margin:auto; padding:8px 14px; border-radius:8px; background:#0b0d10ed; color:#f4f4f6; text-align:center; font-size:18px; line-height:1.4; }
+.full-screen-architecture { padding:60px; background:radial-gradient(ellipse at 80% 15%,#e6b78412,transparent 65%),#0b0d10; }
 .full-screen-architecture > div:first-child > span { color:#e6b784; font-size:18px; letter-spacing:.13em; }
-.full-screen-architecture h1 { font-size:56px; font-weight:500; letter-spacing:-1.8px; margin:14px 0 45px; }
+.full-screen-architecture h1 { font-size:42px; font-weight:500; letter-spacing:-1.8px; margin:14px 0 30px; }
 .full-screen-architecture .demo-pipeline { margin-top:0; }
 .full-screen-architecture .pipeline-node.solver { height:115px; }
 .full-screen-architecture .pipeline-node.solver h3 { font-size:19px; margin-top:8px; }
+.full-screen-architecture .pipeline-artifact strong { font-size:22px; }
+.full-screen-architecture .pipeline-artifact > :last-child { font-size:21px; }
+.full-screen-architecture .pipeline-map { transform:scale(.78); transform-origin:top left; margin:25px 0 -85px; }
+.full-screen-architecture .pipeline-footnote { font-size:14px; }
+.future-closing { background:radial-gradient(ellipse at 85% 10%,#e6b78450,transparent 55%),#f6efdd; color:#37322a; padding:65px 70px; }
+.future-label { color:#8b5a27; font-size:13px; letter-spacing:.14em; }
+.future-closing h1 { font-size:51px; letter-spacing:-1.8px; font-weight:550; line-height:1.12; margin:20px 0 35px; }
+.future-stages { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+.future-stages > div { border-top:2px solid #c2620e60; padding:23px 16px 20px 0; }
+.future-stages svg { color:#9a612e; }
+.future-stages h2 { font-size:24px; font-weight:550; line-height:1.25; margin:17px 0 12px; }
+.future-stages p { font-size:17px; color:#655c50; line-height:1.5; }
+.future-stages small { display:block; margin-top:18px; color:#8b5a27; font-size:12px; }
+.future-signoff { font-size:38px; font-weight:600; margin-top:25px; display:flex; gap:24px; align-items:center; }
+.future-signoff span { font-size:21px; font-weight:400; color:#9a612e; }

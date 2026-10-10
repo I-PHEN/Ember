@@ -68,7 +68,11 @@ try {
   const response = await fetch('http://localhost:3021/api/gallery');
   if (!response.ok) throw new Error('Gallery unavailable');
   gallery = (await response.json()).items || [];
-} catch { console.warn('No gallery snapshot captured. The film will label the empty catalogue.'); }
+} catch {
+  try { gallery = JSON.parse(await fs.readFile(path.join(scratch, 'preview-manifest.json'), 'utf8')).gallery || []; }
+  catch { gallery = []; }
+  console.warn(gallery.length ? 'Using the previously captured gallery snapshot, not live catalogue data.' : 'No gallery snapshot captured. The film will label the empty catalogue.');
+}
 await fs.writeFile(path.join(scratch, 'manifest.json'), JSON.stringify({ segments, gallery }, null, 2));
 await fs.writeFile(path.join(scratch, 'Ember-Devpost-Captions.srt'), subtitles.join('\n'));
 console.log(`Prepared ${elapsed.toFixed(1)}s. Captions require human timing review.`);

@@ -90,6 +90,8 @@ export interface SolvePlayerProps {
   presentationTime?: number;
   /** Offline presentation transport state; never affects normal playback. */
   presentationPaused?: boolean;
+  /** Shows the actual theme picker in an offline, frame-controlled walkthrough. */
+  presentationThemeMenuOpen?: boolean;
   /** Saved tracks indexed by scene. When supplied, never request fresh speech. */
   narrationTracks?: readonly NarrationTrack[];
   /** Only supplied when this exact script belongs to a live generation job. */
@@ -145,6 +147,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       script,
       presentationTime,
       presentationPaused = false,
+      presentationThemeMenuOpen,
       showChapterLabel = true,
       narrationTracks,
       jobId,
@@ -964,7 +967,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
                 >
                   <Palette className="h-5 w-5" />
                 </button>
-                {themeMenu && (
+                {(presentationThemeMenuOpen ?? themeMenu) && (
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setThemeMenu(false)} />
                     <div className="absolute bottom-11 right-0 z-30 w-40 overflow-hidden rounded-xl border border-white/10 bg-[#181b22] p-1 shadow-2xl">

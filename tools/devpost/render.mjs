@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 import { bundle } from '@remotion/bundler';
 import { selectComposition, renderStill, renderMedia } from '@remotion/renderer';
 
@@ -41,7 +42,7 @@ let offset = 0;
 for (const segment of props.segments) {
   const frames = Math.ceil(segment.duration * 30);
   await renderStill({ serveUrl, composition, inputProps: props, frame: offset + Math.min(frames - 13, Math.floor(frames * .6)), output: path.join(scratch, `${segment.id}.png`), imageFormat: 'png' });
-  if (stillsOnly && ['control', 'gallery'].includes(segment.id)) {
+  if (stillsOnly && ['control', 'gallery', 'architecture', 'close'].includes(segment.id)) {
     for (const progress of [.18, .4, .85]) await renderStill({ serveUrl, composition, inputProps: props, frame: offset + Math.floor(frames * progress), output: path.join(scratch, `${segment.id}-${progress}.png`), imageFormat: 'png' });
   }
   offset += frames;
@@ -51,6 +52,13 @@ if (!preview && !stillsOnly) {
   if (!outputLocation || !path.isAbsolute(outputLocation)) throw new Error('Supply an absolute --output= path for the downloadable MP4.');
   try { await fs.access(outputLocation); throw new Error('Output already exists; choose a new filename.'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   let last = -1;
-  await renderMedia({ serveUrl, composition, inputProps: props, outputLocation, codec: 'h264', crf: 20, audioCodec: 'aac', pixelFormat: 'yuv420p', concurrency: 2, onProgress: ({ progress }) => { const step = Math.floor(progress * 20); if (step > last) { last = step; console.log(`Rendering ${step * 5}%`); } } });
+  const nativeOutput = path.join(scratch, 'native-desktop-render.mp4');
+  await renderMedia({ serveUrl, composition, inputProps: props, outputLocation:nativeOutput, codec: 'h264', crf: 17, audioCodec: 'aac', pixelFormat: 'yuv420p', concurrency: 2, onProgress: ({ progress }) => { const step = Math.floor(progress * 20); if (step > last) { last = step; console.log(`Rendering ${step * 5}%`); } } });
+  const ffmpeg = path.join(here,'node_modules/@remotion/compositor-win32-x64-msvc/ffmpeg.exe');
+  await new Promise((resolve,reject)=>{
+    const child=spawn(ffmpeg,['-v','error','-n','-i',nativeOutput,'-vf','scale=1920:1080:flags=lanczos','-c:v','libx264','-crf','18','-pix_fmt','yuv420p','-c:a','copy','-movflags','+faststart',outputLocation],{windowsHide:true});
+    let errors='';child.stderr.on('data',chunk=>{errors+=chunk.toString();});
+    child.on('error',reject);child.on('close',code=>code===0?resolve():reject(new Error(`1080p export failed: ${errors}`)));
+  });
   console.log(`Rendered: ${outputLocation}`);
 }

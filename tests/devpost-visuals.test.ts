@@ -21,7 +21,7 @@ test('visual revision preserves narration and discloses prepared sequences', () 
   expect(visuals).toContain('String.raw');
 });
 test('visible writing never fast-forwards the authored stroke clock', () => {
-  for (const step of [0,2,5]) {
+  for (const step of [0,2,3,5]) {
     for (let sec = 0; sec < 30; sec += .1) {
       const advance = writingClock(step, sec + .1) - writingClock(step, sec);
       expect(advance).toBeGreaterThanOrEqual(0);
@@ -42,11 +42,42 @@ test('full-screen film mounts actual pages without an outer presentation frame',
   expect(film).not.toContain('film-product');
   expect(film).not.toContain('LessonScene');
   expect(css).toContain('inset:0; width:100%; height:100%');
-  expect(css).not.toContain('scale(');
+  expect(css.match(/\.full-screen-app \{[^}]+\}/)?.[0]).not.toContain('scale(');
   expect(css).not.toContain('font-family:Arial');
   expect(film).toContain('full-screen-film antialiased');
   expect(film).toContain('prepared exchange, not a live response');
   expect(film).toContain('not a speed benchmark');
+});
+
+test('readable film demonstrates actual themes and labels the future honestly', () => {
+  const film = fs.readFileSync('tools/devpost/Film.tsx', 'utf8');
+  const studio = fs.readFileSync('src/app/studio/page.tsx', 'utf8');
+  const player = fs.readFileSync('src/components/player/SolvePlayer.tsx', 'utf8');
+  expect(film).toContain('width={1440} height={810}');
+  expect(film).toContain('"paper" : "whiteboard"');
+  expect(studio).toContain('presentationThemeMenuOpen={presentation?.themeMenuOpen}');
+  expect(player).toContain('(presentationThemeMenuOpen ?? themeMenu)');
+  expect(film).toContain('Planned—not available today');
+  expect(film).toContain('segment.id === "close" ? <FutureClosing');
+  expect(film).toContain('const diagram = architecture');
+  expect(film).toContain('ember-original-score.wav');
+});
+
+test('original music generator uses narration ducking and no third-party samples', () => {
+  const music = fs.readFileSync('tools/devpost/music.mjs','utf8');
+  expect(music).toContain('Original procedural score');
+  expect(music).toContain('speechDucked:true');
+  expect(music).not.toContain('fetch(');
+  const file = 'scratch/devpost/public/audio/ember-original-score.wav';
+  if (fs.existsSync(file)) {
+    const wav = fs.readFileSync(file);
+    expect(wav.toString('ascii',0,4)).toBe('RIFF');
+    expect(wav.readUInt16LE(22)).toBe(2);
+    let peak=0;
+    for(let i=44;i<wav.length;i+=2) peak=Math.max(peak,Math.abs(wav.readInt16LE(i))/32768);
+    expect(peak).toBeGreaterThan(.01);
+    expect(peak).toBeLessThan(.16);
+  }
 });
 
 test('offline presentation disables generation and resume without changing live defaults', () => {
