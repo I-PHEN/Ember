@@ -16,10 +16,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params;
-  let job = getJob(id);
-  if (!job) {
-    job = getJob("job_" + Date.now() + "_" + Buffer.from("Solve this problem").toString("base64url"));
-  }
+  const job = getJob(id);
   if (!job) {
     return NextResponse.json(
       { error: "This video job has expired (videos are kept for about 35 minutes)." },
