@@ -4,8 +4,8 @@ import { measureText } from "../src/lib/video/text";
 import { CAP } from "../src/lib/video/types";
 import type { SolveScript } from "../src/lib/video/types";
 
-/* An Organic Chemistry Tutor pace, pinned by measurement: this exact 11-char
-   md write compiles to writeEnd ~ 13.5s at the 70px/s base with 0.18s
+/* Readable classroom pace, pinned by measurement: this exact 11-char
+   md write compiles to writeEnd ~ 13s at the 55px/s base with 0.18s
    air-travel gaps between strokes. The old AI speed (210px/s) rushed 
    through in 4.5s. The window [12.0, 15.0] enforces the methodical pace. */
 describe("pen pacing", () => {

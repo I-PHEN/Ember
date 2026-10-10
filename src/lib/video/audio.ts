@@ -11,6 +11,7 @@ export const BASE_SPEECH_RATE = 1.0;
 export class SceneAudio {
   private els: (HTMLAudioElement | null)[] = [];
   private urls = new Set<string>();
+  private starting = new WeakSet<HTMLAudioElement>();
   public blocked = false;
 
   attach(i: number, url: string, dur: number): HTMLAudioElement | null {
@@ -78,14 +79,22 @@ export class SceneAudio {
         /* not loaded yet */
       }
     }
-    if (a.paused) {
-      const p = a.play();
-      if (p && typeof p.catch === "function") {
-        p.catch((err: unknown) => {
-          if ((err as DOMException)?.name === "NotAllowedError") {
-            this.blocked = true;
-          }
-        });
+    if (a.paused && !this.starting.has(a) && !this.blocked) {
+      this.starting.add(a);
+      try {
+        const p = a.play();
+        if (p && typeof p.catch === "function") {
+          p.catch((err: unknown) => {
+            if ((err as DOMException)?.name === "NotAllowedError") {
+              this.blocked = true;
+            }
+          }).finally(() => this.starting.delete(a));
+        } else {
+          this.starting.delete(a);
+        }
+      } catch (err) {
+        this.starting.delete(a);
+        if ((err as DOMException)?.name === "NotAllowedError") this.blocked = true;
       }
     }
     return this.blocked;

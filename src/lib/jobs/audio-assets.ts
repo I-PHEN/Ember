@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { normalizeVoice, TTS_MODEL } from "../ai/gemini";
+import { normalizeVoice, TTS_MODEL, TEACHER_VOICE_STYLE } from "../ai/gemini";
 import { speak } from "../tts-queue";
 import { jobStore } from "./store";
 
@@ -10,7 +10,7 @@ interface AudioStore {
 
 export function audioKey(text: string, voice = "jam"): string {
   return createHash("sha256").update(JSON.stringify([
-    "ember-audio-v1", voice, normalizeVoice(voice), TTS_MODEL, text,
+    "ember-audio-v2", voice, normalizeVoice(voice), TTS_MODEL, TEACHER_VOICE_STYLE, text,
   ])).digest("hex");
 }
 

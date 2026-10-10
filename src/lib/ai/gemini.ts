@@ -21,6 +21,7 @@ export const CHAT_MODEL_LITE =
   process.env.GEMINI_MODEL_LITE ?? "gemini-3.5-flash-lite";
 export const TTS_MODEL =
   process.env.GEMINI_TTS_MODEL ?? "gemini-3.8-flash-lite-tts";
+export const TEACHER_VOICE_STYLE = "A calm, patient classroom teacher. Speak at approximately 120 words per minute, more slowly through equations. Pause naturally between reasoning steps and after important results. Clear, warm delivery, without rushing or dramatic performance. No music, sound effects, filler sounds, or added words.";
 
 /* Gemini's prebuilt neural voices. Anything else — including the
    legacy "jam" the client still sends — maps to the Ember default. */
@@ -48,7 +49,7 @@ export class ProviderError extends Error {
   }
 }
 
-async function call(model: string, body: unknown): Promise<Record<string, unknown>> {
+async function call(model: string, body: unknown, interactions = false): Promise<Record<string, unknown>> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) {
     throw new ProviderError(
@@ -56,7 +57,7 @@ async function call(model: string, body: unknown): Promise<Record<string, unknow
       "GEMINI_API_KEY is not set — get a free key at aistudio.google.com and add it to .env"
     );
   }
-  const r = await fetch(`${BASE}/${model}:generateContent`, {
+  const r = await fetch(interactions ? "https://generativelanguage.googleapis.com/v1beta/interactions" : `${BASE}/${model}:generateContent`, {
     method: "POST",
     signal: AbortSignal.timeout(60_000),
     headers: {
@@ -120,16 +121,32 @@ const TTS_FALLBACKS = [
   "gemini-3.1-flash-tts-preview",
 ];
 
-/** Gemini TTS → a WAV buffer (PCM is returned as base64 L16 mono; we
- *  wrap it with a RIFF header so the player keeps eating audio/wav). */
+/** Gemini TTS → WAV; preserve modern WAV output, wrap legacy PCM once. */
 export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
   const models = [...new Set(TTS_FALLBACKS)];
   let lastError: unknown = null;
 
   for (const model of models) {
     try {
+      // 3.8 reads input verbatim: delivery instructions belong in metadata,
+      // never in the transcript. Its default output is already WAV.
+      if (model.startsWith("gemini-3.8")) {
+        const data = await call(model, {
+          model,
+          input: [{ type: "user_input", content: [{ type: "text", text,
+            annotations: [{ type: "speech_metadata", style: TEACHER_VOICE_STYLE }] }] }],
+          response_format: { type: "audio" },
+          generation_config: { speech_config: [{ voice: normalizeVoice(voice) }] },
+        }, true);
+        const steps = data.steps as Array<{ type: string; content?: Array<{ type: string; data?: string }> }> | undefined;
+        const b64 = steps?.filter(s => s.type === "model_output").flatMap(s => s.content ?? []).filter(c => c.type === "audio").at(-1)?.data;
+        if (!b64) throw new Error("tts returned no audio");
+        const wav = Buffer.from(b64, "base64");
+        if (wav.toString("ascii", 0, 4) !== "RIFF" || wav.toString("ascii", 8, 12) !== "WAVE") throw new Error("tts returned an invalid WAV");
+        return wav;
+      }
       const data = await call(model, {
-        contents: [{ parts: [{ text }] }],
+        contents: [{ parts: [{ text: `${TEACHER_VOICE_STYLE}\nRead only the following transcript:\n${text}` }] }],
         generationConfig: {
           responseModalities: ["AUDIO"],
           speechConfig: {
@@ -144,6 +161,7 @@ export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
       if (!b64) throw new Error("tts returned no audio");
       const pcm = Buffer.from(b64, "base64");
       if (!pcm.length) throw new Error("empty audio");
+      if (pcm.toString("ascii", 0, 4) === "RIFF" && pcm.toString("ascii", 8, 12) === "WAVE") return pcm;
       return pcmToWav(pcm, 24000);
     } catch (err) {
       lastError = err;

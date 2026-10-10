@@ -46,8 +46,8 @@ import { normSpeechKey } from "../solve-schema";
 const HEAD = 0.7;
 
 function penSpeed(cap: number): number {
-  // px/second — calibrated to natural, confident human blackboard pace (~175 px/s)
-  return 175 * (0.85 + (0.15 * cap) / 38);
+  // Leave time to follow each symbol, rather than sprinting through a line.
+  return 55 * (0.85 + (0.15 * cap) / 38);
 }
 
 function polyLen(pts: Pt[]): { cum: number[]; len: number } {
@@ -167,7 +167,7 @@ function addPaths(
   raw: RawPath[],
   opts?: { gap?: number; speedCap?: number; settle?: number }
 ): PathStroke[] {
-  const gap = opts?.gap ?? 0.048; // Quick natural lift between strokes
+  const gap = opts?.gap ?? 0.18; // Deliberate lift between strokes.
   const out: PathStroke[] = [];
   for (const r of raw) {
     if (r.pts.length < 2) continue;
@@ -480,7 +480,7 @@ function buildTitle(ctx: Ctx, beat: Extract<Beat, { type: "title" }>): void {
   addPaths(
     ctx,
     [{ pts: under, color, width: Math.max(2.6, cap * 0.075) }],
-    { gap: 0.05, speedCap: cap, settle: 0.22 }
+    { gap: 0.18, speedCap: cap, settle: 0.22 }
   );
   groupSinceBeatStart(ctx, beat.text);
   /* advance the flow from the title's ACTUAL rendered bottom — a long
@@ -1667,7 +1667,7 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
    segment of the words they decorate. */
 
 const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.45; // allow pen to naturally brisk up when speech is quick so it never lags behind
+const SAY_SCALE_MIN = 1; // Short speech must never accelerate handwriting.
 const SAY_SCALE_MAX = 8.5; // allow pen to stretch gracefully across spoken phrases
 /** speech windows start here — pen touches down in lockstep with the first word */
 const SAY_T0 = 0.08;
@@ -2003,7 +2003,7 @@ export function compileTimeline(script: SolveScript): Timeline {
     if (sc.intro) {
       compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
     }
-    scene.dur = Math.max(HEAD + scene.writeEnd + 0.5, estAudio + 0.5);
+    scene.dur = Math.max(HEAD + scene.writeEnd, estAudio) + 2;
     scenes.push(scene);
     cursor = ctx.cursor;
     lastBottom = ctx.lastBottom;
@@ -2029,10 +2029,10 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
     const base = s.pacedFor ?? estimateNarration(s.narration);
     let k = (audioDur + 0.5 - HEAD) / (base + 0.5 - HEAD);
     if (Number.isFinite(k) && k > 0 && Math.abs(k - 1) > 0.01) {
-      /* audio shorter than planned → do NOT rush the pen past ~0.8×;
+      /* audio shorter than planned → do NOT rush the pen;
        * the scene simply runs a touch longer than the voice (a real
        * professor finishing a line in silence). Rushing reads as AI. */
-      k = Math.max(0.9, Math.min(1.35, k));
+      k = Math.max(1, Math.min(1.35, k));
       const anchor = (t: number) => HEAD + (t - HEAD) * k;
       for (const st of s.strokes) {
         st.t0 = anchor(st.t0);
@@ -2060,7 +2060,7 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
     }
   }
 
-  const want = Math.max(HEAD + s.writeEnd + 0.5, audioDur + 0.5);
+  const want = Math.max(HEAD + s.writeEnd, audioDur) + 2;
   if (!s.locked || want > s.dur) s.dur = want;
   s.locked = true;
 }
