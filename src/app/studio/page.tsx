@@ -161,7 +161,7 @@ function fmtDur(sec: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-export function formatMathTitle(title: string): string {
+function formatMathTitle(title: string): string {
   if (!title) return "";
   let t = title.trim();
   if (t.includes("$")) return t;
@@ -180,7 +180,7 @@ export function formatMathTitle(title: string): string {
   return t;
 }
 
-export function formatMathText(content: string): string {
+function formatMathText(content: string): string {
   if (!content) return "";
   let text = content;
 
@@ -1111,7 +1111,7 @@ export default function Page() {
                               </span>
                             )}
                             <span className="text-[10px] text-[#8b8d8f]">
-                              {fmtRelativeTime(item.timestamp)}
+                              {fmtRelativeTime(item.createdAt)}
                             </span>
                           </div>
                           <h4 className="mt-1 line-clamp-1 text-xs font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">

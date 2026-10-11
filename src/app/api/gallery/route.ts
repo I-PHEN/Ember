@@ -20,9 +20,12 @@ export async function GET(req: NextRequest) {
 
     let items = posts
       .map((p) => {
-        let script = null;
+        let script: Record<string, unknown> | null = null;
         try {
-          if (p.videoVersion?.script) script = JSON.parse(p.videoVersion.script);
+          if (p.videoVersion?.script) {
+            const parsed: unknown = JSON.parse(p.videoVersion.script);
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) script = parsed as Record<string, unknown>;
+          }
         } catch {
           script = null;
         }
@@ -41,7 +44,7 @@ export async function GET(req: NextRequest) {
 
     if (subject && subject !== "All") {
       items = items.filter(
-        (i) => i.script?.subject?.toLowerCase() === subject.toLowerCase()
+        (i) => typeof i.script?.subject === "string" && i.script.subject.toLowerCase() === subject.toLowerCase()
       );
     }
 
@@ -50,7 +53,7 @@ export async function GET(req: NextRequest) {
         (i) =>
           i.title.toLowerCase().includes(q) ||
           (i.description && i.description.toLowerCase().includes(q)) ||
-          (i.script?.question && i.script.question.toLowerCase().includes(q))
+          (typeof i.script?.question === "string" && i.script.question.toLowerCase().includes(q))
       );
     }
 
