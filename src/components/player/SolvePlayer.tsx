@@ -84,6 +84,10 @@ export interface SolvePlayerHandle {
 }
 
 export interface SolvePlayerProps {
+  /** Externally controlled, silent clock for the landing walkthrough. */
+  presentationTime?: number;
+  showChapterLabel?: boolean;
+  keyboardShortcuts?: boolean;
   script: SolveScript;
   themeId: BoardThemeId;
   onThemeChange?: (t: BoardThemeId) => void;
@@ -132,6 +136,9 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
   function SolvePlayer(
     {
       script,
+      presentationTime,
+      showChapterLabel = true,
+      keyboardShortcuts = true,
       themeId,
       onThemeChange,
       mini = false,
@@ -143,6 +150,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     },
     ref
   ) {
+    const presenting = presentationTime !== undefined;
     const tl = useMemo(() => compileTimeline(script), [script]);
     const theme = THEMES[themeId];
     const [, bumpDur] = useReducer((x: number) => x + 1, 0);
@@ -165,7 +173,8 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const lastSceneRef = useRef(-1);
     const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const [uiT, setUiT] = useState(0);
+    const [uiClockT, setUiT] = useState(0);
+    const uiT = presentationTime ?? uiClockT;
     const [playing, setPlaying] = useState(false);
     const [ended, setEnded] = useState(false);
     const [waiting, setWaiting] = useState(false);
@@ -185,19 +194,20 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     }, [total]);
 
     useEffect(() => {
+      if (presenting) return;
       if (audioRef.current == null) audioRef.current = new SceneAudio();
       return () => {
         audioRef.current?.dispose();
         cancelAnimationFrame(rafRef.current);
       };
-    }, []);
+    }, [presenting]);
 
     /* narration fetch — the store owns retries/patience; this loop owns
        ORDER: the scene under the playhead first (so seeking never waits
        behind scenes the user isn't watching), everything else in
        playback order */
     useEffect(() => {
-      if (mini) return;
+      if (mini || presenting) return;
       let cancelled = false;
       readyRef.current = tl.scenes.map(() => false);
       gaveUpRef.current = tl.scenes.map(() => false);
@@ -236,7 +246,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       return () => {
         cancelled = true;
       };
-    }, [tl, mini]);
+    }, [tl, mini, presenting]);
 
     /* --------------------------- canvas ----------------------------- */
 
@@ -262,6 +272,12 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       dirtyRef.current = true;
       draw();
     }, [draw]);
+
+    useEffect(() => {
+      if (presentationTime === undefined) return;
+      clockRef.current.t = Math.max(0, Math.min(totalDuration(tl), presentationTime));
+      draw();
+    }, [presentationTime, draw, tl]);
 
     useEffect(() => {
       const canvas = canvasRef.current;
@@ -377,10 +393,11 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     });
 
     useEffect(() => {
+      if (presenting) return;
       lastNowRef.current = performance.now();
       rafRef.current = requestAnimationFrame((n) => tickFn.current(n));
       return () => cancelAnimationFrame(rafRef.current);
-    }, []);
+    }, [presenting]);
 
     /* -------------------------- controls --------------------------- */
 
@@ -436,7 +453,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     }, [script]);
 
     useEffect(() => {
-      if (autoPlay && !hasAutoPlayedRef.current) {
+      if (!presenting && autoPlay && !hasAutoPlayedRef.current) {
         hasAutoPlayedRef.current = true;
         const id = setTimeout(() => {
           const c = clockRef.current;
@@ -451,7 +468,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         }, 150);
         return () => clearTimeout(id);
       }
-    }, [autoPlay, script, emitUi]);
+    }, [autoPlay, script, emitUi, presenting]);
 
     useEffect(() => {
       if (seekRequest) seek(seekRequest.t);
@@ -505,7 +522,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
 
     /* keyboard */
     useEffect(() => {
-      if (mini) return;
+      if (mini || presenting || !keyboardShortcuts) return;
       const onKey = (e: KeyboardEvent) => {
         const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
         if (tag === "input" || tag === "textarea" || tag === "select") return;
@@ -546,7 +563,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       };
       window.addEventListener("keydown", onKey);
       return () => window.removeEventListener("keydown", onKey);
-    }, [togglePlay, skip, seek, toggleFullscreen, toggleMute, mini]);
+    }, [togglePlay, skip, seek, toggleFullscreen, toggleMute, mini, presenting, keyboardShortcuts]);
 
     /* auto-hide controls */
     const pokeControls = useCallback(() => {
@@ -723,7 +740,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
 
         {/* chapter chip (top-left) — hidden during the trademark intro,
             where the board itself is the brand */}
-        {!mini && !inIntro && (controlsOn || !playing) && (
+        {showChapterLabel && !mini && !inIntro && (controlsOn || !playing) && (
           <div className="pointer-events-none absolute left-4 top-4 max-w-[70%] rounded-lg bg-black/55 px-3 py-1.5 text-[13px] font-medium text-white/90 backdrop-blur-sm">
             {chapter}
           </div>
