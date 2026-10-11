@@ -2,27 +2,66 @@ import { describe, expect, test } from "bun:test";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
 import LaunchFilm from "../src/components/landing/LaunchFilm";
+import * as filmModule from "../src/components/landing/LaunchFilm";
 import LearningComparison from "../src/components/landing/LearningComparison";
 
 describe("homepage launch film", () => {
-  test("offers a poster and native playback without loading or playing on mount", () => {
+  test("motion preference starts playback muted by the markup and stops automatic playback when reduced", async () => {
+    expect(typeof filmModule.bindFilmMotion).toBe("function");
+    let listener: (() => void) | undefined;
+    let plays = 0;
+    let pauses = 0;
+    const video = { autoPlay: false, play: async () => { plays++; }, pause: () => { pauses++; } };
+    const preference = {
+      matches: true,
+      addEventListener: (_type: string, callback: () => void) => { listener = callback; },
+      removeEventListener: (_type: string, callback: () => void) => { if (listener === callback) listener = undefined; },
+    };
+    const cleanup = filmModule.bindFilmMotion(video, preference);
+    expect(video.autoPlay).toBe(false);
+    expect(plays).toBe(0);
+    preference.matches = false;
+    listener!();
+    expect(video.autoPlay).toBe(true);
+    expect(plays).toBe(1);
+    preference.matches = true;
+    listener!();
+    expect(video.autoPlay).toBe(false);
+    expect(pauses).toBe(2);
+    cleanup();
+    expect(listener).toBeUndefined();
+  });
+
+  test("blocked autoplay leaves manual controls available without an unhandled rejection", async () => {
+    expect(typeof filmModule.bindFilmMotion).toBe("function");
+    let rejectedPlay = false;
+    const video = { autoPlay: false, play: async () => { rejectedPlay = true; throw new Error("Autoplay blocked"); }, pause() {} };
+    const cleanup = filmModule.bindFilmMotion(video, { matches: false, addEventListener() {}, removeEventListener() {} });
+    await Promise.resolve();
+    expect(rejectedPlay).toBe(true);
+    expect(renderToStaticMarkup(<LaunchFilm />)).toContain('controls=""');
+    cleanup();
+  });
+  test("offers muted native playback with hydration-safe initial autoplay disabled", () => {
     const html = renderToStaticMarkup(<LaunchFilm />);
     const video = html.match(/<video\b[^>]*>/)?.[0] ?? "";
     expect(video).toContain("controls=\"\"");
-    expect(video).toContain("preload=\"none\"");
+    expect(video).toContain("preload=\"metadata\"");
+    expect(video).toContain('muted=""');
+    expect(video).toContain('controlsList="nodownload"');
+    expect(video).not.toContain('loop=""');
     expect(video).toContain("playsInline=\"\"");
     expect(video).toContain("poster=\"/media/ember-launch-poster.jpg\"");
     expect(video.toLowerCase()).not.toContain("autoplay");
     expect(html).toContain('src="/media/ember-launch.mp4" type="video/mp4"');
   });
 
-  test("makes captions and independent downloadable media available", () => {
+  test("keeps captions and disclosure without download links", () => {
     const html = renderToStaticMarkup(<LaunchFilm />);
     expect(html).toContain('kind="captions"');
     expect(html).toContain('src="/media/ember-launch.vtt"');
     expect(html).toContain('srcLang="en"');
-    expect(html).toMatch(/<a[^>]*href="\/media\/ember-launch.mp4"[^>]*download=/);
-    expect(html).toMatch(/<a[^>]*href="\/media\/ember-launch-transcript.txt"[^>]*download=/);
+    expect(html).not.toMatch(/<a\b[^>]*download=/);
     expect(html).toContain("0:52");
     expect(html).toContain("Edited product demonstration");
   });

@@ -121,14 +121,15 @@
 .landing-primary:hover { background: #f1c89c; }
 .landing-outline:hover { border-color: #e6b78466; }
 .landing-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 60px; align-items: center; min-height: 690px; padding-block: 80px 100px; }
-.landing-hero.hero-focused { display: block; min-height: auto; padding-block: 56px 48px; }
+.landing-hero.hero-focused { display: block; min-height: auto; padding-block: 40px 40px; }
 .hero-focused .hero-copy { max-width: 840px; margin-inline: auto; text-align: center; }
 .hero-focused .landing-eyebrow, .hero-focused .landing-starters { justify-content: center; }
 .hero-focused .hero-description { max-width: 550px; margin-inline: auto; }
-.hero-focused .landing-composer { max-width: 780px; margin-inline: auto; text-align: left; padding: 24px; }
-.hero-focused .landing-composer textarea { min-height: 140px; max-height: 360px; font-size: 16px; }
+.hero-focused .landing-composer { max-width: 720px; margin-inline: auto; margin-top: 24px; text-align: left; padding: 14px; border-radius: 16px; border-color: #ffffff14; background: #12151bf2; }
+.hero-focused .landing-composer label { padding-inline: 10px; }
+.hero-focused .landing-composer textarea { min-height: 72px; max-height: 72px; resize: none; font-size: 14px; padding: 4px 10px; }
 .ember-landing .launch-film { max-width: 1000px; padding-block: 8px 64px; }
-.hero-focused .launch-film { width: 100%; margin-top: 32px; padding-block: 0; }
+.hero-focused .launch-film { width: 100%; margin-top: 24px; padding-block: 0; }
 .ember-landing .launch-film-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
 .ember-landing .launch-film-intro h2 { font-size: clamp(24px, 2.6vw, 34px); font-weight: 500; letter-spacing: -.035em; line-height: 1.25; margin-top: 10px; }
 .ember-landing .launch-film-intro > p { font-size: 12px; color: #9aa1af; }
@@ -275,8 +276,8 @@
   .hero-lesson { width: 100%; max-width: 780px; }
 }
 @media (max-width: 600px) {
-  .hero-focused .landing-composer { padding: 18px; }
-  .hero-focused .landing-composer textarea { min-height: 120px; }
+  .hero-focused .landing-composer { padding: 12px; }
+  .hero-focused .landing-composer textarea { min-height: 64px; max-height: 64px; }
   .ember-landing .launch-film { padding-bottom: 48px; }
   .hero-focused .launch-film { padding-block: 0; }
   .ember-landing .launch-film-intro { display: block; margin-bottom: 18px; }

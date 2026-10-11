@@ -40,7 +40,7 @@ test("keeps the film in the question hero before comparison and community", () =
 
   const question = html.match(/<textarea\b[^>]*id="lesson-question"[^>]*>/);
   expect(question).not.toBeNull();
-  expect(question![0]).toContain('rows="4"');
+  expect(question![0]).toContain('rows="2"');
   expect(question!.index!).toBeGreaterThan(hero!.start);
   expect(question!.index!).toBeLessThan(videos[0].start);
   expect(comparison).toBeDefined();
@@ -51,6 +51,5 @@ test("keeps the film in the question hero before comparison and community", () =
   expect(html.slice(community!.start, community!.end)).toContain('href="/gallery"');
   expect(html).toContain('src="/media/ember-launch.mp4"');
   expect(html).toContain('src="/media/ember-launch.vtt"');
-  expect(html).toContain('href="/media/ember-launch.mp4" download="ember-launch.mp4"');
-  expect(html).toContain('href="/media/ember-launch-transcript.txt" download="ember-launch-transcript.txt"');
+  expect(html).not.toMatch(/<a\b[^>]*download=/);
 });
