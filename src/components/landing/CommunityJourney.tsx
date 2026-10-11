@@ -1,20 +1,26 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useScroll, useSpring, useMotionValueEvent, useReducedMotion } from "framer-motion";
 import { galleryScene } from "@/lib/gallery-presentation";
 
 const phrases = ["Find a question like yours.", "Explore a shared lesson.", "Return when you need it."];
+const subscribeToHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
 export default function CommunityJourney() {
   const host = useRef<HTMLElement>(null);
   const reduced = useReducedMotion();
+  // Keep the server and first client render static; React switches to the
+  // client snapshot after hydration, when the device preference is known.
+  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
+  const moving = hydrated && reduced === false;
   const { scrollYProgress } = useScroll({ target: host, offset: ["start start", "end end"] });
   const smooth = useSpring(scrollYProgress, { stiffness: 180, damping: 38 });
   const [progress, setProgress] = useState(0);
-  useMotionValueEvent(smooth, "change", value => { if (reduced === false) setProgress(value); });
+  useMotionValueEvent(smooth, "change", value => { if (moving) setProgress(value); });
   const cursor = galleryScene(progress);
-  const moving = reduced === false;
   return <section ref={host} className={`community-journey ${moving ? "community-animated" : ""}`} aria-label="Discover the community gallery">
     <div className="community-pin landing-width">
       <div className="section-intro"><p className="landing-eyebrow">Questions worth sharing</p><h2>Your question might<br /><span>already have a lesson.</span></h2><p>Explore questions others have worked through with Ember. Find a useful explanation, watch it, and come back when you need another look.</p><Link href="/gallery" className="benefits-link">Explore the community gallery <ArrowRight size={14} /></Link></div>

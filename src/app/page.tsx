@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, BookOpen, MessageSquare, RotateCcw } from "lucide-react";
 import Wordmark from "@/components/Wordmark";
 import { useAuth } from "@/lib/firebase/auth-context";
-import ScrollLearningFlow from "@/components/landing/ScrollLearningFlow";
+import LaunchFilm from "@/components/landing/LaunchFilm";
 import LearningComparison from "@/components/landing/LearningComparison";
 import CommunityJourney from "@/components/landing/CommunityJourney";
 
@@ -36,7 +36,7 @@ export default function LandingPage() {
         <h1>Understand the steps.<br /><span className="font-hand">Not just the answer.</span></h1>
         <p className="hero-description">A lesson that writes, explains, and makes room for your questions. Follow the reasoning—and return to the step you need.</p>
         <form className="landing-composer" onSubmit={event => { event.preventDefault(); launch(); }}>
-          <label htmlFor="lesson-question">What are you working on?</label><textarea id="lesson-question" value={prompt} onChange={event => setPrompt(event.target.value)} rows={2} placeholder="Paste a STEM problem or ask about a concept…" />
+          <label htmlFor="lesson-question">What are you working on?</label><textarea id="lesson-question" value={prompt} onChange={event => setPrompt(event.target.value)} rows={4} placeholder="Paste a STEM problem or ask about a concept…" />
           <div className="composer-bottom"><span>Introductory university STEM</span><button className="landing-primary" disabled={loading} type="submit">Create a lesson <ArrowRight size={15} /></button></div>
         </form>
         <div className="landing-starters"><span>Try a question</span>{STARTERS.map(starter => <button key={starter.label} onClick={() => setPrompt(starter.prompt)}>{starter.label}</button>)}</div>
@@ -44,7 +44,7 @@ export default function LandingPage() {
         <div className="hero-gallery-invitation"><p>Your question might already have a lesson.</p><Link href="/gallery">Find it in the community gallery <ArrowRight size={14} /></Link></div>
       </div>
     </section>
-    <ScrollLearningFlow />
+    <LaunchFilm />
     <LearningComparison />
     <CommunityJourney />
     <section className="landing-width current-benefits"><div className="section-intro"><p className="landing-eyebrow">Built for the way you learn</p><h2>A lesson you can work with.</h2></div><div className="benefits-grid"><article><BookOpen size={21} /><h3>Follow the reasoning</h3><p>See the derivation take shape on a board, with an explanation alongside it.</p></article><article><RotateCcw size={21} /><h3>Return to a step</h3><p>Pause, change speed, and use chapters to revisit the part that needs another look.</p></article><article><MessageSquare size={21} /><h3>Ask the next question</h3><p>Ask Ember to clarify a step or adjust the explanation without leaving the lesson.</p></article></div></section>

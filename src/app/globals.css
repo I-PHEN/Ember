@@ -122,18 +122,37 @@
 .landing-outline:hover { border-color: #e6b78466; }
 .landing-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 60px; align-items: center; min-height: 690px; padding-block: 80px 100px; }
 .landing-hero.hero-focused { display: block; min-height: auto; padding-block: 80px 72px; }
-.hero-focused .hero-copy { max-width: 720px; margin-inline: auto; text-align: center; }
+.hero-focused .hero-copy { max-width: 840px; margin-inline: auto; text-align: center; }
 .hero-focused .landing-eyebrow, .hero-focused .landing-starters { justify-content: center; }
 .hero-focused .hero-description { max-width: 550px; margin-inline: auto; }
-.hero-focused .landing-composer { max-width: 610px; margin-inline: auto; text-align: left; }
+.hero-focused .landing-composer { max-width: 780px; margin-inline: auto; text-align: left; padding: 24px; }
+.hero-focused .landing-composer textarea { min-height: 140px; max-height: 360px; font-size: 16px; }
+.ember-landing .launch-film { max-width: 1000px; padding-block: 8px 64px; }
+.ember-landing .launch-film-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
+.ember-landing .launch-film-intro h2 { font-size: clamp(24px, 2.6vw, 34px); font-weight: 500; letter-spacing: -.035em; line-height: 1.25; margin-top: 10px; }
+.ember-landing .launch-film-intro > p { font-size: 12px; color: #9aa1af; }
+.ember-landing .launch-film-screen { aspect-ratio: 16 / 9; border: 1px solid #ffffff18; border-radius: 16px; overflow: hidden; background: #111315; box-shadow: 0 24px 60px #00000030; }
+.ember-landing .launch-film video { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ember-landing .launch-film video:focus-visible { outline: 2px solid #e6b784; outline-offset: -3px; }
+.ember-landing .launch-film-fallback { height: 100%; padding: 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 12px; }
+.ember-landing .launch-film-fallback h3 { font-size: clamp(20px, 2.5vw, 28px); font-weight: 500; }
+.ember-landing .launch-film-fallback p { font-size: 14px; line-height: 1.7; color: #9aa1af; }
+.ember-landing .launch-film-caption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-top: 18px; font-size: 11px; color: #9aa1af; }
+.ember-landing .launch-film-caption p > span { color: #e6b784; font-family: var(--font-geist-mono); margin-right: 12px; }
+.ember-landing .launch-film-links { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.ember-landing .launch-film-links a { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; color: #d7d6d1; }
 .comparison-workspace { border: 1px solid #ffffff18; border-radius: 20px; overflow: hidden; background: linear-gradient(125deg, #161a21, #0e1116 65%); box-shadow: 0 25px 65px #00000025; }
 .comparison-shared-question { padding: 24px 30px; border-bottom: 1px solid #ffffff12; display: flex; gap: 30px; align-items: baseline; }
 .comparison-shared-question > span { color: #e6b784; font-size: 11px; white-space: nowrap; }
 .comparison-shared-question p { font-size: clamp(16px, 1.7vw, 21px); color: #f4f4f6; }
-.comparison-learning-grid { display: grid; grid-template-columns: minmax(220px, .75fr) minmax(0, 1.8fr); }
+.comparison-learning-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
 .comparison-reading { padding: 28px; border-right: 1px solid #ffffff12; }
 .comparison-board { min-width: 0; padding: 28px; }
 .comparison-reading .chat-answer { padding-top: 0; }
+.ember-landing .comparison-reading .chat-answer h3 { color: #e2e1dc; font-size: 14px; font-weight: 500; margin-block: 24px 8px; }
+.ember-landing .comparison-reading .chat-answer h3:first-child { margin-top: 0; }
+.ember-landing .comparison-reading .comparison-equations { font-size: clamp(11px, 1.1vw, 13px); padding: 12px; margin-block: 16px 24px; overflow-wrap: anywhere; }
+.ember-landing .comparison-reading .comparison-equations p + p { margin-top: 8px; }
 .comparison-board .comparison-label { margin-bottom: 16px; }
 .comparison-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
 .comparison-actions button { display: flex; align-items: center; gap: 7px; padding: 10px 12px; font-size: 11px; color: #aeb5c1; border: 1px solid #ffffff18; border-radius: 8px; transition: background .15s, border-color .15s; }
@@ -142,6 +161,11 @@
 .comparison-response { min-height: 100px; padding-top: 20px; }
 .comparison-response p { font-size: 13px; color: #aeb5c1; line-height: 1.8; }
 .comparison-response .landing-eyebrow { margin-bottom: 8px; font-size: 10px; }
+.ember-landing .comparison-response h3 { font-size: 18px; font-weight: 500; color: #e2e1dc; line-height: 1.5; margin-bottom: 12px; }
+.ember-landing .comparison-response p + p { margin-top: 14px; }
+.ember-landing .comparison-excerpt-note { font-size: 11px; color: #9aa1af; line-height: 1.8; margin-top: 16px; }
+.ember-landing .comparison-derivation { list-style: decimal; padding-left: 22px; margin-top: 18px; color: #b9bec8; font-size: 13px; line-height: 1.8; }
+.ember-landing .comparison-derivation li + li { margin-top: 10px; }
 @media (max-width: 800px) {
   .comparison-learning-grid { grid-template-columns: 1fr; }
   .comparison-reading { border-right: 0; border-bottom: 1px solid #ffffff12; }
@@ -252,6 +276,17 @@
   .hero-lesson { width: 100%; max-width: 780px; }
 }
 @media (max-width: 600px) {
+  .hero-focused .landing-composer { padding: 18px; }
+  .hero-focused .landing-composer textarea { min-height: 120px; }
+  .ember-landing .launch-film { padding-bottom: 48px; }
+  .ember-landing .launch-film-intro { display: block; margin-bottom: 18px; }
+  .ember-landing .launch-film-intro > p { margin-top: 10px; }
+  .ember-landing .launch-film-screen { border-radius: 10px; }
+  .ember-landing .launch-film-caption { gap: 8px; }
+  .ember-landing .launch-film-fallback { padding: 18px; gap: 8px; }
+  .ember-landing .launch-film-fallback p { font-size: 12px; }
+  .ember-landing .comparison-reading { padding: 22px; }
+  .ember-landing .comparison-excerpt-note { margin-inline: 8px; }
   .landing-width { width: calc(100% - 32px); }
   .landing-nav { height: 68px; padding-inline: 16px; }
   .landing-nav nav { gap: 14px; font-size: 11px; }
