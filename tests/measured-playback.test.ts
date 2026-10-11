@@ -4,6 +4,15 @@ import { SceneAudio } from "../src/lib/video/audio";
 import type { SolveScript } from "../src/lib/video/types";
 
 const key = "a".repeat(64);
+test("boxing the recorded answer fits its speech without accelerating handwriting", () => {
+  const narration="x equals three is what remains on the left, and three is our solution, so let's put a box around it.";
+  const scene={chapter:"Answer",delivery:"step" as const,kind:"work" as const,narration,beats:[{type:"write" as const,text:"x = 3",size:"lg" as const,say:narration}],audio:{key,narration,duration:8.16}};
+  const plain=compileTimeline({title:"t",question:"x+2=5",scenes:[scene]}).scenes[0];
+  const boxed=compileTimeline({title:"t",question:"x+2=5",scenes:[{...scene,beats:[...scene.beats,{type:"box",target:"text:x = 3"}]}]}).scenes[0];
+  expect(boxed.writeEnd-plain.writeEnd).toBeLessThan(3);
+  expect(boxed.strokes.slice(0,plain.strokes.length).map(s=>[s.t0,s.dur])).toEqual(plain.strokes.map(s=>[s.t0,s.dur]));
+  expect(boxed.writeEnd).toBeLessThan(boxed.dur);
+});
 test("a measured step starts writing immediately, without estimated speech windows", () => {
   const narration="We have x plus two equals five, and we want to find the unknown x.";
   const tl=compileTimeline({title:"t",question:"x+2=5",scenes:[{chapter:"Given",delivery:"step",kind:"work",narration,beats:[{type:"write",text:"x + 2 = 5",say:narration}],audio:{key,narration,duration:18}}]} as SolveScript);

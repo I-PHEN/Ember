@@ -166,14 +166,16 @@ function groupSinceBeatStart(
 function addPaths(
   ctx: Ctx,
   raw: RawPath[],
-  opts?: { gap?: number; speedCap?: number; settle?: number }
+  opts?: { gap?: number; speedCap?: number; settle?: number; gestureSpeed?: number }
 ): PathStroke[] {
   const gap = opts?.gap ?? 0.18; // Deliberate lift between strokes.
   const out: PathStroke[] = [];
   for (const r of raw) {
     if (r.pts.length < 2) continue;
     const { cum, len } = polyLen(r.pts);
-    const speed = penSpeed(opts?.speedCap ?? 38) * (ctx.scene.delivery === "step" ? 45 / 55 : 1);
+    const speed = ctx.scene.delivery === "step" && opts?.gestureSpeed
+      ? opts.gestureSpeed
+      : penSpeed(opts?.speedCap ?? 38) * (ctx.scene.delivery === "step" ? 45 / 55 : 1);
     const dur = Math.max(0.065, len / speed);
     const s: PathStroke = {
       kind: "path",
@@ -889,7 +891,9 @@ function buildEmphasis(
     return;
   }
 
-  addPaths(ctx, raw, { gap: 0.08, speedCap: 30, settle: 0.2 });
+  // A teacher sweeps around an answer, rather than tracing its border at glyph speed.
+  // Independent motion policy; symbol writing and legacy recordings are unchanged.
+  addPaths(ctx, raw, { gap: 0.08, speedCap: 30, settle: 0.2, gestureSpeed: 350 });
   groupSinceBeatStart(ctx, undefined, false, crossedAnchor ?? g);
   // same for boxes/circles/underlines/crossouts: their arcs dip under the
   // text bbox, so record the true ink bottom for the next line's clearance
@@ -1896,7 +1900,7 @@ function paceSceneToNarration(
 
 /* --------------------------- main compile ------------------------- */
 
-export function compileTimeline(script: SolveScript): Timeline {
+export function compileTimeline(script: SolveScript, options?: { measureOnly?: boolean }): Timeline {
   const groups: Group[] = [];
   const gone = new Set<Group>();
   const scenes: SceneTime[] = [];
@@ -2008,8 +2012,11 @@ export function compileTimeline(script: SolveScript): Timeline {
       compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
     }
     if (sc.delivery === "step") {
+      if (options?.measureOnly) scene.dur = scene.writeEnd;
+      else {
       if (!sc.audio?.duration || sc.audio.narration !== sc.narration) throw new Error("Measured teaching step is missing its recording duration");
       setSceneAudio({ scenes: [scene] } as Timeline, 0, sc.audio.duration);
+      }
     } else scene.dur = Math.max(HEAD + scene.writeEnd, estAudio) + 2;
     scenes.push(scene);
     cursor = ctx.cursor;

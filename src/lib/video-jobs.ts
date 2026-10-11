@@ -39,7 +39,8 @@ import { jobStore } from "./jobs/store";
 import { DurableJobStore, LeaseLostError } from "./jobs/repository";
 import { audioKey, ensureRecordedAudio } from "./jobs/audio-assets";
 import { storedAudioKey } from "./video/recorded-audio";
-import { planTeachingSteps, preservesSpeechPartition } from "./video/teaching-steps";
+import { preservesSpeechPartition } from "./video/teaching-steps";
+import { validateTeachingBudget } from "./video/teaching-budget";
 import { ensureStepAudio, materializeRecordedSteps, stepAudioKey, type RecordedStep } from "./jobs/step-audio";
 
 /* ------------------------------------------------------------------
@@ -502,6 +503,7 @@ async function writeScene(
   planned: TranscriptScene | null,
   opts?: { note?: string; hops?: { providerHops: number }; complete?: typeof chatComplete; steps?: boolean }
 ): Promise<{ narration?: string; beats: unknown[] } | null> {
+  let timingFeedback: string | undefined;
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1200 * (attempt + 1));
     try {
@@ -513,7 +515,7 @@ async function writeScene(
           planned && planned.script.length > 40 ? planned.script : null,
           planned?.visualize,
           planned?.analogy,
-          opts?.note
+          [opts?.note, timingFeedback].filter(Boolean).join("\n") || undefined
         ),
         "fast",
         opts?.hops, undefined, opts?.complete
@@ -523,7 +525,7 @@ async function writeScene(
         const o = parsed as Record<string, unknown>;
         if (Array.isArray(o.beats) && o.beats.length) {
           const narration = opts?.steps && planned?.script ? planned.script : typeof o.narration === "string" ? o.narration : undefined;
-          if (opts?.steps) planTeachingSteps({ chapter: "Step", narration: cleanNarration(narration), beats: sanitizeSceneBeats(o.beats, cleanNarration(narration)) });
+          if (opts?.steps) validateTeachingBudget({ chapter: "Step", narration: cleanNarration(narration), beats: sanitizeSceneBeats(o.beats, cleanNarration(narration)) });
           return {
             narration,
             beats: o.beats,
@@ -531,6 +533,7 @@ async function writeScene(
         }
       }
     } catch (e) {
+      timingFeedback = e instanceof Error && e.message.includes("seconds of board motion") ? e.message : undefined;
       console.error(
         `writer scene ${index + 1} attempt ${attempt + 1} failed:`,
         e instanceof Error ? e.message : e
@@ -842,8 +845,14 @@ async function runJob(
                 `reviewer fix, scene ${idx + 1}`
               );
               const origClean = sanitizeSceneBeats(beats, narration);
+              let fitsBudget = true;
+              if (useSteps) {
+                try { validateTeachingBudget({ chapter, narration, beats: cleaned }); }
+                catch { fitsBudget = false; }
+              }
               if (
                 cleaned.length &&
+                fitsBudget &&
                 (!useSteps || preservesSpeechPartition({chapter, narration, beats:origClean}, {chapter, narration, beats:cleaned})) &&
                 sceneViolations(cleaned) <= sceneViolations(origClean) &&
                 checkSceneLines(idx, outcome.beats).flags.length <=
@@ -890,8 +899,11 @@ async function runJob(
           if (myIndex > 0 && lastChatWas429) await sleep(1500);
           const t0 = Date.now();
           const planned = transcript ? transcript[myIndex] : null;
-          const r =
-            (await writeScene(outlineJson, myIndex, planned, { hops: job.stats, complete: providers.complete, steps: useSteps })) ?? {
+          const written = await writeScene(outlineJson, myIndex, planned, { hops: job.stats, complete: providers.complete, steps: useSteps });
+          // An unanchored summary fallback cannot honestly be a synchronized lesson.
+          // Stop before voice generation if all bounded step-authoring attempts failed.
+          if (useSteps && !written) throw new Error("Could not author a readable synchronized teaching step");
+          const r = written ?? {
               /* graceful degradation: a single clean line + the PLANNER'S
                  words — a writer failure no longer costs the scene its
                  voice when the transcript exists */
