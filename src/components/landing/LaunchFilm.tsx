@@ -5,11 +5,11 @@ import { useEffect, useRef, useState } from "react";
 // Keep preference changes and teardown together; browser autoplay rejection
 // isn't a loading failure, since visitors can still use the native controls.
 export function bindFilmMotion(
-  video: Pick<HTMLVideoElement, "autoPlay" | "play" | "pause">,
+  video: Pick<HTMLVideoElement, "autoplay" | "play" | "pause">,
   preference: Pick<MediaQueryList, "matches" | "addEventListener" | "removeEventListener">,
 ) {
   const update = () => {
-    video.autoPlay = !preference.matches;
+    video.autoplay = !preference.matches;
     if (preference.matches) video.pause();
     else void video.play().catch(() => { /* Manual playback remains available. */ });
   };

@@ -11,22 +11,22 @@ describe("homepage launch film", () => {
     let listener: (() => void) | undefined;
     let plays = 0;
     let pauses = 0;
-    const video = { autoPlay: false, play: async () => { plays++; }, pause: () => { pauses++; } };
+    const video = { autoplay: false, play: async () => { plays++; }, pause: () => { pauses++; } };
     const preference = {
       matches: true,
       addEventListener: (_type: string, callback: () => void) => { listener = callback; },
       removeEventListener: (_type: string, callback: () => void) => { if (listener === callback) listener = undefined; },
     };
     const cleanup = filmModule.bindFilmMotion(video, preference);
-    expect(video.autoPlay).toBe(false);
+    expect(video.autoplay).toBe(false);
     expect(plays).toBe(0);
     preference.matches = false;
     listener!();
-    expect(video.autoPlay).toBe(true);
+    expect(video.autoplay).toBe(true);
     expect(plays).toBe(1);
     preference.matches = true;
     listener!();
-    expect(video.autoPlay).toBe(false);
+    expect(video.autoplay).toBe(false);
     expect(pauses).toBe(2);
     cleanup();
     expect(listener).toBeUndefined();
@@ -35,7 +35,7 @@ describe("homepage launch film", () => {
   test("blocked autoplay leaves manual controls available without an unhandled rejection", async () => {
     expect(typeof filmModule.bindFilmMotion).toBe("function");
     let rejectedPlay = false;
-    const video = { autoPlay: false, play: async () => { rejectedPlay = true; throw new Error("Autoplay blocked"); }, pause() {} };
+    const video = { autoplay: false, play: async () => { rejectedPlay = true; throw new Error("Autoplay blocked"); }, pause() {} };
     const cleanup = filmModule.bindFilmMotion(video, { matches: false, addEventListener() {}, removeEventListener() {} });
     await Promise.resolve();
     expect(rejectedPlay).toBe(true);
