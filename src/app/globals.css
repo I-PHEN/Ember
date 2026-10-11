@@ -141,8 +141,6 @@
 .ember-landing .launch-film-fallback p { font-size: 14px; line-height: 1.7; color: #9aa1af; }
 .ember-landing .launch-film-caption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; margin-top: 18px; font-size: 11px; color: #9aa1af; }
 .ember-landing .launch-film-caption p > span { color: #e6b784; font-family: var(--font-geist-mono); margin-right: 12px; }
-.ember-landing .launch-film-links { display: flex; flex-wrap: wrap; gap: 12px 24px; }
-.ember-landing .launch-film-links a { display: inline-flex; align-items: center; gap: 8px; min-height: 32px; color: #d7d6d1; }
 .comparison-workspace { border: 1px solid #ffffff18; border-radius: 20px; overflow: hidden; background: linear-gradient(125deg, #161a21, #0e1116 65%); box-shadow: 0 25px 65px #00000025; }
 .comparison-shared-question { padding: 24px 30px; border-bottom: 1px solid #ffffff12; display: flex; gap: 30px; align-items: baseline; }
 .comparison-shared-question > span { color: #e6b784; font-size: 11px; white-space: nowrap; }
@@ -151,6 +149,8 @@
 .comparison-reading { padding: 28px; border-right: 1px solid #ffffff12; }
 .comparison-board { min-width: 0; padding: 28px; }
 .comparison-reading .chat-answer { padding-top: 0; }
+.ember-landing .comparison-result { font-family: var(--font-geist-mono); font-size: clamp(17px, 1.8vw, 23px); line-height: 1.7; color: #e6b784; padding-block: 16px 20px; border-bottom: 1px solid #ffffff12; overflow-wrap: anywhere; }
+.ember-landing .comparison-reading .chat-answer > .landing-eyebrow { font-size: 10px; color: #9aa1af; }
 .ember-landing .comparison-reading .chat-answer h3 { color: #e2e1dc; font-size: 14px; font-weight: 500; margin-block: 24px 8px; }
 .ember-landing .comparison-reading .chat-answer h3:first-child { margin-top: 0; }
 .ember-landing .comparison-reading .comparison-equations { font-size: clamp(11px, 1.1vw, 13px); padding: 12px; margin-block: 16px 24px; overflow-wrap: anywhere; }
@@ -166,8 +166,6 @@
 .ember-landing .comparison-response h3 { font-size: 18px; font-weight: 500; color: #e2e1dc; line-height: 1.5; margin-bottom: 12px; }
 .ember-landing .comparison-response p + p { margin-top: 14px; }
 .ember-landing .comparison-excerpt-note { font-size: 11px; color: #9aa1af; line-height: 1.8; margin-top: 16px; }
-.ember-landing .comparison-derivation { list-style: decimal; padding-left: 22px; margin-top: 18px; color: #b9bec8; font-size: 13px; line-height: 1.8; }
-.ember-landing .comparison-derivation li + li { margin-top: 10px; }
 @media (max-width: 800px) {
   .comparison-learning-grid { grid-template-columns: 1fr; }
   .comparison-reading { border-right: 0; border-bottom: 1px solid #ffffff12; }

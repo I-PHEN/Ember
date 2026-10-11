@@ -68,21 +68,21 @@ describe("homepage launch film", () => {
 });
 
 describe("same-problem lesson comparison", () => {
-  test("renders a complete worked integral and differentiation check", () => {
+  test("compares the worked answer with exploring the same mathematical decision", () => {
     const html = renderToStaticMarkup(<LearningComparison />);
     expect(html).toContain("du = dx");
     expect(html).toContain("v = ½e");
     expect(html).toContain("− ¼e");
     expect(html).toContain("+ C");
-    expect(html).toContain("Check by differentiating");
-    expect(html).toContain("½e");
-    expect(html).toContain("− ½e");
+    expect(html).toContain("Getting an answer");
+    expect(html).toContain("understanding the step");
+    expect(html).toContain("Worked answer");
   });
 
   test("offers honest prepared learning moments with the real excerpt paused", () => {
     const html = renderToStaticMarkup(<LearningComparison />);
-    expect(html).toContain("Follow the derivation");
-    expect(html).toContain("Revisit u / dv");
+    expect(html).toContain("Follow the reasoning");
+    expect(html).toContain("Revisit the decision");
     expect(html).toContain("Ask why");
     expect(html).toContain("Prepared");
     expect(html).toContain("silent excerpt");
