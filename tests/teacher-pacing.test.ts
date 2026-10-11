@@ -49,6 +49,7 @@ test("a pending audio start is not restarted every animation frame", async () =>
   class AudioDouble {
     duration = 20; currentTime = 0; paused = true; playbackRate = 1; muted = false;
     src = ""; preload = ""; dataset: Record<string, string> = {};
+    addEventListener() {}
     pause() { this.paused = true; }
     play() { starts++; return pending; }
   }

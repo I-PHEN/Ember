@@ -306,7 +306,7 @@ function drawPen(
   t: number
 ): void {
   // Pure static dot cursor (no animations, no halos, no focus rings)
-  const rest = pen.mode === "rest" || pen.mode === "idle";
+  const rest = pen.mode === "rest";
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha)) * (rest ? 0.45 : 0.95);
   ctx.fillStyle = pen.color;

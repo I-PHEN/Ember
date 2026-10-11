@@ -12,10 +12,13 @@ export class SceneAudio {
   private els: (HTMLAudioElement | null)[] = [];
   private urls = new Set<string>();
   private starting = new WeakSet<HTMLAudioElement>();
+  private rates = new WeakMap<HTMLAudioElement, number>();
+  private failures = new WeakSet<HTMLAudioElement>();
   public blocked = false;
 
-  attach(i: number, url: string, dur: number): HTMLAudioElement | null {
+  attach(i: number, url: string, dur: number, speechRate = BASE_SPEECH_RATE): HTMLAudioElement | null {
     if (!Number.isFinite(dur) || dur <= 0) return null;
+    if (!Number.isFinite(speechRate) || speechRate <= 0) return null;
     const existing = this.els[i];
     if (existing) {
       if (existing.dataset.url === url) return existing;
@@ -24,10 +27,12 @@ export class SceneAudio {
       this.els[i] = null;
     }
     const a = new Audio();
+    a.addEventListener("error", () => this.failures.add(a));
     a.preload = "auto";
     a.src = url;
     a.dataset.url = url;
     this.els[i] = a;
+    this.rates.set(a, speechRate);
     this.urls.add(url);
     return a;
   }
@@ -36,10 +41,31 @@ export class SceneAudio {
     return !!this.els[i];
   }
 
+  failed(i: number): boolean {
+    const a = this.els[i];
+    return !!a && this.failures.has(a);
+  }
+
   duration(i: number): number {
     const a = this.els[i];
     const raw = a && Number.isFinite(a.duration) ? a.duration : 0;
-    return raw / BASE_SPEECH_RATE;
+    return raw / (a ? this.rates.get(a) ?? BASE_SPEECH_RATE : BASE_SPEECH_RATE);
+  }
+
+  /** Audible position in board-clock seconds; null after speech's end. */
+  clockTime(i: number): number | null {
+    const a = this.els[i];
+    if (!a) return null;
+    if (!Number.isFinite(a.duration) || a.duration <= 0) return 0;
+    if (a.currentTime >= a.duration - .02) return null;
+    return a.currentTime / (this.rates.get(a) ?? BASE_SPEECH_RATE);
+  }
+
+  seek(i: number, offset: number): void {
+    const a = this.els[i];
+    if (!a) return;
+    try { a.currentTime = Math.max(0, Math.min(offset * (this.rates.get(a) ?? BASE_SPEECH_RATE), Number.isFinite(a.duration) ? a.duration : Infinity)); }
+    catch { /* metadata may still be loading; tick retries on startup */ }
   }
 
   /**
@@ -51,7 +77,8 @@ export class SceneAudio {
     offset: number,
     playing: boolean,
     rate: number,
-    muted: boolean
+    muted: boolean,
+    audioMaster = false,
   ): boolean {
     const a = this.els[i];
     if (!a) {
@@ -59,20 +86,23 @@ export class SceneAudio {
       return false;
     }
     this.pauseOthers(i);
-    const r = Math.max(0.4, Math.min(2.5, BASE_SPEECH_RATE * rate));
+    // play() restarts ended media at zero. Only an explicit seek may replay it.
+    if (audioMaster && a.ended) return false;
+    const speechRate = this.rates.get(a) ?? BASE_SPEECH_RATE;
+    const r = Math.max(0.1, Math.min(5, speechRate * rate));
     if (a.playbackRate !== r) a.playbackRate = r;
     a.muted = muted;
     const rawDur = Number.isFinite(a.duration) ? a.duration : 0;
-    const effectiveDur = rawDur / BASE_SPEECH_RATE;
+    const effectiveDur = rawDur / speechRate;
     const wantSound = playing && !muted && effectiveDur > 0 && offset < effectiveDur - 0.02;
     if (!wantSound) {
       if (!a.paused) a.pause();
-      if (playing) a.currentTime = Math.min(offset * BASE_SPEECH_RATE, Math.max(0, rawDur - 0.05));
+      if (playing && rawDur > 0) a.currentTime = Math.min(offset * speechRate, rawDur);
       return false;
     }
-    const audioTarget = offset * BASE_SPEECH_RATE;
+    const audioTarget = offset * speechRate;
     const drift = a.currentTime - audioTarget;
-    if (Math.abs(drift) > 0.12) {
+    if (Math.abs(drift) > 0.12 && (!audioMaster || (a.paused && !this.starting.has(a)))) {
       try {
         a.currentTime = Math.min(audioTarget, Math.max(0, rawDur - 0.05));
       } catch {
@@ -87,6 +117,8 @@ export class SceneAudio {
           p.catch((err: unknown) => {
             if ((err as DOMException)?.name === "NotAllowedError") {
               this.blocked = true;
+            } else if ((err as DOMException)?.name !== "AbortError") {
+              this.failures.add(a);
             }
           }).finally(() => this.starting.delete(a));
         } else {
@@ -95,6 +127,7 @@ export class SceneAudio {
       } catch (err) {
         this.starting.delete(a);
         if ((err as DOMException)?.name === "NotAllowedError") this.blocked = true;
+        else if ((err as DOMException)?.name !== "AbortError") this.failures.add(a);
       }
     }
     return this.blocked;

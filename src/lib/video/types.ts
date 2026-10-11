@@ -243,6 +243,9 @@ export interface SolveScene {
   chapter: string;
   narration: string;
   beats: Beat[];
+  delivery?: "step";
+  kind?: "work" | "explain" | "ask";
+  audio?: { key: string; narration: string; duration?: number };
   /** the fixed trademark intro (brand bumper) — not AI content; the player
    *  hides it from chapter lists and the chapter chip */
   intro?: boolean;
@@ -334,6 +337,9 @@ export interface EraseSweep {
 export interface SceneTime {
   chapter: string;
   narration: string;
+  delivery?: "step";
+  stepKind?: "work" | "explain" | "ask";
+  speechRate?: number;
   /** trademark intro scene (brand bumper) */
   intro?: boolean;
   strokes: Stroke[];
