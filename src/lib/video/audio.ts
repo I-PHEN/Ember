@@ -86,6 +86,8 @@ export class SceneAudio {
       return false;
     }
     this.pauseOthers(i);
+    // play() restarts ended media at zero. Only an explicit seek may replay it.
+    if (audioMaster && a.ended) return false;
     const speechRate = this.rates.get(a) ?? BASE_SPEECH_RATE;
     const r = Math.max(0.1, Math.min(5, speechRate * rate));
     if (a.playbackRate !== r) a.playbackRate = r;

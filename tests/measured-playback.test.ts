@@ -4,6 +4,20 @@ import { SceneAudio } from "../src/lib/video/audio";
 import type { SolveScript } from "../src/lib/video/types";
 
 const key = "a".repeat(64);
+test("synchronized writing uses the same readable stroke pace as the normal board", () => {
+  const beats=[{type:"write" as const,text:"x + 2 = 5"}];
+  const normal=compileTimeline({title:"t",question:"q",scenes:[{chapter:"c",narration:"",beats}]}).scenes[0];
+  const step=compileTimeline({title:"t",question:"q",scenes:[{chapter:"c",narration:"Here is our equation.",beats,delivery:"step"}]}, {measureOnly:true}).scenes[0];
+  expect(step.strokes.map(s=>s.dur)).toEqual(normal.strokes.map(s=>s.dur));
+});
+test("an ended recording never restarts while the board finishes its transition", () => {
+  const original=globalThis.Audio;
+  class AudioDouble {duration=20;currentTime=20;ended=true;paused=true;playbackRate=1;muted=false;src="";preload="";dataset={};addEventListener(){}pause(){}play(){this.currentTime=0;this.paused=false;return Promise.resolve();}}
+  globalThis.Audio=AudioDouble as unknown as typeof Audio;
+  const scene=new SceneAudio();
+  try {const a=scene.attach(0,"test.wav",20,.9)!; scene.tick(0,22.19,true,1,false,true); expect(a.currentTime).toBe(20);expect(scene.clockTime(0)).toBeNull();}
+  finally {scene.dispose();globalThis.Audio=original;}
+});
 test("boxing the recorded answer fits its speech without accelerating handwriting", () => {
   const narration="x equals three is what remains on the left, and three is our solution, so let's put a box around it.";
   const scene={chapter:"Answer",delivery:"step" as const,kind:"work" as const,narration,beats:[{type:"write" as const,text:"x = 3",size:"lg" as const,say:narration}],audio:{key,narration,duration:8.16}};

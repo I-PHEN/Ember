@@ -175,7 +175,7 @@ function addPaths(
     const { cum, len } = polyLen(r.pts);
     const speed = ctx.scene.delivery === "step" && opts?.gestureSpeed
       ? opts.gestureSpeed
-      : penSpeed(opts?.speedCap ?? 38) * (ctx.scene.delivery === "step" ? 45 / 55 : 1);
+      : penSpeed(opts?.speedCap ?? 38);
     const dur = Math.max(0.065, len / speed);
     const s: PathStroke = {
       kind: "path",
