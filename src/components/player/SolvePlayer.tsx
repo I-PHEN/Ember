@@ -45,6 +45,7 @@ import {
 import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
 import { renderFrame } from "@/lib/video/render";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
+import { advanceStepClock } from "@/lib/video/step-clock";
 import { narrationStore } from "@/lib/narration-store";
 import { cn } from "@/lib/utils";
 
@@ -170,6 +171,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const [playing, setPlaying] = useState(false);
     const [ended, setEnded] = useState(false);
     const [waiting, setWaiting] = useState(false);
+    const [audioError, setAudioError] = useState<string | null>(null);
     const [blocked, setBlocked] = useState(false);
     const [rate, setRate] = useState(1);
     const [muted, setMuted] = useState(mini);
@@ -204,6 +206,9 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       gaveUpRef.current = tl.scenes.map(() => false);
       holdSinceRef.current = {};
       (async () => {
+        await Promise.resolve();
+        if (cancelled) return;
+        setAudioError(null);
         const pending: number[] = [];
         for (let i = 0; i < tl.scenes.length; i++) {
           if (tl.scenes[i].narration) pending.push(i);
@@ -221,8 +226,8 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             const dur = await probeDuration(url);
             if (cancelled) return;
             const effectiveDur = dur / BASE_SPEECH_RATE;
-            audioRef.current?.attach(idx, url, effectiveDur);
             setSceneAudio(tl, idx, effectiveDur);
+            audioRef.current?.attach(idx, url, effectiveDur, tl.scenes[idx].speechRate ?? BASE_SPEECH_RATE);
             readyRef.current[idx] = true;
             onVoiced?.(idx);
             bumpDur();
@@ -230,6 +235,13 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             /* the store already retried for minutes — play this scene
                silent, but keep fetching the rest */
             gaveUpRef.current[idx] = true;
+            if (tl.scenes[idx].delivery === "step") {
+              clockRef.current.playing = false;
+              audioRef.current?.pauseAll();
+              setPlaying(false);
+              setWaiting(false);
+              setAudioError("The recorded voice could not load. Reload this lesson to retry; writing has been paused.");
+            }
           }
           dirtyRef.current = true;
         }
@@ -316,11 +328,27 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
              narration store keeps retrying — capped, then the scene
              plays silent rather than freezing forever */
           let holding = false;
-          if (needsVoice && VOICE_HOLD_MS > 0) {
+          let measuredTime: number | undefined;
+          if (scene.delivery === "step" && !mini) {
+            const start = sceneStart(tl, idx);
+            audioRef.current?.tick(idx, c.t - start, c.playing, c.rate, muted, true);
+            const result = advanceStepClock({time:c.t,dt,rate:c.rate,start,end:start+scene.dur,
+              audioTime:audioRef.current?.clockTime(idx) ?? null,
+              needsVoice:!readyRef.current[idx],failed:!!gaveUpRef.current[idx] || !!audioRef.current?.failed(idx),muted});
+            holding = result.waiting;
+            measuredTime = result.time;
+            if (result.stop) {
+              c.playing = false;
+              audioRef.current?.pauseAll();
+              setAudioError("The recorded voice could not play. Reload this lesson to retry; writing has been paused.");
+              emitUi();
+            }
+          } else if (needsVoice && VOICE_HOLD_MS > 0) {
             const atSceneEntry = c.t <= sceneStart(tl, idx) + 0.06;
             if (atEnd || atSceneEntry) {
               if (holdSinceRef.current[idx] === undefined) {
                 holdSinceRef.current[idx] = now;
+                holding = true;
               } else if (now - holdSinceRef.current[idx] > VOICE_HOLD_MS) {
                 gaveUpRef.current[idx] = true; // stop waiting on this one
               } else {
@@ -332,7 +360,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             setWaiting(true);
           } else {
             setWaiting(false);
-            c.t = Math.min(c.t + dt * c.rate, totalNow);
+            c.t = measuredTime ?? Math.min(c.t + dt * c.rate, totalNow);
             if (c.t >= totalNow - 0.001) {
               if (mini) {
                 c.t = 0;
@@ -356,7 +384,8 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             offset,
             c.playing && !scrubRef.current.active,
             c.rate,
-            muted
+            muted,
+            tl.scenes[idx].delivery === "step",
           );
           if (b && !blocked) setBlocked(true);
         }
@@ -392,6 +421,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         c.t = Math.max(0, Math.min(t, Math.max(0, totalNow - 0.01)));
         if (c.t < totalNow - 0.05) c.ended = false;
         const idx = sceneAt(tl, c.t);
+        audioRef.current?.seek(idx, c.t - sceneStart(tl, idx));
         for (let k = 0; k <= idx; k++) lockScene(tl, k);
         lastSceneRef.current = idx;
         dirtyRef.current = true;
@@ -401,6 +431,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     );
 
     const play = useCallback(() => {
+      if (audioError) return;
       const c = clockRef.current;
       if (c.ended) {
         c.t = 0;
@@ -410,7 +441,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
       c.playing = true;
       lastNowRef.current = performance.now();
       emitUi();
-    }, [emitUi]);
+    }, [emitUi, audioError]);
 
     const pause = useCallback(() => {
       clockRef.current.playing = false;
@@ -768,7 +799,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
         {waiting && (
           <div className="pointer-events-none absolute bottom-20 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/60 px-4 py-2 text-[13px] text-white/90 backdrop-blur-sm">
             <Loader2 className="h-4 w-4 animate-spin" />
-            recording the voice…
+            buffering the voice…
           </div>
         )}
         {blocked && !mini && (
@@ -782,6 +813,9 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             <Volume2 className="h-4 w-4" />
             Tap for sound
           </button>
+        )}
+        {audioError && !mini && (
+          <div role="alert" className="absolute bottom-20 left-4 right-4 rounded-xl bg-black/80 px-4 py-3 text-sm text-white">{audioError}</div>
         )}
 
         {mini && ended && (

@@ -3,6 +3,7 @@ import { appendFileSync } from "node:fs";
 import { DurableJobStore } from "../../src/lib/jobs/repository";
 import { runClaimedJob, type EngineProviders } from "../../src/lib/video-jobs";
 import { SOLVER_SYSTEM, REVIEWER_SYSTEM, TRANSCRIPT_PROMPT } from "../../src/lib/prompts";
+import { pcmToWav } from "../../src/lib/ai/gemini";
 
 const [url, log, mode] = process.argv.slice(2);
 const client = new PrismaClient({ datasources: { db: { url } } });
@@ -38,7 +39,7 @@ const providers: EngineProviders = {
   },
   synthesize: async text => {
     record(`audio-${narrations.indexOf(text)}`);
-    return { buffer: Buffer.from(`RIFF recorded audio: ${text}`), ms: 1, cached: false };
+    return { buffer: pcmToWav(Buffer.alloc(text.split(/\s+/).length * 36000)), ms: 1, cached: false };
   },
 };
 try {

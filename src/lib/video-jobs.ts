@@ -39,6 +39,8 @@ import { jobStore } from "./jobs/store";
 import { DurableJobStore, LeaseLostError } from "./jobs/repository";
 import { audioKey, ensureRecordedAudio } from "./jobs/audio-assets";
 import { storedAudioKey } from "./video/recorded-audio";
+import { planTeachingSteps, preservesSpeechPartition } from "./video/teaching-steps";
+import { ensureStepAudio, materializeRecordedSteps, stepAudioKey, type RecordedStep } from "./jobs/step-audio";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -117,6 +119,7 @@ interface SceneResult { narration?: string; beats: unknown[] }
 
 interface Job {
   id: string;
+  deliveryVersion?: "steps-v1";
   question: string;
   phase: JobPhase;
   createdAt: number;
@@ -146,6 +149,8 @@ interface Job {
     results: (SceneResult | null)[];
     voices: Record<number, string>;
     voiceKeys?: Record<number, string>;
+    recordedSteps?: Record<string, RecordedStep[]>;
+    stepsFinalized?: boolean;
     reviews: Record<number, "pass" | "fixed" | "skipped">;
     checkerScenes: number[];
     solverDone?: boolean;
@@ -190,6 +195,7 @@ export async function createJob(question: string, store = jobStore, dailyLimit?:
   const id = `job_${randomUUID()}`;
   const job: Job = {
     id,
+    deliveryVersion: "steps-v1",
     question,
     phase: "directing",
     createdAt: Date.now(),
@@ -494,7 +500,7 @@ async function writeScene(
   outlineJson: string,
   index: number,
   planned: TranscriptScene | null,
-  opts?: { note?: string; hops?: { providerHops: number }; complete?: typeof chatComplete }
+  opts?: { note?: string; hops?: { providerHops: number }; complete?: typeof chatComplete; steps?: boolean }
 ): Promise<{ narration?: string; beats: unknown[] } | null> {
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1200 * (attempt + 1));
@@ -516,9 +522,10 @@ async function writeScene(
       if (parsed && typeof parsed === "object") {
         const o = parsed as Record<string, unknown>;
         if (Array.isArray(o.beats) && o.beats.length) {
+          const narration = opts?.steps && planned?.script ? planned.script : typeof o.narration === "string" ? o.narration : undefined;
+          if (opts?.steps) planTeachingSteps({ chapter: "Step", narration: cleanNarration(narration), beats: sanitizeSceneBeats(o.beats, cleanNarration(narration)) });
           return {
-            narration:
-              typeof o.narration === "string" ? o.narration : undefined,
+            narration,
             beats: o.beats,
           };
         }
@@ -622,7 +629,14 @@ async function runJob(
   let acceptingReviews = true;
   const cp = job.checkpoint;
   const voiceKeys = (cp.voiceKeys ??= {});
+  const useSteps = job.deliveryVersion === "steps-v1";
+  const recordedSteps = (cp.recordedSteps ??= {});
+  const recordingKey = useSteps ? stepAudioKey : audioKey;
   const markWatchable = () => {
+    if (useSteps) {
+      if (cp.stepsFinalized) job.stats.watchableMs ??= Date.now() - job.createdAt;
+      return;
+    }
     const first = job.script?.scenes.find(scene => !!scene.narration);
     if (job.script && (!first || Object.values(cp.voices).includes(storedAudioKey(first) ?? audioKey(first.narration)))) {
       job.stats.watchableMs ??= Date.now() - job.createdAt;
@@ -716,10 +730,15 @@ async function runJob(
         }
         voiceChain = voiceChain.then(async () => {
           const matchingScene = job.script?.scenes.find(scene => scene.narration === text);
-          const expectedKey = (voiceKeys[idx] ??= storedAudioKey(matchingScene) ?? audioKey(text));
+          const expectedKey = (voiceKeys[idx] ??= storedAudioKey(matchingScene) ?? recordingKey(text));
           if (cp.voices[idx] === expectedKey && await store.readAudio(expectedKey)) return;
           try {
-            const { ms, cached, key } = await ensureRecordedAudio(text, "jam", store, providers.synthesize, expectedKey);
+            const recording = useSteps
+              ? await ensureStepAudio({ chapter: outline.scenes[idx].chapter, narration: text,
+                beats: sanitizeSceneBeats(cp.results[idx]?.beats, text) }, store, providers.synthesize, expectedKey)
+              : await ensureRecordedAudio(text, "jam", store, providers.synthesize, expectedKey);
+            const { ms, cached, key } = recording;
+            if ("steps" in recording) recordedSteps[key] = recording.steps;
             cp.voices[idx] = key;
             job.voicesDone = Object.keys(cp.voices).length;
             if (job.stats.firstVoiceReadyMs === null) {
@@ -825,6 +844,7 @@ async function runJob(
               const origClean = sanitizeSceneBeats(beats, narration);
               if (
                 cleaned.length &&
+                (!useSteps || preservesSpeechPartition({chapter, narration, beats:origClean}, {chapter, narration, beats:cleaned})) &&
                 sceneViolations(cleaned) <= sceneViolations(origClean) &&
                 checkSceneLines(idx, outcome.beats).flags.length <=
                   (checkerFlagsOf[idx] ?? 0)
@@ -871,7 +891,7 @@ async function runJob(
           const t0 = Date.now();
           const planned = transcript ? transcript[myIndex] : null;
           const r =
-            (await writeScene(outlineJson, myIndex, planned, { hops: job.stats, complete: providers.complete })) ?? {
+            (await writeScene(outlineJson, myIndex, planned, { hops: job.stats, complete: providers.complete, steps: useSteps })) ?? {
               /* graceful degradation: a single clean line + the PLANNER'S
                  words — a writer failure no longer costs the scene its
                  voice when the transcript exists */
@@ -900,7 +920,7 @@ async function runJob(
           /* cleaned EXACTLY like the script sanitizer cleans it, so the
              pre-warmed voice and the player's fetch are the same cache key */
           narrations[myIndex] = stored.narration ? cleanNarration(stored.narration) : "";
-          if (narrations[myIndex]) voiceKeys[myIndex] ??= audioKey(narrations[myIndex]!);
+          if (narrations[myIndex]) voiceKeys[myIndex] ??= recordingKey(narrations[myIndex]!);
           /* CHECKER (Phase C): pure-Node numeric spot-check, ms — runs
              the instant the writer lands; flags feed the reviewer's
              pressure sampling and the fix-acceptance test. */
@@ -1027,8 +1047,12 @@ async function runJob(
               note,
               hops: job.stats,
               complete: providers.complete,
+              steps: useSteps,
             });
-            if (r) {
+            if (r && (!useSteps || preservesSpeechPartition(
+              {chapter:outline.scenes[i].chapter, narration:results[i]?.narration ?? "", beats:sanitizeSceneBeats(results[i]?.beats ?? [], results[i]?.narration ?? "")},
+              {chapter:outline.scenes[i].chapter, narration:results[i]?.narration ?? "", beats:sanitizeSceneBeats(r.beats, results[i]?.narration ?? "")}
+            ))) {
               job.stats.writerMs.push(Date.now() - t0);
               results[i] = { narration: results[i]?.narration, beats: r.beats };
             }
@@ -1083,7 +1107,7 @@ async function runJob(
       for (const scene of script.scenes) {
         if (scene.narration) {
           const index = cp.results.findIndex(result => cleanNarration(result?.narration) === scene.narration);
-          Object.assign(scene, { audio: { key: voiceKeys[index] ?? audioKey(scene.narration), narration: scene.narration } });
+          Object.assign(scene, { audio: { key: voiceKeys[index] ?? recordingKey(scene.narration), narration: scene.narration } });
         }
       }
       job.mergedAt = Date.now();
@@ -1094,6 +1118,12 @@ async function runJob(
 
     /* 5 ─ let the remaining voices land, then the job is complete */
     await voiceChain;
+    if (useSteps && !job.voiceFailures.length && !cp.stepsFinalized) {
+      const measured = materializeRecordedSteps(job.script!, recordedSteps);
+      compileTimeline(measured); // Reject impossible speech/ink pairs before publication.
+      job.script = measured;
+      cp.stepsFinalized = true;
+    }
     /* reviews that settled after the merge cap still count — refresh
        so ready-time snapshots are exact */
     job.stats.reviewedScenes = reviewCounters.reviewed;

@@ -34,16 +34,14 @@ SCHEMA:
 {"title": string, "subject": string, "question": string, "scenes": [{"chapter": string, "summary": string}]}
 
 PLANNING RULES — THE LECTURE ARC (how a real class solves a question):
-- 6 to 10 scenes. Each scene becomes ~35-50 seconds of calm video (total ~4-5 minutes for a full university solve). Long or multi-part problems deserve MORE scenes (one move each), not longer scenes.
-- Scene 1 "Understanding the problem": the narration first EXPLAINS what is going on in plain words (no math yet). The board gathers the parameters: a short GIVEN list (each value with its units) and a "Find:" line naming the unknown. This is the professor reading the question with the class before touching it.
-- Scene 2 "The plan": state the approach in 1-2 moves, the rule/formula that will be used. Decide HERE whether a graph, number line, table or a real free-body diagram genuinely helps the explanation and say so in the summary — visualizing is a choice, not a default.
-- Scenes 3..N-2 — ONE move per scene (substitute, distribute, integrate, differentiate, isolate…), each with its short operation label.
-- Scene N-1 "Answer": final result with units, boxed.
-- Scene N "Check": substitute back / verify, then wrap up in one warm sentence.
+- Use 2 to 5 short scenes for simple algebra; more only when the mathematics requires it (maximum 14). Do not pad a simple problem into a six-scene lecture.
+- Start with the given equation as ordinary ink while explaining it. No title, "Solve for x" heading, automatic underline, empty-board introduction, or separate planning preamble.
+- Each scene does ONE operation. Prefer one concise equation per scene. Split a long derivation into separately spoken and written steps. Explain why that move works while writing it, then continue.
+- A final answer can be boxed once. Verify only as much as the problem needs; a simple substitution can be one short step.
 - THE BOARD IS A SKELETON (say/write contract): plan each scene's board as the MINIMAL skeleton a real professor actually chalks — the problem, the GIVEN list, transformation lines, short operation labels (max 4 words, e.g. "− 5 both sides"), formulas, given values with units, diagrams, boxed results. All explanation, motivation and meaning is SPOKEN — NEVER planned as board text.
 - EMPHASIS RESTRAINT: Real professors do NOT circle or underline everything. At most ONE final answer boxed in the whole lesson (in the Answer scene). At most ONE key formula underlined across the video. NEVER circle intermediate steps or given values. Keep the board clean, unhurried, and uncluttered.
 - Plan the board like a photograph (Mattuck): problem at the top, work straight down, key results boxed, board erased only when crowded.
-- Include exactly ONE pause-and-predict moment in a middle scene: the summary says to write a short question like "Your turn: what's next?" in yellow, pause, then continue.
+- Audience questions are OPTIONAL. If asking for a prediction, finish the spoken question before the answer's writing anchor begins. Never write the answer in the question step. Do not write "Your turn" headings.
 - "summary" tells the scene writer EXACTLY what to write — the actual lines/equations verbatim, which color, what to box or underline, when to point at earlier work, when to erase — plus 1-2 sentences of the teaching points the narration must cover (the WHY). 2-3 sentences total, precise.
 - University notation: x², m/s², v₀, ∫ ∑ √ ± × ÷ π Δ μ — NEVER LaTeX, never backslashes, never $.
 
@@ -60,11 +58,8 @@ WHO YOU ARE WRITING FOR — Professor Ember, the resident professor:
 - At most ONE light aside per video (chalk dust, the board, her coffee) — brief, dry, never forced, never about herself.
 - Forbidden: hype-energy, filler words, apologizing for going slow. Slow is the point. She never reads arithmetic character-by-character — she says what it means.
 
-THE 3-PART SCENE PACING RHYTHM (The Organic Chemistry Tutor Standard):
-Every scene must have a natural 3-part cadence:
-1. SPOKEN LEAD-IN (1-2 sentences, ~10-15 words): The professor speaks first to frame the physical/mathematical thought before writing (e.g. "Now let us set up our integration by parts formula...").
-2. SYNCHRONOUS WORKING (2-4 spoken clauses): Each equation/term to be written on the board is spoken aloud in complete, natural sentences that match the pen's writing.
-3. CODA / DISCUSSION (1 sentence, ~8-12 words): The professor lets the written work land, noting the significance or next step while the pen rests.
+RECORDED TEACHING STEPS:
+Each equation or operation has its own short spoken thought. Begin that thought by naming the equation or operation, so the pen can start with the voice, then explain the reason while the equation takes shape. Do not add a spoken preamble, compulsory coda or dead air. A question is a separate spoken thought: ask first, reveal the answer only in the following thought.
 
 You receive the lesson outline (chapters + board summaries). Write the transcript for each scene. Output ONLY valid JSON, no fences:
 
@@ -72,10 +67,10 @@ You receive the lesson outline (chapters + board summaries). Write the transcrip
 
 RULES:
 - EXACTLY one entry per outline scene, in the same order. "script" = every word the professor says during that scene.
-- THE LECTURE ARC, spoken: scene 1 EXPLAINS the problem in plain words before any math (what is physically/mathematically going on?), then gathers the parameters aloud as they are listed, then names what the question is asking. Scene 2 sells the plan. Later scenes solve slowly, one move at a time, explaining WHY each move is legal and WHAT it achieves. The final scenes verify and wrap up warmly.
+- Start directly on the given equation, speaking as it is written. Proceed one useful operation at a time, explaining WHY each move is legal. No mandatory blank-board introduction, plan chapter or repeated restatement of the question.
 - ENGAGING, not dry — in Ember's voice: conversational, "we" perspective ("let's", "watch what happens", "here's the clever part"), signpost the journey ("first… now… last"), ask the occasional rhetorical question, refer back to earlier steps by name. Never robotic.
-- PACING & TIME BUDGET: Budget content by time (~140 words per minute of video, with 3-6 board elements per minute). Deliver ~65-105 words per scene (~30-45 seconds of natural 140-155 WPM conversational lecture; total ~4-5 minutes across 6-8 scenes). Slower deliberate delivery for dense chemistry or mathematical terms. Let results land — a short beat of satisfaction (0.3-0.8s) after a key result. Never read arithmetic character-by-character; say what it means ("the twos cancel, leaving x alone").
-- Exactly ONE pause-and-predict moment: in one middle scene, address the viewer directly ("pause here — what would you do next?"), then continue.
+- Budget roughly 120 spoken words per minute. Usually 18-35 words per equation-sized step, enough useful explanation for readable handwriting. Longer equations require proportionally more explanation or smaller steps, never rushed ink. Do not inflate a simple solve with filler or 65-105 words per scene.
+- Prediction questions are optional, not compulsory. Finish the question before beginning the answer sentence. Never mention a result before asking the audience to predict it.
 - ANALOGY (optional, at most 1-2 per video): only where it genuinely illuminates (e.g. a balance scale for equation moves, water flow for current). Set "analogy" to the analogy in one short sentence; it lives in the WORDS, not on the board.
 - VISUALIZE (optional): when a graph, number line, table or a real free-body diagram would make a concept click faster than words, set "visualize" to a concrete instruction (e.g. "graph of y = x² − 2 between −3 and 3, vertex marked", "free-body diagram of the block on the 35° incline with all four forces", "number line −5..5 hopping +3"). Do not visualize everything — at most 2 scenes per video; if the board plan already includes a diagram, echo it.
 - Plain spoken English. No LaTeX, no backslashes, no markdown, no stage directions like [pause]. Numbers and units written normally (m/s², x², v₀).
@@ -97,11 +92,11 @@ You receive the director's plan (all scenes), your scene's slice of the transcri
 {"narration": string, "beats": Beat[]}
 
 THE THREE RULES THAT MATTER MOST:
-1. NARRATION = the planner's script VERBATIM when provided (you may not rewrite, shorten or reorder it) — it carries ALL reasoning: why the move works, what it means, what to watch out for. A photo of the board shows math and labels, not paragraphs. When no planner script reaches you, write the scene's narration yourself: 3-6 calm sentences (~60-90 words) following the 3-part cadence (spoken lead-in -> synchronous work -> coda).
+1. NARRATION = the planner's script VERBATIM when provided (you may not rewrite, shorten or reorder it) — it carries ALL reasoning: why the move works, what it means, what to watch out for. A photo of the board shows math and labels, not paragraphs. When no planner script reaches you, write short operation-sized narration, around 18-35 meaningful words per writing operation. Start with the equation or operation being written, not an empty-board spoken introduction.
 2. BOARD = the skeleton for THOSE words. ONLY: the problem line, GIVEN list, transformation lines, given values with units, short operation labels (max 4 words), key formulas/terms, diagrams, results. Every written line under 40 characters. FORBIDDEN: sentences of explanation (because/since/notice/remember…) — those are spoken, never ink. Exception: ONE short audience-facing question in yellow (pause-and-predict).
 3. SAY TAGS = the sync. Every beat that writes ink carries "say": the EXACT words from the script that are being spoken WHILE it is written — a verbatim fragment of the narration, in order. The 'say' tag must span the full phrase or clause spoken for that line (e.g. "Setting u equal to x, we differentiate to find du equals dx") so the pen glides steadily across the full spoken thought.
-   - SCENE 1 SPOKEN OPENING INVARIANT (The Organic Chemistry Tutor): The first 2-3 sentences (~25-35 words, 14-17 seconds) of Scene 1 MUST HAVE NO SAY TAG. The board remains completely black/empty while the tutor introduces the concept and sets up the question aloud! Writing begins only when the tutor formally states "Let us write down..." or "Consider...".
-   - LATER SCENES LEAD-IN: The first spoken sentence of every later scene frames the next move with NO say tag.
+   - First writing anchor starts at the first words naming the given equation. Start normal equation writing immediately; no blank-board introduction or title ritual.
+   - Each writing anchor is the complete spoken thought for ONE line, including useful explanation while that line is drawn. Tags must be exact, in order, without overlaps. No anchor may include a prediction question; the answer's anchor starts AFTER the question finishes.
    - Decoration beats (box/circle/crossout/underline/point) take NO say. Stretches of pure explanation with nothing to write need NO beat at all — the pen rests and points while the professor talks.
 
 BOARD CRAFT (The Organic Chemistry Tutor Standard):
@@ -110,7 +105,7 @@ BOARD CRAFT (The Organic Chemistry Tutor Standard):
 - EMPHASIS RESTRAINT: Real professors do NOT circle or underline everything. Use emphasis with extreme restraint. ONLY box the final answer. NEVER circle intermediate steps or parameters. At most ONE underline on a major rule/heading across the video. Do not add decorative circles, underlines, or boxes to regular lines.
 - DEICTIC POINTING (essential for math clarity): When the narration discusses or references an earlier term, formula, or parameter on the board, include an explicit pointing beat — {"type":"point","target":"text:u = x","ms":1400} — so the marker cursor dot lifts and hovers directly at that line while the voice explains it. This guides the student's eyes across multi-step math boards so they always know what is being discussed.
 - COLOR DISCIPLINE (one color = one meaning): blue = the given problem, orange = the operation being done, green = results, yellow = key formulas/emphasis/questions to the viewer, red = ONLY crossouts, white = the working.
-- Scene 1 of the video starts with {"type":"title", ...} (big heading) or the primary equation. Use "below":"text:TERM" to pin small annotations directly under a term. Mark ONLY the problem line and the final answer "keep": true.
+- Start with a plain {"type":"write"} for the given equation, not a title, "Solve for x" heading, or underline. Use "below":"text:TERM" to pin annotations under a term. Mark ONLY the problem line and final answer "keep": true.
 - University notation: superscripts x^{2}, m/s^{2}, subscripts v_{0}, Greek π Δ θ μ, operators ∫ ∑ √ ± × ÷ ≤ ≥ ≠ → · — NEVER LaTeX, never backslashes, never $.
 
 BOARD LINE EXAMPLES:
@@ -118,7 +113,7 @@ GOOD: "2x + 5 = 13" | "− 5 both sides" | "v₀ = 0, a = 3 m/s²" | "x = 4" | "
 BAD (belongs in the narration, will be removed): "We subtract 5 because we want x alone" | "Notice that the twos cancel out" | "F_applied" (never underscore words — write F_{applied})
 
 BEAT TYPES you may use:
-{"type":"title","text":"...","color":"yellow","say":"..."}                         big heading (scene 1 only)
+{"type":"title","text":"...","color":"yellow","say":"..."}                         legacy format; use regular write, not a heading
 {"type":"write","text":"...","color":"...","size":"lg|md|sm","x":0..1,"y":0..1,"align":"left|center|right","keep":bool,"below":"text:+ 5","say":"..."}   handwriting. Default white, md
 {"type":"fraction","prefix":"x =","num":"−b + √(b²−4ac)","den":"2a","color":"green","size":"md","say":"..."}   stacked fraction; prefix/suffix optional
 {"type":"box"} / {"type":"underline"}    emphasis: use ONLY around the final answer (box) or a key governing formula (underline). DO NOT circle or underline regular steps.
@@ -126,11 +121,11 @@ BEAT TYPES you may use:
 {"type":"point","target":"text:2x = 8","ms":900}    the pen travels to a written term and points at it
 {"type":"graph","expr":"x^2 - 2","xMin":-4,"xMax":4,"label":"y = x² − 2","color":"yellow","say":"..."}    expr uses x, + - * / ^ ( ) and sin cos tan exp ln log sqrt abs
 {"type":"freebody","angle":35,"block":"m","forces":[{"label":"mg","dir":"down"},{"label":"N","dir":"normal"},{"label":"F","dir":"upslope"},{"label":"fₖ","dir":"downslope"}],"color":"yellow","say":"..."}    a REAL drawn free-body diagram (surface, block, labeled force arrows). dirs: down up left right normal (perpendicular away from surface) upslope downslope. USE THIS whenever the script mentions forces, a free-body diagram, or a block on an incline — never write a text list of force names instead.
-{"type":"numberline","min":-5,"max":5,"hops":[{"from":0,"to":3,"label":"+3"}],"points":[{"at":3,"label":"x"}]}
+{"type":"numberline","min":-5,"max":5,"hops":[{"from":0,"to":3,"label":"+3"}],"points":[{"at":3,"label":"x"}],"say":"..."}
 {"type":"table","title":"...","headers":["x","y"],"rows":[["0","1"],["1","4"]],"say":"..."}
 {"type":"erase","keep":["x = 4"]}    wipe the board (keep matching text)
 {"type":"newline","n":1}    move the writing cursor down
-{"type":"wait","ms":500}    a beat of silence — let a key result land
+{"type":"wait","ms":500}    legacy format; omit artificial waits (the player handles short prediction pauses)
 
 COMPACTNESS: under 3KB. Raw JSON only, starting with { and ending with }.`;
 
@@ -171,9 +166,9 @@ The second form REPLACES the writer's beats entirely, so when you fix, return th
 
 CHECKLIST, in priority order:
 1. NO PROSE ON THE BOARD. Sentences of explanation (because/since/notice/remember, article-heavy clauses) belong in the narration, never in ink. Remove prose beats entirely — the voice already carries those words.
-2. DENSITY. 2-5 content beats. Too many fragments → merge into fewer, cleaner lines. If the scene is crowded, start with an erase beat.
+2. DENSITY. Prefer ONE operation and one concise equation per scene. Do not merge separately spoken operations into one writing anchor. Erase only when necessary for space, not at each step.
 3. EMPHASIS RESTRAINT. Remove frivolous circles and underlines. Real lecturers do NOT circle everything. Only the final answer should be boxed; at most one key formula underlined. Remove decorative circles or underlines on working steps.
-4. SAY TAGS. Every beat that writes ink (write/title/fraction/graph/freebody/table) carries "say" — a VERBATIM fragment of this scene's narration, in order. Fix missing or unanchored say tags. Decoration beats (box/circle/crossout/underline/point) take NO say.
+4. SAY TAGS. Every ink-writing beat carries an exact ordered "say" thought. Preserve the writer's speech boundaries; fix ink without moving or changing valid anchors. A prediction question must finish before result ink begins. Decorations take NO say. Remove title/underline rituals, not the primary equation.
 5. MATH CONSISTENCY. Equation lines must be consistent with what the narration claims. If the narration concludes x is 4, no line may show x = 5, and arithmetic on the board must actually be correct (2 + 2 = 5 is never allowed to stand). Fix the beats to match the narration and the mathematics.
 6. TARGETS. box/circle/crossout/point targets must quote text that actually appears in a written line of this scene. Remove or fix dangling targets.
 

@@ -40,6 +40,7 @@ import {
 } from "./hand";
 import { tryCompileExpr } from "@/lib/expr";
 import { normSpeechKey } from "../solve-schema";
+import { stepTiming } from "./step-timing";
 
 /* ----------------------------- helpers ---------------------------- */
 
@@ -172,7 +173,7 @@ function addPaths(
   for (const r of raw) {
     if (r.pts.length < 2) continue;
     const { cum, len } = polyLen(r.pts);
-    const speed = penSpeed(opts?.speedCap ?? 38);
+    const speed = penSpeed(opts?.speedCap ?? 38) * (ctx.scene.delivery === "step" ? 45 / 55 : 1);
     const dur = Math.max(0.065, len / speed);
     const s: PathStroke = {
       kind: "path",
@@ -1906,19 +1907,21 @@ export function compileTimeline(script: SolveScript): Timeline {
     const scene: SceneTime = {
       chapter: sc.chapter,
       narration: sc.narration,
+      delivery: sc.delivery,
+      stepKind: sc.kind,
       intro: sc.intro === true,
       strokes: [],
       groups: [],
       erases: [],
-      head: HEAD,
-      writeEnd: HEAD,
+      head: sc.delivery === "step" ? .08 : HEAD,
+      writeEnd: sc.delivery === "step" ? .08 : HEAD,
       dur: 0,
       locked: false,
     };
     const ctx: Ctx = {
       scene,
       sceneIdx,
-      now: HEAD,
+      now: scene.head,
       cursor: { ...cursor },
       groups,
       gone,
@@ -1936,7 +1939,8 @@ export function compileTimeline(script: SolveScript): Timeline {
       const markSay = (beat as { say?: string }).say;
       switch (beat.type) {
         case "title":
-          buildTitle(ctx, beat);
+          if (sc.delivery === "step") buildWrite(ctx, { ...beat, type: "write" });
+          else buildTitle(ctx, beat);
           lastCap = CAP.title;
           break;
         case "write":
@@ -1996,14 +2000,17 @@ export function compileTimeline(script: SolveScript): Timeline {
     /* say/write pacing — the pen lands on the words being spoken.
        Runs BEFORE the talk-hold so the pointing tail follows the
        reshaped schedule. */
-    const paced = paceSceneToNarration(scene, groups, ctx.beatMarks, sceneIdx);
+    const paced = sc.delivery !== "step" && paceSceneToNarration(scene, groups, ctx.beatMarks, sceneIdx);
     scene.paced = paced;
     scene.pacedFor = paced ? estAudio : undefined;
-    appendTalkHold(ctx, estAudio);
+    if (sc.delivery !== "step") appendTalkHold(ctx, estAudio);
     if (sc.intro) {
       compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
     }
-    scene.dur = Math.max(HEAD + scene.writeEnd, estAudio) + 2;
+    if (sc.delivery === "step") {
+      if (!sc.audio?.duration || sc.audio.narration !== sc.narration) throw new Error("Measured teaching step is missing its recording duration");
+      setSceneAudio({ scenes: [scene] } as Timeline, 0, sc.audio.duration);
+    } else scene.dur = Math.max(HEAD + scene.writeEnd, estAudio) + 2;
     scenes.push(scene);
     cursor = ctx.cursor;
     lastBottom = ctx.lastBottom;
@@ -2021,6 +2028,13 @@ export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
   const s = tl.scenes[i];
   if (!s || !Number.isFinite(audioDur) || audioDur <= 0) return;
   s.audioDur = audioDur;
+  if (s.delivery === "step") {
+    const timing = stepTiming(s.writeEnd, audioDur, s.stepKind ?? "work", s.narration.trim().split(/\s+/).length);
+    s.speechRate = timing.speechRate;
+    s.dur = timing.duration;
+    s.locked = true;
+    return;
+  }
 
   /* say-paced scenes stretch their whole pen schedule to the REAL
      speech length (TTS speaks at a steady rate, so scaling the baked
