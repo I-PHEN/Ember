@@ -3,6 +3,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer-core";
 import { createScoreWav, scoreSample } from "./score";
+import { verifyFilmExport } from "./verification";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const out = resolve(root, "public/media");
@@ -61,7 +62,9 @@ try {
   if (!process.argv.includes("--stills")) {
     await Bun.write(resolve(qa, "score.wav"), createScoreWav());
     const output = resolve(out, "ember-launch.mp4");
-    const proc = Bun.spawn([ffmpeg, "-y", "-hide_banner", "-loglevel", "warning", "-f", "image2pipe", "-framerate", "30", "-i", "pipe:0", "-i", resolve(qa, "score.wav"), "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-t", "52", "-movflags", "+faststart", output], { stdin: "pipe", stdout: "ignore", stderr: "pipe" });
+    // Canvas JPEG is full-range BT.601 YCbCr. Convert samples as well as tags;
+    // pix_fmt alone can retain full-range metadata from JPEG input.
+    const proc = Bun.spawn([ffmpeg, "-y", "-hide_banner", "-loglevel", "warning", "-f", "image2pipe", "-framerate", "30", "-i", "pipe:0", "-i", resolve(qa, "score.wav"), "-vf", "sidedata=mode=delete:type=ICC_PROFILE,scale=in_range=pc:out_range=tv:in_color_matrix=bt601:out_color_matrix=bt709:flags=accurate_rnd+full_chroma_int,format=yuv420p,setparams=range=limited:color_primaries=bt709:color_trc=bt709:colorspace=bt709", "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p", "-color_range", "tv", "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-c:a", "aac", "-b:a", "160k", "-t", "52", "-movflags", "+faststart", output], { stdin: "pipe", stdout: "ignore", stderr: "pipe" });
     const stderr = new Response(proc.stderr).text();
     for (let i = 0; i < 1560; i++) {
       proc.stdin.write(await frame(i / 30));
@@ -72,7 +75,8 @@ try {
     if (await proc.exited !== 0) throw new Error(`FFmpeg export failed: ${await stderr}`);
     const verify = Bun.spawn([ffmpeg, "-hide_banner", "-i", output, "-f", "null", "-"], { stdout: "ignore", stderr: "pipe" });
     const metadata = await new Response(verify.stderr).text();
-    if (await verify.exited !== 0 || !/Video: h264/.test(metadata) || !/1920x1080/.test(metadata) || !/Duration: 00:00:52/.test(metadata) || !/Audio: aac/.test(metadata)) throw new Error(`Export verification failed: ${metadata}`);
+    if (await verify.exited !== 0) throw new Error(`Export decode failed: ${metadata}`);
+    verifyFilmExport(metadata, await readFile(output));
     let peak = 0; for (let i = 0; i < 52 * 48000; i++) peak = Math.max(peak, Math.abs(scoreSample(i / 48000, 0)), Math.abs(scoreSample(i / 48000, 1)));
     await Bun.write(resolve(qa, "verification.txt"), `${metadata}\nOriginal PCM peak: ${peak} (${20 * Math.log10(peak)} dBFS)\n`);
     if (process.env.FILM_LOCAL_COPY) {
@@ -81,6 +85,6 @@ try {
       await copyFile(output, target, 1);
       console.log(`Local export: ${target}`);
     }
-    console.log(`Verified H.264/AAC 1920×1080, 52 seconds: ${output}`);
+    console.log(`Verified H.264 limited-range yuv420p BT.709/AAC 1920×1080, 52 seconds: ${output}`);
   }
 } finally { await browser.close(); }

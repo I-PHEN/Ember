@@ -1,6 +1,31 @@
 import { expect, test } from "bun:test";
 import { getFilmState, showcase, showcaseTimeline } from "../tooling/launch-film/story";
 import { scoreSample } from "../tooling/launch-film/score";
+import { verifyFilmExport } from "../tooling/launch-film/verification";
+
+test("film verification rejects wrong container, range, frame rate, and duration", () => {
+  const atom = (name: string, payload = "") => {
+    const bytes = Buffer.alloc(8 + payload.length);
+    bytes.writeUInt32BE(bytes.length); bytes.write(name, 4); bytes.write(payload, 8);
+    return bytes;
+  };
+  const mp4 = Buffer.concat([atom("ftyp", "isom0000mp41"), atom("moov"), atom("mdat")]);
+  const valid = "Duration: 00:00:52.00\nVideo: h264 (High), yuv420p(tv, bt709, progressive), 1920x1080, 30 fps\nAudio: aac (LC)";
+  expect(() => verifyFilmExport(valid, mp4)).not.toThrow();
+  expect(() => verifyFilmExport(valid, Buffer.from("not an MP4"))).toThrow();
+  expect(() => verifyFilmExport(valid, Buffer.concat([atom("ftyp", "qt  0000qt  "), atom("moov"), atom("mdat")]))).toThrow();
+  for (const metadata of [valid.replace("yuv420p(tv", "yuvj420p(pc"), valid.replace("30 fps", "24 fps"), valid.replace("52.00", "52.50"), valid.replace("Video: h264", "Video: hevc"), valid.replace("Audio: aac", "Audio: mp3")]) {
+    expect(() => verifyFilmExport(metadata, mp4)).toThrow();
+  }
+});
+
+test.skipIf(!process.env.FFMPEG_PATH)("exported film decodes as limited-range yuv420p for browser compatibility", async () => {
+  const proc = Bun.spawn([process.env.FFMPEG_PATH!, "-hide_banner", "-i", "public/media/ember-launch.mp4", "-frames:v", "1", "-an", "-f", "null", "-"], { stdout: "ignore", stderr: "pipe" });
+  const metadata = await new Response(proc.stderr).text();
+  expect(await proc.exited).toBe(0);
+  expect(metadata).toMatch(/Video: h264[^\n]*yuv420p\(tv, bt709/);
+  expect(metadata).not.toMatch(/Video: h264[^\n]*yuvj420p/);
+});
 
 test("film clock clamps invalid time and selects new scenes at boundaries", () => {
   for (const t of [-1, NaN, Infinity, -Infinity]) {
