@@ -38,7 +38,7 @@ test("keeps the film in the question hero before comparison and community", () =
   expect(videos).toHaveLength(1);
   expect(videos[0].ancestors).toContain(hero!);
 
-  const question = html.match(/<textarea\b[^>]*id="lesson-question"[^>]*>/);
+  const question = html.match(/<textarea\b[^>]*aria-label="Your question"[^>]*>/);
   expect(question).not.toBeNull();
   expect(question![0]).toContain('rows="2"');
   expect(question!.index!).toBeGreaterThan(hero!.start);

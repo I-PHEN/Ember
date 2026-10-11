@@ -16,7 +16,7 @@ export default function CommunityJourney() {
   // client snapshot after hydration, when the device preference is known.
   const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
   const moving = hydrated && reduced === false;
-  const { scrollYProgress } = useScroll({ target: host, offset: ["start start", "end end"] });
+  const { scrollYProgress } = useScroll({ target: host, offset: ["start end", "end center"] });
   const smooth = useSpring(scrollYProgress, { stiffness: 180, damping: 38 });
   const [progress, setProgress] = useState(0);
   useMotionValueEvent(smooth, "change", value => { if (moving) setProgress(value); });

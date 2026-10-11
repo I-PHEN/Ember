@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/firebase/auth-context";
 import LaunchFilm from "@/components/landing/LaunchFilm";
 import LearningComparison from "@/components/landing/LearningComparison";
 import CommunityJourney from "@/components/landing/CommunityJourney";
+import LandingComposer from "@/components/landing/LandingComposer";
 
 const STARTERS = [
   { label: "Matrices", prompt: "Explain matrix dimensions and how to locate an entry." },
@@ -33,12 +34,9 @@ export default function LandingPage() {
     <section className="landing-hero landing-width hero-focused">
       <div className="hero-copy">
         <p className="landing-eyebrow"><span className="ember-dot" /> Your question, taught on a blackboard.</p>
-        <h1>Understand the steps.<br /><span className="font-hand">Not just the answer.</span></h1>
+        <h1>Every problem,<br /><span className="font-hand">a lesson.</span></h1>
         <p className="hero-description">A lesson that writes, explains, and makes room for your questions. Follow the reasoning—and return to the step you need.</p>
-        <form className="landing-composer" onSubmit={event => { event.preventDefault(); launch(); }}>
-          <label htmlFor="lesson-question">What are you working on?</label><textarea id="lesson-question" value={prompt} onChange={event => setPrompt(event.target.value)} rows={2} placeholder="Paste a STEM problem or ask about a concept…" />
-          <div className="composer-bottom"><span>Introductory university STEM</span><button className="landing-primary" disabled={loading} type="submit">Create a lesson <ArrowRight size={15} /></button></div>
-        </form>
+        <LandingComposer question={prompt} busy={loading} onChange={setPrompt} onSubmit={launch} onAttach={launch} />
         <div className="landing-starters"><span>Try a question</span>{STARTERS.map(starter => <button key={starter.label} onClick={() => setPrompt(starter.prompt)}>{starter.label}</button>)}</div>
         <p className="landing-caption">Your lessons, at your pace.</p>
       </div>
