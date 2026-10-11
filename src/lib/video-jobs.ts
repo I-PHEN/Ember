@@ -1,4 +1,5 @@
 import { chatComplete } from "./ai/chat";
+import { GENERATION_ERROR_MESSAGE } from "./lesson-error";
 import { existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import {
@@ -1156,7 +1157,7 @@ async function runJob(
     if (err instanceof LeaseLostError) throw err;
     console.error("video job crashed:", err);
     job.phase = "error";
-    job.error = "Video generation hit a snag. Please try again.";
+    job.error = GENERATION_ERROR_MESSAGE;
     await save();
   } finally {
     acceptingReviews = false;

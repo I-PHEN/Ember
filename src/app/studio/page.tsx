@@ -6,6 +6,7 @@
 ------------------------------------------------------------------- */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lessonErrorMessage } from "@/lib/lesson-error";
 import {
   ArrowRight,
   AlertTriangle,
@@ -2448,10 +2449,10 @@ export default function Page() {
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff6b6b]/15 ring-1 ring-[#ff6b6b]/30">
                 <AlertTriangle className="h-5 w-5 text-[#ff6b6b]" />
               </span>
-              <div className="text-base font-bold text-foreground">The marker slipped</div>
+              <div className="text-base font-bold text-foreground">We couldn’t finish your lesson</div>
             </div>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              {formError || jobStatus?.error}
+              {lessonErrorMessage(formError || jobStatus?.error)}
             </p>
             <div className="mt-6 flex gap-3">
               <Button
@@ -2462,14 +2463,14 @@ export default function Page() {
                 }
                 className="rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]"
               >
-                Try again
+                Retry lesson
               </Button>
               <Button
                 variant="ghost"
                 onClick={clearJob}
                 className="rounded-xl text-muted-foreground hover:bg-[#23262a] hover:text-[#f1eee7]"
               >
-                Change question
+                Edit question
               </Button>
             </div>
           </div>
