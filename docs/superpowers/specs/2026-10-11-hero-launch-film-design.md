@@ -6,11 +6,15 @@ Enlarge the homepage question input, deepen the comparison, and replace the scro
 
 ## Direction and alternatives
 
-Recommended: a 48-second product-led film, using Ember's actual board renderer and faithfully represented studio controls. It demonstrates the learning experience rather than advertising backend machinery. A typography-only trailer would be simpler but would not establish what Ember does. A raw screen recording would be honest but less readable and less deliberate at this length.
+Recommended: a fresh 52-second product-led film, using Ember's actual board renderer and faithfully represented studio controls. It demonstrates the learning experience rather than advertising backend machinery. A typography-only trailer would be simpler but would not establish what Ember does. A raw screen recording would be honest but less readable and less deliberate at this length.
 
-Use the existing local launch draft only as reusable source material. Its MP4 is not the finished deliverable. Preserve the original launch folder and build the revised version in the isolated checkout. Remove unsupported claims, the fictional domain, backend-centric scenes, and disparaging generic-chat comparisons.
+The user explicitly rejected the existing local launch draft. Do not reuse its source, composition, soundtrack, shots, or story. Preserve that original folder untouched. Create a new film source directory in the isolated checkout. Reusing Ember's production board renderer, fonts, and verified UI assets is permitted; reworking the rejected film is not. No fictional domain, backend-centric scenes, or disparaging generic-chat comparisons.
 
-The supplied What Ships consumer directory is a reference, not a source of media to copy. The Cosmos 54-second entry was inspected; playback was buffering at design time, so no claim is made about watching its motion or editing.
+The specific reference is Wabi's post https://x.com/wabi/status/2104721766690222087, supplied locally as C:/Users/Michael/Downloads/download.mp4. The uploaded film decodes successfully: 80.53 seconds, 1920×1080, H.264, 60fps, AAC stereo. A full-film overview sampled every four seconds and dense half-second opening/product sequences were inspected. These establish visual direction, not a claim of watching every frame in real time. Audio is present, but the assistant cannot audition it with the current audio-input surface; no description of its music or voice is asserted.
+
+Observed reference cues: a fluid colored opening transitions into an exceptionally sparse white stage; short centered phrases precede readable phone/UI demonstrations; the camera moves between full-device and detail crops; avatars pass through a typography scene into the conversation; the same product example continues across shots; text, objects, and screens carry transitions rather than disconnected feature cards. Opening typography shifts between typed phrases and larger payoff statements. Product shots hold long enough to read. A concise brand close follows the demonstrations.
+
+Adapt those editorial cues, not Wabi's assets, wording, pastel palette, phone hardware, or floating emoji. Ember's distinguishing transition is an amber writing stroke becoming part of the board/UI framing. Maintain the charcoal studio and use deliberate negative space, restrained sentence-scale typography, and continuity across one simple mathematical example.
 
 ## Homepage
 
@@ -18,22 +22,22 @@ Keep the current headline, authentication flow, example questions, and question 
 
 Place the film beneath the question-and-starters group, replacing the ScrollLearningFlow section. Use a deliberate poster showing the board and Ember identity, a visible duration, native playback controls, and a download link. No autoplay, automatic audio, scroll pinning, fake cursor, or required animation to understand the page. Keep the remaining community section and navigation.
 
-## Film: 48 seconds, 1920×1080, 30fps
+## Film: 52 seconds, 1920×1080, 30fps
 
 | Time | Story | Visible proof |
 | --- | --- | --- |
-| 0–5s | Getting an answer is not always understanding it | A correct integral answer, then the student's question: “Why this step?” No claims about competing products' speed or abilities. |
-| 5–9s | Introduce Ember | Charcoal studio, restrained wordmark and amber spark-swash. |
-| 9–16s | Bring your own question | A readable composer enters the integration-by-parts problem and selects Create a lesson. Do not imply instant generation. |
-| 16–23s | A lesson you can work with | Show chapters and revisiting a specific step, replacing the existing backend-agent sequence. |
-| 23–34s | Follow the reasoning | The real renderer writes u = x, du = dx, dv = e^(2x) dx, and v = ½e^(2x), with enough hold time to read. Frame this as an edited excerpt, not an uncut full lesson. |
-| 34–41s | Ask why | Prepared Office Hours example: choosing u = x simplifies its derivative and keeps the remaining integral manageable. |
-| 41–44.5s | Find another way in | A readable community gallery shot rather than a dense board-theme or architecture checklist. |
-| 44.5–48s | Brand payoff | “Every problem, a lesson.” and “Create your first lesson.” No unowned domain or fabricated usage metrics. |
+| 0–4s | “Some questions need more than an answer.” | Sparse, phrase-led typography; a question's x carries into the next shot. No hostile competitor card or fabricated instant-answer claim. |
+| 4–8s | Meet Ember | Ember's amber spark-swash draws into the composer frame; restrained brand introduction rather than a separate decorative montage. |
+| 8–14s | Bring a question | Tight composer shot enters x + 2 = 5. Create a lesson transitions into an explicitly edited lesson excerpt, not a promise of six-second generation. |
+| 14–28s | “See why each step works.” | Real board strokes show x + 2 = 5, subtracting 2 from both sides, then x = 3. No repeated question heading or gratuitous underline. Readable holds, not accelerated dense calculus. |
+| 28–35s | “Go back to the moment it clicks.” | Board camera pulls out to reveal the chapter/timeline controls; revisit the subtract-2 step. Visually distinguish deliberate rewind from unwanted repeated narration. |
+| 35–43s | “And ask the next question.” | Prepared Office Hours example asks why subtract from both sides; answer explains keeping the sides equal while isolating x. UI detail crop rather than a feature list. |
+| 43–48s | More questions, same workspace | Transition into faithful gallery/subject examples, using existing verified content and no fabricated metrics. |
+| 48–52s | Brand payoff | The amber stroke returns to the wordmark: “Every problem, a lesson.” and “Create your first lesson.” |
 
 Use #111315 charcoal, #e6b784 amber, Geist Sans/Mono and BoardHand only for board writing. Keep motion focused on the board and readable studio close-ups; do not scatter ornamental effects. Keep all important text inside a generous safe area. No captions smaller than readable at the embedded size.
 
-Audio: a restrained original procedural score, without the existing typing, transition whooshes, and chimes. Only include an existing voice excerpt if its words match the board exactly and remain intelligible; otherwise use on-screen text rather than an unrelated spoken sample. Supply captions for any included speech. Do not change generated-lesson audio settings to produce marketing media.
+Audio: a new restrained original score, not copied from Wabi or the rejected draft. Keep the film understandable through its on-screen story, without depending on narration. No arbitrary typing clicks, transition whooshes, chimes, or unrelated lesson voice sample. Any future speech must be independently verified against board timing and captioned; speech is not required for this text-led direction. Do not change generated-lesson audio settings to produce marketing media. Deliver transcript text describing the on-screen story.
 
 ## Deeper comparison
 
@@ -55,4 +59,4 @@ Commit the completed work after verification. Deploy only ember-generation-test 
 
 ## Review checkpoint
 
-The user approved the overall brief and direction. This written storyboard and scope need review before implementation and rendering. No homepage or launch source changes have been made during this design phase.
+The user approved the overall homepage brief but rejected the original film/reuse proposal. This fresh Wabi-informed direction and written storyboard need approval before implementation and rendering. No homepage or launch source changes have been made during this design phase.
