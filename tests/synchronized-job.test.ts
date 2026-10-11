@@ -10,6 +10,8 @@ test("a durable lesson publishes measured speech steps and never reveals a predi
   const narrations=["We have x plus two equals five, and we want to find the unknown x.","What is five minus two? Three is the result, so our unknown x equals three."];
   let givenAttempts=0;
   let receivedTimingFeedback=false;
+  let receivedRejectedDraft=false;
+  let clearedStaleDraft=false;
   const providers:EngineProviders={
     complete:async(system,user)=>{
       let data:unknown;
@@ -22,7 +24,12 @@ test("a durable lesson publishes measured speech steps and never reveals a predi
       else {
         const i=Number(user.match(/YOUR SCENE: scene (\d+)/)?.[1])-1;
         const overfull=i===0 && givenAttempts++===0;
-        if(i===0 && !overfull) receivedTimingFeedback=user.includes("seconds of board motion");
+        if(i===0 && givenAttempts===2) {
+          receivedTimingFeedback=user.includes("seconds of board motion");
+          receivedRejectedDraft=user.includes('REJECTED BOARD DRAFT') && user.includes('"text":"x + 2 - 2 = 5 - 2"');
+          return {text:'{}',provider:"test",hops:0};
+        }
+        if(i===0 && givenAttempts===3) clearedStaleDraft=!user.includes('REJECTED BOARD DRAFT');
         data={narration:narrations[i],beats:[{type:overfull?"write":i===0?"title":"write",text:overfull?"x + 2 - 2 = 5 - 2":i===0?"Solve for x: x + 2 = 5":"x = 3",say:i===0?narrations[0]:"Three is the result, so our unknown x equals three.",keep:true}]};
       }
       return{text:JSON.stringify(data),provider:"test",hops:0};
@@ -34,6 +41,8 @@ test("a durable lesson publishes measured speech steps and never reveals a predi
   const job=await getJob(id,store);
   expect(job?.phase).toBe("ready");
   expect(receivedTimingFeedback).toBe(true);
+  expect(receivedRejectedDraft).toBe(true);
+  expect(clearedStaleDraft).toBe(true);
   expect(job?.script?.scenes[0].beats[0]).toMatchObject({text:"x + 2 = 5"});
   expect(job?.voicesDone).toBe(2);
   expect(job?.script?.scenes.map(s=>s.delivery)).toEqual(["step","step","step"]);
@@ -45,7 +54,7 @@ test("a durable lesson publishes measured speech steps and never reveals a predi
     expect(scene.audio?.duration).toBeGreaterThan(0);
     expect(await store.readAudio(scene.audio!.key)).not.toBeNull();
   }
-});
+}, 15000);
 
 test("exhausted timing retries do not enqueue an unanchored summary fallback", async () => {
   const {store,client}=await testStore();
@@ -66,4 +75,4 @@ test("exhausted timing retries do not enqueue an unanchored summary fallback", a
   expect(state.checkpoint.results.filter(Boolean)).toHaveLength(0);
   expect(state.voiceFailures).toEqual([]);
   expect(state.voicesDone).toBe(0);
-});
+}, 15000);

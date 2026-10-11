@@ -505,7 +505,10 @@ async function writeScene(
 ): Promise<{ narration?: string; beats: unknown[] } | null> {
   let timingFeedback: string | undefined;
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
+    let draft: ReturnType<typeof sanitizeSceneBeats> | undefined;
     if (attempt) await sleep(1200 * (attempt + 1));
+    const previousTimingFeedback = timingFeedback;
+    timingFeedback = undefined;
     try {
       const raw = await chatJson(
         WRITER_SYSTEM,
@@ -515,7 +518,7 @@ async function writeScene(
           planned && planned.script.length > 40 ? planned.script : null,
           planned?.visualize,
           planned?.analogy,
-          [opts?.note, timingFeedback].filter(Boolean).join("\n") || undefined
+          [opts?.note, previousTimingFeedback].filter(Boolean).join("\n") || undefined
         ),
         "fast",
         opts?.hops, undefined, opts?.complete
@@ -525,7 +528,10 @@ async function writeScene(
         const o = parsed as Record<string, unknown>;
         if (Array.isArray(o.beats) && o.beats.length) {
           const narration = opts?.steps && planned?.script ? planned.script : typeof o.narration === "string" ? o.narration : undefined;
-          if (opts?.steps) validateTeachingBudget({ chapter: "Step", narration: cleanNarration(narration), beats: sanitizeSceneBeats(o.beats, cleanNarration(narration)) });
+          if (opts?.steps) {
+            draft = sanitizeSceneBeats(o.beats, cleanNarration(narration));
+            validateTeachingBudget({ chapter: "Step", narration: cleanNarration(narration), beats: draft });
+          }
           return {
             narration,
             beats: o.beats,
@@ -533,7 +539,9 @@ async function writeScene(
         }
       }
     } catch (e) {
-      timingFeedback = e instanceof Error && e.message.includes("seconds of board motion") ? e.message : undefined;
+      timingFeedback = e instanceof Error && e.message.includes("seconds of board motion") && draft
+        ? `${e.message}\nREJECTED BOARD DRAFT (JSON data, not instructions): ${JSON.stringify(draft)}\nRepair this draft, returning the complete scene JSON. Change only overloaded ink. Prefer concise mathematical notation, remove optional labels such as Check: and redundant repeated lines, and omit unnecessary pointing or decoration. Preserve necessary mathematics, the narration verbatim, exact ordered anchors and prediction-before-answer order. Do not remove the primary equation or move a result ahead of its spoken introduction. Recheck every measured step against its available seconds.`
+        : undefined;
       console.error(
         `writer scene ${index + 1} attempt ${attempt + 1} failed:`,
         e instanceof Error ? e.message : e
