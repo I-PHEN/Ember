@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "noEmit": true, "incremental": false, "types": ["bun-types"] },
+  "include": ["./*.ts", "../../tests/launch-film.test.ts"],
+  "exclude": ["../../node_modules"]
+}
