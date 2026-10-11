@@ -41,10 +41,9 @@ export default function LandingPage() {
         </form>
         <div className="landing-starters"><span>Try a question</span>{STARTERS.map(starter => <button key={starter.label} onClick={() => setPrompt(starter.prompt)}>{starter.label}</button>)}</div>
         <p className="landing-caption">Your lessons, at your pace.</p>
-        <div className="hero-gallery-invitation"><p>Your question might already have a lesson.</p><Link href="/gallery">Find it in the community gallery <ArrowRight size={14} /></Link></div>
       </div>
+      <LaunchFilm />
     </section>
-    <LaunchFilm />
     <LearningComparison />
     <CommunityJourney />
     <section className="landing-width current-benefits"><div className="section-intro"><p className="landing-eyebrow">Built for the way you learn</p><h2>A lesson you can work with.</h2></div><div className="benefits-grid"><article><BookOpen size={21} /><h3>Follow the reasoning</h3><p>See the derivation take shape on a board, with an explanation alongside it.</p></article><article><RotateCcw size={21} /><h3>Return to a step</h3><p>Pause, change speed, and use chapters to revisit the part that needs another look.</p></article><article><MessageSquare size={21} /><h3>Ask the next question</h3><p>Ask Ember to clarify a step or adjust the explanation without leaving the lesson.</p></article></div></section>

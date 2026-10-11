@@ -121,13 +121,14 @@
 .landing-primary:hover { background: #f1c89c; }
 .landing-outline:hover { border-color: #e6b78466; }
 .landing-hero { display: grid; grid-template-columns: .9fr 1.1fr; gap: 60px; align-items: center; min-height: 690px; padding-block: 80px 100px; }
-.landing-hero.hero-focused { display: block; min-height: auto; padding-block: 80px 72px; }
+.landing-hero.hero-focused { display: block; min-height: auto; padding-block: 56px 48px; }
 .hero-focused .hero-copy { max-width: 840px; margin-inline: auto; text-align: center; }
 .hero-focused .landing-eyebrow, .hero-focused .landing-starters { justify-content: center; }
 .hero-focused .hero-description { max-width: 550px; margin-inline: auto; }
 .hero-focused .landing-composer { max-width: 780px; margin-inline: auto; text-align: left; padding: 24px; }
 .hero-focused .landing-composer textarea { min-height: 140px; max-height: 360px; font-size: 16px; }
 .ember-landing .launch-film { max-width: 1000px; padding-block: 8px 64px; }
+.hero-focused .launch-film { width: 100%; margin-top: 32px; padding-block: 0; }
 .ember-landing .launch-film-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 22px; }
 .ember-landing .launch-film-intro h2 { font-size: clamp(24px, 2.6vw, 34px); font-weight: 500; letter-spacing: -.035em; line-height: 1.25; margin-top: 10px; }
 .ember-landing .launch-film-intro > p { font-size: 12px; color: #9aa1af; }
@@ -173,7 +174,8 @@
   .comparison-board .comparison-label, .comparison-response, .comparison-actions { margin-inline: 8px; }
   .comparison-shared-question { padding: 20px; display: block; }
   .comparison-shared-question p { margin-top: 8px; }
-  .landing-hero.hero-focused { padding-block: 54px 48px; }
+  .landing-hero.hero-focused { padding-block: 36px 32px; }
+  .hero-focused .launch-film { margin-top: 24px; }
 }
 .hero-copy, .hero-lesson { min-width: 0; }
 .landing-eyebrow { color: #e6b784; font-size: 11px; font-weight: 500; letter-spacing: .055em; display: flex; align-items: center; gap: 8px; }
@@ -202,9 +204,6 @@
 .preview-chapters button[aria-current] { border-color: #e6b78440; color: #f4f4f6; }
 .preview-chapters button span { font-family: var(--font-geist-mono); color: #e6b784; font-size: 10px; }
 .preview-note { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; color: #9aa1af; font-size: 11px; }
-.hero-gallery-invitation { margin: 26px auto 0; padding-top: 22px; border-top: 1px solid #ffffff12; max-width: 440px; font-size: 12px; }
-.hero-gallery-invitation p { color: #9aa1af; margin-bottom: 8px; }
-.hero-gallery-invitation a { display: inline-flex; gap: 8px; align-items: center; color: #e6b784; }
 .gallery-math-copy .katex { font-size: 1em; }
 .gallery-math-copy .katex-display { margin: 0; display: inline; }
 .community-journey { border-top: 1px solid #ffffff12; }
@@ -279,6 +278,7 @@
   .hero-focused .landing-composer { padding: 18px; }
   .hero-focused .landing-composer textarea { min-height: 120px; }
   .ember-landing .launch-film { padding-bottom: 48px; }
+  .hero-focused .launch-film { padding-block: 0; }
   .ember-landing .launch-film-intro { display: block; margin-bottom: 18px; }
   .ember-landing .launch-film-intro > p { margin-top: 10px; }
   .ember-landing .launch-film-screen { border-radius: 10px; }
