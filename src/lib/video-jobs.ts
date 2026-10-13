@@ -47,6 +47,11 @@ import {
   REVIEWER_SCHEMA,
 } from "./engine/schemas";
 import { mergeScript } from "./engine/merger";
+import {
+  normalizeSolutionChain,
+  verifyChain,
+  type SolutionChain,
+} from "./engine/chain";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -158,6 +163,7 @@ interface Job {
     checkerScenes: number[];
     solverDone?: boolean;
     solver?: SolverAnswer | null;
+    chain?: SolutionChain | null;
     repaired?: boolean;
     repairScenes?: number[];
   };
@@ -410,9 +416,12 @@ function normalizeOutline(raw: unknown): Outline | null {
 async function callDirector(
   job: Job,
   complete = chatComplete,
-  ctx?: JobContext
+  ctx?: JobContext,
+  chainJson?: string
 ): Promise<Outline | null> {
-  const user = `Make a solve video for this question:\n\n${job.question}`;
+  const user = `Make a solve video for this question:\n\n${job.question}${
+    chainJson ? `\n\nVERIFIED SOLUTION CHAIN (plan the lesson steps along this verified route):\n${chainJson}` : ""
+  }`;
   const stageT0 = Date.now(); // the WHOLE stage, failed attempts included
   for (let attempt = 0; attempt < DIRECTOR_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1500);
@@ -484,7 +493,8 @@ async function callPlanner(
   outlineJson: string,
   sceneCount: number,
   complete = chatComplete,
-  ctx?: JobContext
+  ctx?: JobContext,
+  chainJson?: string
 ): Promise<TranscriptScene[] | null> {
   const stageT0 = Date.now(); // the WHOLE stage, failed attempts included
   for (let attempt = 0; attempt < PLANNER_ATTEMPTS; attempt++) {
@@ -495,7 +505,7 @@ async function callPlanner(
           (attempt
             ? "\n\nIMPORTANT REMINDER: Reply with the raw JSON object ONLY. No prose, no code fences. Exactly one scenes entry per outline scene, same order."
             : ""),
-        plannerUserPrompt(outlineJson),
+        plannerUserPrompt(outlineJson, chainJson),
         "reason",
         job.stats,
         /* spec §7 demotion order: the PLANNER caps thinking before the
@@ -668,13 +678,12 @@ async function runJob(
   job.voiceFailures = [];
   job.voicesDone = Object.keys(cp.voices).length;
   try {
-    /* 0 ─ BLIND SOLVER (Phase C): one parallel call from t0, from the
-       question ALONE — never sees the outline/script. Compared at merge;
-       never blocks delivery beyond a bounded wait. */
-    const SOLVER_WAIT_MS = 8000;
-    const solverPromise = (async (): Promise<SolverAnswer | null> => {
-      if (cp.solverDone) return cp.solver ?? null;
-      let result: SolverAnswer | null = null;
+    /* 0 ─ SOLVE FIRST (Phase 2): derive and CAS-verify the solution chain before planning.
+       The verified steps anchor the Director and Planner so they teach a known-correct route. */
+    const SOLVER_WAIT_MS = 6000;
+    const solverPromise = (async (): Promise<SolutionChain | null> => {
+      if (cp.chain !== undefined && cp.chain !== null) return cp.chain;
+      let chainResult: SolutionChain | null = null;
       try {
         const raw = await chatJson(
           SOLVER_SYSTEM,
@@ -686,20 +695,47 @@ async function runJob(
           ctx,
           SOLVER_SCHEMA
         );
-        result = normalizeSolver(extractJson(raw));
+        const parsed = extractJson(raw);
+        chainResult = normalizeSolutionChain(parsed);
+        const solverAnswer = normalizeSolver(parsed);
+        cp.solver = solverAnswer;
+        if (chainResult) {
+          const verification = verifyChain(chainResult);
+          if (!verification.valid) {
+            console.warn(`[solve-first] chain verification flags: ${verification.flags.join("; ")}`);
+          }
+        }
       } catch {
-        // No verdict; retain the attempted result across recovery.
+        // No verdict; retain attempted result across recovery.
       }
-      cp.solver = result;
+      cp.chain = chainResult;
       cp.solverDone = true;
       await save();
-      return result;
+      return chainResult;
     })();
     solverPromise.catch(() => undefined);
 
+    let chain: SolutionChain | null = null;
+    try {
+      let solverTimer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        chain = await Promise.race([
+          solverPromise,
+          new Promise<null>((resolve) => {
+            solverTimer = setTimeout(() => resolve(null), SOLVER_WAIT_MS);
+          }),
+        ]);
+      } finally {
+        clearTimeout(solverTimer);
+      }
+    } catch {
+      chain = null;
+    }
+    const chainJson = chain ? JSON.stringify(chain) : undefined;
+
     /* 1 ─ the director plans the lesson */
     lastChatWas429 = false;
-    const outline = cp.outline ?? (await callDirector(job, providers.complete, ctx));
+    const outline = cp.outline ?? (await callDirector(job, providers.complete, ctx, chainJson));
     if (!outline) {
       job.phase = "error";
       job.error = ctx.rateLimits.saw429 || lastChatWas429
@@ -737,7 +773,8 @@ async function runJob(
           outlineJson,
           outline.scenes.length,
           providers.complete,
-          ctx
+          ctx,
+          chainJson
         );
     cp.transcript = transcript;
     cp.plannerDone = true;
@@ -1048,18 +1085,19 @@ async function runJob(
       } catch {
         solver = null;
       }
+      let solverAns = cp.chain?.answer ?? cp.solver?.answer ?? solver?.answer ?? null;
       let scriptAnswer = extractScriptAnswer(script);
       let verdict: VerifyVerdict | "unresolved" =
-        solver?.answer && scriptAnswer
-          ? compareAnswers(solver.answer, scriptAnswer.answer)
+        solverAns && scriptAnswer
+          ? compareAnswers(solverAns, scriptAnswer.answer)
           : "unresolved";
       let rerun = !!cp.repaired;
 
-      if (verdict === "mismatch" && solver?.answer && scriptAnswer && !cp.repaired) {
+      if (verdict === "mismatch" && solverAns && scriptAnswer && !cp.repaired) {
         rerun = true;
         const from = Math.min(2, scriptAnswer.scene);
         const to = scriptAnswer.scene; // solve-chain: scenes 3..answer, inclusive
-        const note = `an independent solver got "${solver.answer}" but this lesson's final answer reads "${scriptAnswer.answer}"`;
+        const note = `an independent solver got "${solverAns}" but this lesson's final answer reads "${scriptAnswer.answer}"`;
         console.warn(
           `[verify] mismatch — rerunning scenes ${from + 1}..${to + 1}: ${note}`
         );
@@ -1093,15 +1131,15 @@ async function runJob(
           tl = merged2.timeline;
           violations = merged2.layoutViolations;
           scriptAnswer = extractScriptAnswer(script);
-          if (solver.answer && scriptAnswer) {
-            verdict = compareAnswers(solver.answer, scriptAnswer.answer);
+          if (solverAns && scriptAnswer) {
+            verdict = compareAnswers(solverAns, scriptAnswer.answer);
           }
         }
       }
 
       job.stats.verification = {
         verdict,
-        solverAnswer: solver?.answer ?? null,
+        solverAnswer: solverAns,
         scriptAnswer: scriptAnswer?.answer ?? null,
         rerun,
       };

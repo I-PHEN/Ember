@@ -47,12 +47,25 @@ export const SOLVER_SCHEMA: Record<string, unknown> = {
   type: "object",
   properties: {
     answer: { type: "string" },
+    units: { type: "string" },
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          eq: { type: "string" },
+          rule: { type: "string" },
+          why: { type: "string" },
+        },
+        required: ["eq", "rule"],
+      },
+    },
     keySteps: {
       type: "array",
       items: { type: "string" },
     },
   },
-  required: ["answer", "keySteps"],
+  required: ["answer"],
 };
 
 export const REVIEWER_SCHEMA: Record<string, unknown> = {

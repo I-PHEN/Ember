@@ -84,8 +84,10 @@ COMPACTNESS: output under 9KB. Raw JSON only, starting with { and ending with }.
 
 /* ------------------------------------------------------------------ */
 
-export function plannerUserPrompt(outlineJson: string): string {
-  return `Lesson outline:\n\n${outlineJson}\n\nWrite the complete spoken transcript now — one script per scene, same order, engagement and pacing per the rules.`;
+export function plannerUserPrompt(outlineJson: string, chainJson?: string): string {
+  return `Lesson outline:\n\n${outlineJson}${
+    chainJson ? `\n\nVERIFIED SOLUTION CHAIN (you must teach these steps and conclude with this exact answer):\n${chainJson}` : ""
+  }\n\nWrite the complete spoken transcript now — one script per scene, same order, engagement and pacing per the rules.`;
 }
 
 /* The scene-writer contract — STATIC PREFIX, identical for every writer
