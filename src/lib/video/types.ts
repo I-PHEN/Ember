@@ -239,6 +239,12 @@ export type Beat =
 
 export type ScriptBeat = Beat; // alias used by the sanitizer
 
+export interface WordTiming {
+  w: string;
+  t0: number;
+  t1: number;
+}
+
 export interface SceneSegment {
   say: string;
   ink?: Beat[];
@@ -252,7 +258,12 @@ export interface SolveScene {
   /** the fixed trademark intro (brand bumper) — not AI content; the player
    *  hides it from chapter lists and the chapter chip */
   intro?: boolean;
-  audio?: { key?: string; narration?: string; dur?: number };
+  audio?: {
+    key?: string;
+    narration?: string;
+    dur?: number;
+    words?: WordTiming[];
+  };
 }
 
 export interface SolveScript {
@@ -370,6 +381,8 @@ export interface SceneTime {
   paced?: boolean;
   /** the audio duration the schedule is currently paced for */
   pacedFor?: number;
+  /** word-level timestamps when audio is resolved */
+  words?: WordTiming[];
 }
 
 export interface Timeline {

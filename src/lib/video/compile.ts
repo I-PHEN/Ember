@@ -26,6 +26,7 @@ import {
   type SolveScript,
   type Stroke,
   type Timeline,
+  type WordTiming,
 } from "./types";
 import { layoutText, measureText, measureWrap } from "./text";
 import {
@@ -2067,7 +2068,13 @@ export function compileTimeline(script: SolveScript): Timeline {
     if (sc.intro) {
       compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
     }
-    scene.dur = Math.max(HEAD + scene.writeEnd + 0.5, estAudio + 0.5);
+    if (sc.audio?.dur) {
+      scene.audioDur = sc.audio.dur;
+    }
+    if (sc.audio?.words) {
+      scene.words = sc.audio.words;
+    }
+    scene.dur = Math.max(HEAD + scene.writeEnd + 0.5, (sc.audio?.dur ?? estAudio) + 0.5);
     scenes.push(scene);
     cursor = ctx.cursor;
     lastBottom = ctx.lastBottom;
@@ -2081,10 +2088,16 @@ export function compileTimeline(script: SolveScript): Timeline {
 }
 
 /** attach a known narration duration (TTS resolved) */
-export function setSceneAudio(tl: Timeline, i: number, audioDur: number): void {
+export function setSceneAudio(
+  tl: Timeline,
+  i: number,
+  audioDur: number,
+  words?: WordTiming[]
+): void {
   const s = tl.scenes[i];
   if (!s || !Number.isFinite(audioDur) || audioDur <= 0) return;
   s.audioDur = audioDur;
+  if (words) s.words = words;
 
   /* say-paced scenes stretch their whole pen schedule to the REAL
      speech length (TTS speaks at a steady rate, so scaling the baked

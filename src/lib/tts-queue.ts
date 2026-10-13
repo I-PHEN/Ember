@@ -40,26 +40,38 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
   return run;
 }
 
-async function ttsOnce(input: string, voice: string): Promise<Buffer> {
+async function ttsOnce(
+  input: string,
+  voice: string,
+  forceProvider?: "gemini" | "edge"
+): Promise<{ buffer: Buffer; provider: "gemini" | "edge" }> {
+  if (forceProvider === "edge") {
+    return { buffer: await edgeTTS(input, voice), provider: "edge" };
+  }
+  if (forceProvider === "gemini") {
+    return { buffer: await geminiTTS(input, voice), provider: "gemini" };
+  }
+
   const now = Date.now();
   if (now < geminiExhaustedUntil) {
-    return edgeTTS(input, voice);
+    return { buffer: await edgeTTS(input, voice), provider: "edge" };
   }
 
   try {
-    return await geminiTTS(input, voice);
+    return { buffer: await geminiTTS(input, voice), provider: "gemini" };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     geminiExhaustedUntil = now + 60 * 60 * 1000;
     console.warn(`[TTS] Gemini TTS failed (${msg.slice(0, 80)}). Switched seamlessly to Edge TTS.`);
-    return await edgeTTS(input, voice);
+    return { buffer: await edgeTTS(input, voice), provider: "edge" };
   }
 }
 
 async function ttsWithRetry(
   input: string,
-  voice: string
-): Promise<Buffer> {
+  voice: string,
+  forceProvider?: "gemini" | "edge"
+): Promise<{ buffer: Buffer; provider: "gemini" | "edge" }> {
   const delays = [0, 1800, 4000, 8000, 14000];
   let lastErr: unknown = null;
   for (let attempt = 0; attempt < delays.length; attempt++) {
@@ -69,9 +81,9 @@ async function ttsWithRetry(
     if (wait > 0) await sleep(wait);
     lastCallAt = Date.now();
     try {
-      const buf = await ttsOnce(input, voice);
+      const res = await ttsOnce(input, voice, forceProvider);
       gapMs = Math.max(MIN_GAP_MS, Math.round(gapMs * 0.7));
-      return buf;
+      return res;
     } catch (e) {
       lastErr = e;
       const msg = e instanceof Error ? e.message : String(e);
@@ -87,26 +99,27 @@ async function ttsWithRetry(
 
 /**
  * Speak (or fetch from cache) one narration. Serialized globally.
- * Returns the WAV buffer and the ms it took (for ETA statistics).
+ * Returns the WAV buffer, timing, and provider used.
  */
 export function speak(
   text: string,
   voice = "jam",
-  speed = 1
-): Promise<{ buffer: Buffer; ms: number; cached: boolean }> {
+  speed = 1,
+  forceProvider?: "gemini" | "edge"
+): Promise<{ buffer: Buffer; ms: number; cached: boolean; provider: "gemini" | "edge" }> {
   const t0 = Date.now();
   return withLock(async () => {
     const key = voiceKey(voice, speed, text);
     const hit = cache.get(key);
-    if (hit) return { buffer: hit, ms: Date.now() - t0, cached: true };
+    if (hit) return { buffer: hit, ms: Date.now() - t0, cached: true, provider: forceProvider ?? "gemini" };
 
-    const buffer = await ttsWithRetry(text.slice(0, MAX_TEXT), voice);
+    const res = await ttsWithRetry(text.slice(0, MAX_TEXT), voice, forceProvider);
     if (cache.size >= MAX_CACHED) {
       const first = cache.keys().next().value;
       if (first !== undefined) cache.delete(first);
     }
-    cache.set(key, buffer);
-    return { buffer, ms: Date.now() - t0, cached: false };
+    cache.set(key, res.buffer);
+    return { buffer: res.buffer, ms: Date.now() - t0, cached: false, provider: res.provider };
   });
 }
 

@@ -53,6 +53,8 @@ import {
   verifyChain,
   type SolutionChain,
 } from "./engine/chain";
+import { type PinnedVoice } from "./engine/context";
+import { getWavDuration, estimateWordTimings } from "./video/timings";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -171,6 +173,7 @@ interface Job {
     chain?: SolutionChain | null;
     repaired?: boolean;
     repairScenes?: number[];
+    pinnedVoice?: PinnedVoice;
   };
   stats: {
     directorMs: number | null;
@@ -694,8 +697,7 @@ async function runJob(
   const cp = job.checkpoint;
   const voiceKeys = (cp.voiceKeys ??= {});
   const markWatchable = () => {
-    const first = job.script?.scenes.find(scene => !!scene.narration);
-    if (job.script && (!first || Object.values(cp.voices).includes(storedAudioKey(first) ?? audioKey(first.narration)))) {
+    if (job.script && job.voicesDone >= job.voicesTotal) {
       job.stats.watchableMs ??= Date.now() - job.createdAt;
     }
   };
@@ -830,7 +832,23 @@ async function runJob(
           const expectedKey = (voiceKeys[idx] ??= storedAudioKey(matchingScene) ?? audioKey(text));
           if (cp.voices[idx] === expectedKey && await store.readAudio(expectedKey)) return;
           try {
-            const { ms, cached, key } = await ensureRecordedAudio(text, "jam", store, providers.synthesize, expectedKey);
+            if (!cp.pinnedVoice) {
+              const prov = !process.env.GEMINI_API_KEY ? "edge" : "gemini";
+              cp.pinnedVoice = {
+                provider: prov,
+                voice: prov === "edge" ? "en-US-ChristopherNeural" : "jam",
+              };
+              ctx.pinnedVoice = cp.pinnedVoice;
+            }
+            const synth = (t: string, v = "jam", s = 1) =>
+              providers.synthesize(t, v, s, cp.pinnedVoice?.provider);
+            const { ms, cached, key } = await ensureRecordedAudio(
+              text,
+              cp.pinnedVoice?.voice ?? "jam",
+              store,
+              synth as typeof speak,
+              expectedKey
+            );
             cp.voices[idx] = key;
             job.voicesDone = Object.keys(cp.voices).length;
             if (job.stats.firstVoiceReadyMs === null) {
@@ -840,8 +858,24 @@ async function runJob(
               job.voiceEwma = ewma(job.voiceEwma, ms);
               job.stats.voiceMs.push(ms);
             }
+            const scriptScene = job.script?.scenes[idx];
+            if (scriptScene) {
+              const buf = await store.readAudio(key);
+              const dur = buf ? getWavDuration(buf) : undefined;
+              const words = estimateWordTimings(text, dur ?? undefined);
+              scriptScene.audio = {
+                key,
+                narration: text,
+                dur: dur ?? undefined,
+                words,
+              };
+            }
           } catch (e) {
             if (e instanceof LeaseLostError) throw e;
+            if (cp.pinnedVoice?.provider === "gemini") {
+              cp.pinnedVoice = { provider: "edge", voice: "en-US-ChristopherNeural" };
+              ctx.pinnedVoice = cp.pinnedVoice;
+            }
             recordVoiceResult(job, idx, false);
             console.error(
               "voice prewarm failed:",
@@ -1190,7 +1224,18 @@ async function runJob(
       for (const scene of script.scenes) {
         if (scene.narration) {
           const index = cp.results.findIndex(result => cleanNarration(result?.narration) === scene.narration);
-          Object.assign(scene, { audio: { key: voiceKeys[index] ?? audioKey(scene.narration), narration: scene.narration } });
+          const key = voiceKeys[index] ?? audioKey(scene.narration);
+          const buf = await store.readAudio(key);
+          const dur = buf ? getWavDuration(buf) : undefined;
+          const words = estimateWordTimings(scene.narration, dur ?? undefined);
+          Object.assign(scene, {
+            audio: {
+              key,
+              narration: scene.narration,
+              dur: dur ?? undefined,
+              words,
+            },
+          });
         }
       }
       job.mergedAt = Date.now();
