@@ -31,6 +31,7 @@ import {
   Palette,
   Loader2,
   Subtitles,
+  Download,
 } from "lucide-react";
 import {
   THEMES,
@@ -46,6 +47,7 @@ import { compileTimeline, lockScene, setSceneAudio } from "@/lib/video/compile";
 import { renderFrame } from "@/lib/video/render";
 import { SceneAudio, BASE_SPEECH_RATE } from "@/lib/video/audio";
 import { narrationStore } from "@/lib/narration-store";
+import { exportTimelineToMp4, downloadBlob } from "@/lib/video/export-mp4";
 import { cn } from "@/lib/utils";
 
 const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
@@ -178,6 +180,41 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const [hover, setHover] = useState<{ x: number; t: number; chapter: string } | null>(null);
     const [themeMenu, setThemeMenu] = useState(false);
     const [captions, setCaptions] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [exportPct, setExportPct] = useState(0);
+
+    const handleExportMp4 = async () => {
+      if (exporting) return;
+      setExporting(true);
+      setExportPct(0);
+      try {
+        const audioUrls = await Promise.all(
+          tl.scenes.map(async (sc, idx) => {
+            if (!sc.narration) return "";
+            try {
+              return await narrationStore.get(
+                sc.narration,
+                "jam",
+                storedAudioKey(script.scenes[idx])
+              );
+            } catch {
+              return "";
+            }
+          })
+        );
+        const blob = await exportTimelineToMp4(tl, theme, {
+          audioUrls,
+          onProgress: (p) => setExportPct(Math.round(p * 100)),
+        });
+        const safeTitle =
+          script.title.slice(0, 30).replace(/[^a-zA-Z0-9_-]/g, "_") || "solve";
+        downloadBlob(blob, `${safeTitle}.mp4`);
+      } catch (err) {
+        console.error("Export MP4 failed:", err);
+      } finally {
+        setExporting(false);
+      }
+    };
 
     const total = totalDuration(tl);
     const totalRef = useRef(total);
@@ -922,6 +959,27 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
                   </>
                 )}
               </div>
+
+              {/* export MP4 */}
+              <button
+                onClick={handleExportMp4}
+                disabled={exporting}
+                className={cn(
+                  ctrlBtn,
+                  exporting && "opacity-80 cursor-wait bg-white/10"
+                )}
+                aria-label="Export MP4 video"
+                title={exporting ? `Exporting MP4 (${exportPct}%)...` : "Download MP4"}
+              >
+                {exporting ? (
+                  <span className="flex items-center gap-1 text-[11px] font-mono px-1">
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    <span>{exportPct}%</span>
+                  </span>
+                ) : (
+                  <Download className="h-5 w-5" />
+                )}
+              </button>
 
               <button
                 onClick={toggleFullscreen}
