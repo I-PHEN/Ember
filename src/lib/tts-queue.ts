@@ -50,12 +50,8 @@ async function ttsOnce(input: string, voice: string): Promise<Buffer> {
     return await geminiTTS(input, voice);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (/429|quota|RESOURCE_EXHAUSTED/i.test(msg)) {
-      geminiExhaustedUntil = now + 60 * 60 * 1000;
-      console.warn(`[TTS] Gemini quota exhausted. Switched seamlessly to Edge TTS (${voice}).`);
-    } else {
-      console.warn(`[TTS] Gemini TTS failed: ${msg.slice(0, 100)}. Falling back to Edge TTS...`);
-    }
+    geminiExhaustedUntil = now + 60 * 60 * 1000;
+    console.warn(`[TTS] Gemini TTS failed (${msg.slice(0, 80)}). Switched seamlessly to Edge TTS.`);
     return await edgeTTS(input, voice);
   }
 }

@@ -17,6 +17,7 @@ import {
   sceneStart,
 } from "./types";
 import { markerColor } from "./types";
+import { strokeProgressAt, sampleMicroTremor } from "./kinematics";
 
 /* --------------------------- static chrome ------------------------ */
 
@@ -136,18 +137,43 @@ function drawPartialPath(
   dy = 0
 ): void {
   const target = p * s.len;
-  ctx.beginPath();
-  ctx.moveTo(s.pts[0].x + dx, s.pts[0].y + dy);
-  for (let i = 1; i < s.pts.length; i++) {
-    if (s.cum[i] <= target) {
-      ctx.lineTo(s.pts[i].x + dx, s.pts[i].y + dy);
-    } else {
-      const pt = pointAtLen(s, target);
-      ctx.lineTo(pt.x + dx, pt.y + dy);
-      break;
+  if (!s.widths || s.widths.length !== s.pts.length) {
+    ctx.lineWidth = s.width;
+    ctx.beginPath();
+    ctx.moveTo(s.pts[0].x + dx, s.pts[0].y + dy);
+    for (let i = 1; i < s.pts.length; i++) {
+      if (s.cum[i] <= target) {
+        ctx.lineTo(s.pts[i].x + dx, s.pts[i].y + dy);
+      } else {
+        const pt = pointAtLen(s, target);
+        ctx.lineTo(pt.x + dx, pt.y + dy);
+        break;
+      }
     }
+    ctx.stroke();
+    return;
   }
-  ctx.stroke();
+
+  // Dynamic calligraphic stroke width: segment-by-segment with round joints
+  for (let i = 1; i < s.pts.length; i++) {
+    if (s.cum[i - 1] >= target) break;
+    const isLast = s.cum[i] > target;
+    const p1 = isLast ? pointAtLen(s, target) : s.pts[i];
+    const frac =
+      isLast && s.cum[i] > s.cum[i - 1]
+        ? (target - s.cum[i - 1]) / (s.cum[i] - s.cum[i - 1])
+        : 1;
+    const w = isLast
+      ? s.widths[i - 1] + (s.widths[i] - s.widths[i - 1]) * frac
+      : (s.widths[i - 1] + s.widths[i]) / 2;
+
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(s.pts[i - 1].x + dx, s.pts[i - 1].y + dy);
+    ctx.lineTo(p1.x + dx, p1.y + dy);
+    ctx.stroke();
+    if (isLast) break;
+  }
 }
 
 /* ------------------------------ pen -------------------------------- */
@@ -195,7 +221,7 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
   }
   if (active) {
     const rawP = Math.min(1, Math.max(0, (t - activeAbs0) / active.dur));
-    const p = humanStrokeEase(rawP);
+    const p = strokeProgressAt(active, rawP);
     const pt = pointAtLen(active, p * active.len);
     // deictic hold (point beat): marker hovers LIFTED off the board pointing toward the term
     if (active.len < 0.5) {
@@ -216,9 +242,10 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
     const nextPt = pointAtLen(active, nextTarget);
     const strokeAngle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
     const dynamicTilt = Math.sin(strokeAngle) * 0.08;
+    const tremor = sampleMicroTremor(t, active.velocities ? active.velocities[0] : 100);
     return {
-      x: pt.x,
-      y: pt.y,
+      x: pt.x + tremor.dx,
+      y: pt.y + tremor.dy,
       color: markerColor(theme, active.color),
       mode: "write",
       alpha: 1,
@@ -411,7 +438,7 @@ export function renderFrame(
       const abs0 = start + s.t0;
       if (abs0 > t) continue;
       const rawP = Math.min(1, Math.max(0, (t - abs0) / s.dur));
-      const p = s.kind === "path" ? humanStrokeEase(rawP) : rawP;
+      const p = s.kind === "path" ? strokeProgressAt(s, rawP) : rawP;
       let alpha = 1;
       const et = eraseTime(tl, s);
       if (et !== null && t >= et) {

@@ -9,10 +9,18 @@ import type { BBox, BeatSize, MarkerName, Pt } from "./types";
 import { CAP } from "./types";
 import { jitterPolyline, rngFor } from "./hand";
 
+export type StrokeTag =
+  | "operator"
+  | "word-start"
+  | "char-start"
+  | "glyph-stroke"
+  | "ballistic-line";
+
 export interface RawStroke {
   pts: Pt[];
   color: MarkerName;
   width: number;
+  tag?: StrokeTag;
 }
 
 export interface LaidText {
@@ -245,12 +253,19 @@ export function layoutText(
   let maxY = -Infinity;
   let lineCount = 1;
 
+  const OPERATOR_CHARS = new Set([
+    "+", "−", "-", "=", "×", "÷", "/", "→", "≠", "≤", "≥", "≈", "±", "·", "<", ">", "^", "√",
+  ]);
+  let isWordStart = true;
+
   const emit = (tok: Tok) => {
     const adv = tokenAdvance(tok, scale);
     if (tok.ch === " ") {
       cx += adv;
+      isWordStart = true;
       return;
     }
+    const isOp = OPERATOR_CHARS.has(tok.ch);
     const g = glyphFor(tok.ch);
     const s = tok.sup === 0 ? scale : scale * 0.62;
     const raise =
@@ -288,7 +303,19 @@ export function layoutText(
     const cos = Math.cos(rot);
     const sin = Math.sin(rot);
 
-    for (const stroke of gx) {
+    for (let strokeIdx = 0; strokeIdx < gx.length; strokeIdx++) {
+      const stroke = gx[strokeIdx];
+      let strokeTag: StrokeTag;
+      if (isOp) {
+        strokeTag = strokeIdx === 0 ? "operator" : "glyph-stroke";
+      } else if (isWordStart && strokeIdx === 0) {
+        strokeTag = "word-start";
+      } else if (strokeIdx === 0) {
+        strokeTag = "char-start";
+      } else {
+        strokeTag = "glyph-stroke";
+      }
+
       const pts: Pt[] = stroke.map((p) => {
         // rotate around glyph center (font coords are y-down, like SVG)
         const lx = p[0] - gcx;
@@ -309,6 +336,7 @@ export function layoutText(
         pts: finalPts,
         color: opts.color,
         width: Math.max(2.2, cap * 0.095) * (opts.weight ?? 1),
+        tag: strokeTag,
       });
       for (const p of finalPts) {
         if (p.x < minX) minX = p.x;
@@ -317,6 +345,7 @@ export function layoutText(
         if (p.y > maxY) maxY = p.y;
       }
     }
+    isWordStart = isOp;
     // advance the cursor past THIS glyph (the old code stacked every glyph
     // of a word at the word-start x — letters drew on top of each other)
     cx += adv;
