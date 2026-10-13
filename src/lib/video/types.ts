@@ -239,13 +239,20 @@ export type Beat =
 
 export type ScriptBeat = Beat; // alias used by the sanitizer
 
+export interface SceneSegment {
+  say: string;
+  ink?: Beat[];
+}
+
 export interface SolveScene {
   chapter: string;
   narration: string;
   beats: Beat[];
+  segments?: SceneSegment[];
   /** the fixed trademark intro (brand bumper) — not AI content; the player
    *  hides it from chapter lists and the chapter chip */
   intro?: boolean;
+  audio?: { key?: string; narration?: string; dur?: number };
 }
 
 export interface SolveScript {
@@ -342,6 +349,7 @@ export interface EraseSweep {
 export interface SceneTime {
   chapter: string;
   narration: string;
+  segments?: SceneSegment[];
   /** trademark intro scene (brand bumper) */
   intro?: boolean;
   strokes: Stroke[];

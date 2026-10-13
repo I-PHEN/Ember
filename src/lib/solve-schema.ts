@@ -11,6 +11,7 @@ import type {
   MarkerName,
   SolveScript,
   SolveScene,
+  SceneSegment,
 } from "./video/types";
 import { FONT } from "./video/font-data";
 
@@ -563,6 +564,38 @@ export function sanitizeSceneBeats(
   return beats;
 }
 
+export function sanitizeSegments(
+  rawSegments: unknown,
+  stats?: { proseDropped: number },
+  chapterLabel?: string
+): SceneSegment[] {
+  if (!Array.isArray(rawSegments)) return [];
+  const segments: SceneSegment[] = [];
+  for (const segRaw of rawSegments.slice(0, 20)) {
+    if (!segRaw || typeof segRaw !== "object") continue;
+    const seg = segRaw as Record<string, unknown>;
+    const say = cleanNarration(seg.say);
+    if (!say) continue;
+    const inkRaw = Array.isArray(seg.ink)
+      ? seg.ink
+      : Array.isArray(seg.beats)
+      ? seg.beats
+      : undefined;
+    const ink = inkRaw
+      ? sanitizeSceneBeats(inkRaw, say, stats, chapterLabel)
+      : undefined;
+    if (ink) {
+      for (const b of ink) {
+        if (!("say" in b) || !(b as { say?: string }).say) {
+          (b as { say?: string }).say = say;
+        }
+      }
+    }
+    segments.push({ say, ink: ink && ink.length ? ink : undefined });
+  }
+  return segments;
+}
+
 export function sanitizeScript(
   raw: unknown,
   stats?: { proseDropped: number }
@@ -589,12 +622,28 @@ export function sanitizeScript(
     if (!sRaw || typeof sRaw !== "object") continue;
     const s = sRaw as Record<string, unknown>;
     const chapter = cleanText(s.chapter ?? s.title, 42) || `Step ${scenes.length + 1}`;
-    const narration = cleanNarration(s.narration);
+    let segments: SceneSegment[] | undefined;
+    if (Array.isArray(s.segments)) {
+      segments = sanitizeSegments(s.segments, stats, `"${chapter}"`);
+    }
+    let narration = cleanNarration(s.narration);
+    if (!narration && segments && segments.length) {
+      narration = segments.map((seg) => seg.say).join(" ");
+    }
     let beatsRaw: unknown = s.beats;
     if (!Array.isArray(beatsRaw) && Array.isArray(s.blocks)) beatsRaw = s.blocks;
+    if ((!Array.isArray(beatsRaw) || !beatsRaw.length) && segments) {
+      beatsRaw = segments.flatMap((seg) => seg.ink ?? []);
+    }
     const beats = sanitizeSceneBeats(beatsRaw, narration, stats, `"${chapter}"`);
     if (!beats.length) continue;
-    scenes.push({ chapter, narration, beats, intro: s.intro === true });
+    scenes.push({
+      chapter,
+      narration,
+      beats,
+      segments: segments && segments.length ? segments : undefined,
+      intro: s.intro === true,
+    });
   }
   if (!scenes.length) return null;
   return { title, subject, question, scenes };

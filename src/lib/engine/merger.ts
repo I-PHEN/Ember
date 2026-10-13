@@ -33,6 +33,7 @@ export function mergeScript(
       chapter: scene.chapter,
       narration: results[i]?.narration ?? "",
       beats: results[i]?.beats ?? [],
+      segments: (results[i] as { segments?: unknown })?.segments,
     })),
   };
 

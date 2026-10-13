@@ -1761,12 +1761,9 @@ function paceSceneToNarration(
   sceneIdx: number
 ): boolean {
   const narration = scene.narration;
-  if (!narration || !marks.some((m) => m.say)) return false;
+  if (!narration || !marks.length) return false;
 
-  const { key: nKey, idx: nIdx } = normalizeWithMap(narration);
-  if (!nKey) return false;
-
-  /* ordered say matches → narration speech segments (in raw chars) */
+  /* ordered speech segments (in raw chars) */
   interface Seg {
     r0: number;
     r1: number;
@@ -1774,39 +1771,65 @@ function paceSceneToNarration(
   }
   const segs: Seg[] = [];
   const markSeg = new Array<number>(marks.length).fill(-1); // segment a tagged mark opens
-  let searchFrom = 0;
-  let rawPos = 0;
-  marks.forEach((m, i) => {
-    if (!m.say) return;
-    const sKey = normSpeechKey(m.say);
-    if (!sKey) return;
-    let at = nKey.indexOf(sKey, searchFrom);
-    let matchedLen = sKey.length;
-    if (at < 0 && searchFrom > 0) {
-      at = nKey.indexOf(sKey, 0); // fallback if slightly out of sequence
-    }
-    if (at < 0) {
-      // subphrase fallback: try matching 3+ word chunks
-      const words = sKey.split(/\s+/);
-      for (let len = words.length - 1; len >= 3; len--) {
-        const sub = words.slice(0, len).join(" ");
-        at = nKey.indexOf(sub, searchFrom);
-        if (at < 0 && searchFrom > 0) at = nKey.indexOf(sub, 0);
-        if (at >= 0) {
-          matchedLen = sub.length;
-          break;
+
+  if (scene.segments && scene.segments.length > 0) {
+    let charOffset = 0;
+    scene.segments.forEach((seg) => {
+      const segLen = seg.say.length;
+      segs.push({
+        r0: charOffset,
+        r1: charOffset + segLen,
+        isSay: Boolean(seg.ink && seg.ink.length),
+      });
+      charOffset += segLen + 1;
+    });
+
+    let markCursor = 0;
+    scene.segments.forEach((seg, sIdx) => {
+      const beatCount = seg.ink?.length ?? 0;
+      for (let b = 0; b < beatCount && markCursor < marks.length; b++) {
+        markSeg[markCursor++] = sIdx;
+      }
+    });
+  } else {
+    if (!marks.some((m) => m.say)) return false;
+    const { key: nKey, idx: nIdx } = normalizeWithMap(narration);
+    if (!nKey) return false;
+
+    let searchFrom = 0;
+    let rawPos = 0;
+    marks.forEach((m, i) => {
+      if (!m.say) return;
+      const sKey = normSpeechKey(m.say);
+      if (!sKey) return;
+      let at = nKey.indexOf(sKey, searchFrom);
+      let matchedLen = sKey.length;
+      if (at < 0 && searchFrom > 0) {
+        at = nKey.indexOf(sKey, 0); // fallback if slightly out of sequence
+      }
+      if (at < 0) {
+        // subphrase fallback: try matching 3+ word chunks
+        const words = sKey.split(/\s+/);
+        for (let len = words.length - 1; len >= 3; len--) {
+          const sub = words.slice(0, len).join(" ");
+          at = nKey.indexOf(sub, searchFrom);
+          if (at < 0 && searchFrom > 0) at = nKey.indexOf(sub, 0);
+          if (at >= 0) {
+            matchedLen = sub.length;
+            break;
+          }
         }
       }
-    }
-    if (at < 0) return; // duplicate / truly absent tag
-    const rr = rawRangeFor(nIdx, at, at + Math.min(matchedLen - 1, nKey.length - 1 - at));
-    if (!rr) return;
-    if (rr[0] > rawPos) segs.push({ r0: rawPos, r1: rr[0], isSay: false });
-    segs.push({ r0: rr[0], r1: rr[1], isSay: true });
-    markSeg[i] = segs.length - 1;
-    rawPos = rr[1];
-    searchFrom = Math.max(searchFrom, at + matchedLen);
-  });
+      if (at < 0) return; // duplicate / truly absent tag
+      const rr = rawRangeFor(nIdx, at, at + Math.min(matchedLen - 1, nKey.length - 1 - at));
+      if (!rr) return;
+      if (rr[0] > rawPos) segs.push({ r0: rawPos, r1: rr[0], isSay: false });
+      segs.push({ r0: rr[0], r1: rr[1], isSay: true });
+      markSeg[i] = segs.length - 1;
+      rawPos = rr[1];
+      searchFrom = Math.max(searchFrom, at + matchedLen);
+    });
+  }
   if (!segs.some((s) => s.isSay)) {
     /* Fallback pacing: distribute marks smoothly across the speech window */
     const validMarks = marks.filter((m) => m.t1 > m.t0);
@@ -1876,7 +1899,7 @@ function paceSceneToNarration(
     const old = segOld[si];
     if (old) {
       const oldDur = Math.max(0.05, old[1] - old[0]);
-      // STRICT PACING: Stroke durations are never scaled. The pen moves at a constant 45px/sec.
+      // Pacing: Stroke durations keep their kinematic speed (~175 px/s blackboard pace).
       const scale = 1.0;
       const n0 = Math.max(planned, si > 0 ? prevEnd + SAY_GAP : prevEnd);
       map.push({ o0: old[0], o1: old[1], n0, scale });
@@ -1946,6 +1969,7 @@ export function compileTimeline(script: SolveScript): Timeline {
     const scene: SceneTime = {
       chapter: sc.chapter,
       narration: sc.narration,
+      segments: sc.segments,
       intro: sc.intro === true,
       strokes: [],
       groups: [],

@@ -5,6 +5,7 @@ import {
   extractJson,
   sanitizeScript,
   sanitizeSceneBeats,
+  sanitizeSegments,
   cleanNarration,
   isBoardProse,
 } from "./solve-schema";
@@ -126,7 +127,11 @@ interface Outline {
   scenes: OutlineScene[];
 }
 
-interface SceneResult { narration?: string; beats: unknown[] }
+interface SceneResult {
+  narration?: string;
+  beats: unknown[];
+  segments?: unknown[];
+}
 
 interface Job {
   id: string;
@@ -538,7 +543,7 @@ async function writeScene(
     complete?: typeof chatComplete;
     ctx?: JobContext;
   }
-): Promise<{ narration?: string; beats: unknown[] } | null> {
+): Promise<SceneResult | null> {
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1200 * (attempt + 1));
     try {
@@ -561,6 +566,25 @@ async function writeScene(
       const parsed = extractJson(raw);
       if (parsed && typeof parsed === "object") {
         const o = parsed as Record<string, unknown>;
+        if (Array.isArray(o.segments) && o.segments.length) {
+          const segs = sanitizeSegments(o.segments);
+          if (segs.length) {
+            const joinedSay = segs.map((s) => s.say).filter(Boolean).join(" ");
+            const allBeats = segs.flatMap((s) => s.ink || []);
+            return {
+              narration:
+                typeof o.narration === "string" && o.narration.trim()
+                  ? o.narration
+                  : joinedSay,
+              beats: allBeats.length
+                ? allBeats
+                : Array.isArray(o.beats)
+                ? o.beats
+                : [],
+              segments: segs,
+            };
+          }
+        }
         if (Array.isArray(o.beats) && o.beats.length) {
           return {
             narration:
@@ -920,7 +944,11 @@ async function runJob(
                 checkSceneLines(idx, outcome.beats).flags.length <=
                   (checkerFlagsOf[idx] ?? 0)
               ) {
-                results[idx] = { narration: results[idx]?.narration, beats: outcome.beats };
+                results[idx] = {
+                  narration: results[idx]?.narration,
+                  beats: outcome.beats,
+                  segments: results[idx]?.segments,
+                };
                 cp.results[idx] = results[idx];
                 cp.reviews[idx] = "fixed";
                 reviewCounters.fixed++;
@@ -1117,7 +1145,11 @@ async function runJob(
             });
             if (r) {
               job.stats.writerMs.push(Date.now() - t0);
-              results[i] = { narration: results[i]?.narration, beats: r.beats };
+              results[i] = {
+                narration: results[i]?.narration,
+                beats: r.beats,
+                segments: r.segments,
+              };
             }
             (cp.repairScenes ??= []).push(i);
             await save();

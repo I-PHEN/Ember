@@ -65,7 +65,7 @@ export const SOLVER_SCHEMA: Record<string, unknown> = {
       items: { type: "string" },
     },
   },
-  required: ["answer"],
+  required: ["answer", "keySteps"],
 };
 
 export const REVIEWER_SCHEMA: Record<string, unknown> = {
