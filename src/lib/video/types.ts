@@ -170,6 +170,7 @@ export type Beat =
       /** survives board erases (the answer chain) */
       keep?: boolean;
       say?: string;
+      region?: BoardRegionName;
     }
   | {
       type: "fraction";
@@ -455,3 +456,29 @@ export const LINE_H: Record<BeatSize | "title", number> = {
   md: 64,
   sm: 50,
 };
+
+export const BOARD_REGIONS = {
+  banner: {
+    name: "banner",
+    x: MARGIN_X,
+    y: 20,
+    w: BOARD_W - 2 * MARGIN_X,
+    h: 108,
+  },
+  work: {
+    name: "work",
+    x: MARGIN_X,
+    y: 136,
+    w: Math.round((BOARD_W - 2 * MARGIN_X) * 0.65),
+    h: 520,
+  },
+  side: {
+    name: "side",
+    x: MARGIN_X + Math.round((BOARD_W - 2 * MARGIN_X) * 0.65) + 24,
+    y: 136,
+    w: Math.round((BOARD_W - 2 * MARGIN_X) * 0.35) - 24,
+    h: 520,
+  },
+} as const;
+
+export type BoardRegionName = keyof typeof BOARD_REGIONS;

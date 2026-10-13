@@ -7,6 +7,7 @@
 
 import {
   BOARD_W,
+  BOARD_REGIONS,
   MARGIN_X,
   FIRST_BASELINE,
   MAX_BASELINE,
@@ -637,6 +638,14 @@ function buildWrite(ctx: Ctx, beat: Extract<Beat, { type: "write" }>): void {
       beat = { ...beat, below: undefined };
     }
   }
+  if (beat.region === "side" && beat.x === undefined) {
+    x = BOARD_REGIONS.side.x;
+    y = ctx.cursor.y < BOARD_REGIONS.side.y ? BOARD_REGIONS.side.y : ctx.cursor.y;
+    const cb = collisionBox(x);
+    y = avoidCollision(ctx, cb.acX, y, cb.acW, cap, cb.blockBottom(y));
+    placeWrite(ctx, beat, x, y, Math.min(w, BOARD_REGIONS.side.w), cap, color);
+    return;
+  }
   if (beat.x !== undefined || beat.y !== undefined) {
     const gx =
       beat.x !== undefined
@@ -740,11 +749,15 @@ function placeWrite(
   cap: number,
   color: MarkerName
 ): void {
+  const wrapX = beat.region === "side" ? x : MARGIN_X;
   const laid = layoutText(beat.text, x, y, {
     cap,
     color,
-    maxWidth: BOARD_W - MARGIN_X - x,
-    wrapX: MARGIN_X,
+    maxWidth:
+      beat.region === "side"
+        ? BOARD_REGIONS.side.w
+        : BOARD_W - MARGIN_X - x,
+    wrapX,
     seed: `w${ctx.sceneIdx}${ctx.beatNo}`,
   });
   addPaths(ctx, laid.strokes, { speedCap: cap });

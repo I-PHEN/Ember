@@ -2,6 +2,7 @@ import { sanitizeScript } from "../solve-schema";
 import { compileTimeline } from "../video/compile";
 import { scriptOverlap } from "../video/overlap";
 import { auditTimeline, type LayoutViolation } from "../video/layout-audit";
+import { repairLayout } from "../video/layout-repair";
 import type { SolveScript, Timeline } from "../video/types";
 
 export interface MergedScriptResult {
@@ -42,9 +43,20 @@ export function mergeScript(
     return null;
   }
 
-  const timeline = compileTimeline(script);
-  const overlapPct = Math.round(scriptOverlap(script) * 100);
-  const layoutViolations = auditTimeline(timeline);
+  let finalScript = script;
+  let timeline = compileTimeline(script);
+  let layoutViolations = auditTimeline(timeline);
+
+  if (layoutViolations.length > 0) {
+    const repaired = repairLayout(script);
+    if (repaired.remainingViolations < layoutViolations.length) {
+      finalScript = repaired.script;
+      timeline = compileTimeline(finalScript);
+      layoutViolations = auditTimeline(timeline);
+    }
+  }
+
+  const overlapPct = Math.round(scriptOverlap(finalScript) * 100);
 
   if (stats) {
     stats.overlapPct = overlapPct;
@@ -52,7 +64,7 @@ export function mergeScript(
   }
 
   return {
-    script,
+    script: finalScript,
     timeline,
     overlapPct,
     layoutViolations,
