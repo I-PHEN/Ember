@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ember — Product Launch Film (Motion Graphics)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0b0d10;
+      color: #f1eee7;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 20px 48px;
+    }
+
+    /* Top Branding Bar */
+    .top-bar {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #f1eee7;
+      letter-spacing: -0.02em;
+    }
+    .brand-pill {
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      font-weight: 600;
+      color: #e6b784;
+      background: rgba(230, 183, 132, 0.12);
+      border: 1px solid rgba(230, 183, 132, 0.35);
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    /* Player Container */
+    .player-card {
+      width: 100%;
+      max-width: 1200px;
+      background: #12151b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 16:9 Canvas Viewport */
+    .viewport {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000000;
+      position: relative;
+    }
+    #film-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* Controls Bar */
+    .controls {
+      background: #0e1015;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Scrubber Slider */
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    #scrub-slider {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: #23262a;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+    }
+    #scrub-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #e6b784;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(230, 183, 132, 0.6);
+    }
+    .time-badge {
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      color: #8b919e;
+      min-width: 110px;
+      text-align: right;
+    }
+
+    /* Buttons Row */
+    .actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .btn-group-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn {
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-secondary {
+      background: #1b1e26;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f1eee7;
+    }
+    .btn-secondary:hover {
+      background: #232834;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+    .btn-primary {
+      background: #e6b784;
+      border: 1px solid #e6b784;
+      color: #141619;
+    }
+    .btn-primary:hover {
+      background: #f2ca9e;
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Chapters Navigation Bar */
+    .chapters-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding-top: 4px;
+      scrollbar-width: none;
+    }
+    .chapters-row::-webkit-scrollbar {
+      display: none;
+    }
+    .chapter-pill {
+      background: #14171f;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #8b919e;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .chapter-pill:hover {
+      color: #f1eee7;
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+    .chapter-pill.active {
+      background: rgba(230, 183, 132, 0.14);
+      border-color: rgba(230, 183, 132, 0.45);
+      color: #e6b784;
+      font-weight: 600;
+    }
+
+    /* Download status indicator */
+    #download-status {
+      display: none;
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+      color: #e6b784;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(230, 183, 132, 0.08);
+      border: 1px solid rgba(230, 183, 132, 0.25);
+    }
+
+    /* Specs info section */
+    .specs-grid {
+      width: 100%;
+      max-width: 1200px;
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .spec-card {
+      background: #11141a;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .spec-title {
+      font-size: 12px;
+      font-family: ui-monospace, monospace;
+      color: #e6b784;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .spec-desc {
+      font-size: 14px;
+      color: #9aa1af;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Branding Bar -->
+  <div class="top-bar">
+    <div class="brand">
+      <span class="brand-title">Ember</span>
+      <span class="brand-pill">PRODUCT LAUNCH FILM · 48.0s</span>
+    </div>
+    <div style="font-size: 12px; color: #8b919e; font-family: ui-monospace, monospace;">
+      1920 × 1080 · 30 FPS · H.264 MP4 + 120 BPM Score &amp; Voice
+    </div>
+  </div>
+
+  <!-- Player Card -->
+  <div class="player-card">
+    <div class="viewport">
+      <canvas id="film-canvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <!-- Scrub Bar -->
+      <div class="scrubber-row">
+        <input type="range" id="scrub-slider" min="0" max="1439" value="0">
+        <div class="time-badge" id="time-display">00:00 / 00:48</div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="actions-row">
+        <div class="btn-group-left">
+          <button class="btn btn-secondary" id="btn-play">⏸ Pause</button>
+          <button class="btn btn-secondary" id="btn-sound">🔇 Enable Sound</button>
+          <div id="download-status"></div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-download">
+          <span>⬇ Download MP4 (48s)</span>
+        </button>
+      </div>
+
+      <!-- Chapter Pills -->
+      <div class="chapters-row" id="chapters-bar"></div>
+    </div>
+  </div>
+
+  <!-- Product Specifications -->
+  <div class="specs-grid">
+    <div class="spec-card">
+      <div class="spec-title">01 · Real Chalk Engine</div>
+      <div class="spec-desc">
+        Not mockups or vector shapes: uses Ember's real single-stroke Hershey font engine with organic hand jitter and progressive disclosure.
+      </div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-title">02 · Multi-Agent Flow</div>
+      <div class="spec-desc">
+        Visualizes the actual crew architecture: Director → Script Planner → Scene Writers ×3 → Aoede Voice queue with live honest ETA.
+      </div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-title">03 · Office Hours Sync</div>
+      <div class="spec-desc">
+        Demonstrates live Socratic tutoring at any video timestamp: LIATE rule clarification, speech waveform, and formula drill-downs.
+      </div>
+    </div>
+    <div class="spec-card">
+      <div class="spec-title">04 · What Ships Ready</div>
+      <div class="spec-desc">
+        Paced at 120 BPM for high-engagement product launches on X, Product Hunt, YouTube, and What Ships directory.
+      </div>
+    </div>
+  </div>
+
+  <!-- Load bundled film script -->
+  <script type="module" src="./dist/film.js"></script>
+</body>
+</html>

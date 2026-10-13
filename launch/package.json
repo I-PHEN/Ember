@@ -1,0 +1,26 @@
+{
+  "name": "ember-launch-film",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ember launch film — a 52s motion-graphics product launch, rendered with Remotion. Lives outside the app; borrows the app's real board engine so the handwriting is identical.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "music": "node scripts/make-music.mjs",
+    "render": "node scripts/make-music.mjs && remotion render src/index.ts EmberLaunch out/ember-launch.mp4 --codec h264 --crf 16",
+    "render:vertical": "node scripts/make-music.mjs && remotion render src/index.ts EmberLaunchVertical out/ember-launch-vertical.mp4 --codec h264 --crf 16",
+    "still": "remotion still src/index.ts EmberLaunch out/still.png",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.534",
+    "@remotion/transitions": "4.0.534",
+    "geist": "^1.3.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.534"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5"
+  }
+}

@@ -23,6 +23,23 @@ Tasks 1–3 are implemented and verified locally, but implementation changes are
 
 ## Global constraints
 
+### Published preview checkpoint
+
+### Separate test project checkpoint
+
+- User approved a separate public test project. Created `ember-generation-test` (`prj_JYmCwh3GKO4lwjhOe1L2Rt3Kc9VI`) with private source and the isolated development database only.
+- Deployment `dpl_9khy5jHkN88FS7NdS5wXXcJ3ryQM` reached `READY`, using implementation commit `6d2c21f`. Its production environment is the test project's environment, not live Ember.
+- The stable domain is `https://ember-generation-test.vercel.app`; `INNGEST_SERVE_ORIGIN` is configured for this domain for the next deployment. Generated URLs remain protected.
+- Inngest event/signing keys were absent from the new project's environment metadata. User must enable this project in the existing Inngest/Vercel integration before a fresh deployment and hosted workflow test.
+- AI provider credentials and actual lesson/audio success remain unverified for the new project. No keys were decrypted from the original project.
+
+- User approved publishing the implementation branch. Commit `6d2c21f` is pushed to `origin/codex/durable-generation`; unrelated user edits were not included.
+- Both database variables are sensitive and restricted to that branch's preview environment; metadata verification confirmed the scope.
+- Initial automatic build failed before the variables were available. Fresh deployment `dpl_DU2gyZ1Px3n8KosYci4bUxBKzmb8` reached `READY` on Vercel (API target `staging`, not production).
+- Unauthenticated `/api/inngest` requests redirect to Vercel SSO. Hosted workflow registration and generation cannot be verified through that protected URL; protection was not changed.
+- Production still points to `main` commit `3c130d93ae0382d0960ef4c64ffd44324b0bc977`. No production database migration or variable changes were performed.
+- Build-log access through MCP returned a scope authorization error; no installed Vercel CLI fallback was available. Deployment status is verified independently through the deployment API.
+
 - No paid upgrades, new UI features, Supabase, or authentication migration.
 - Preserve unrelated working-tree edits and existing local environment files.
 - No production deployment until hosted runtime checks pass.
