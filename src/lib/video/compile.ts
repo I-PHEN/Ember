@@ -204,7 +204,7 @@ function addPaths(
 
     ctx.now += gap;
 
-    const prof = defaultSynthesizer.synthesize(r.pts, r.width, tag);
+    const prof = defaultSynthesizer.synthesize(r.pts, r.width, tag, opts?.speedCap);
     const dur = prof.duration;
 
     const s: PathStroke = {
@@ -251,6 +251,10 @@ function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | 
     }
     return null;
   }
+  if (t === "banner" || t === "question") {
+    const banner = ctx.groups.find((g) => g.id === "banner" || (g.bbox.y < 120 && !ctx.gone.has(g)));
+    if (banner) return banner;
+  }
   if (t.toLowerCase().startsWith("text:")) {
     const needle = t.slice(5).trim().toLowerCase();
     for (let i = ctx.groups.length - 1; i >= 0; i--) {
@@ -261,6 +265,9 @@ function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | 
     }
     return null;
   }
+  const byId = ctx.groups.find((g) => g.id === t && !ctx.gone.has(g));
+  if (byId) return byId;
+
   // fallback: last live group
   for (let i = ctx.groups.length - 1; i >= 0; i--) {
     const g = ctx.groups[i];
@@ -393,6 +400,11 @@ function reflowAfterErase(
   let curY = Math.max(78, FIRST_BASELINE - LINE_H.md * 0.28);
   let bottomY = curY;
   for (const u of units) {
+    if (u.root.id === "banner" || u.root.bbox.y < 120) {
+      bottomY = unitBottom(u);
+      curY = bottomY + LINE_H.md * 0.62;
+      continue;
+    }
     const dy = curY - u.root.bbox.y;
     const dx = MARGIN_X - u.root.bbox.x;
     const members = [u.root, ...u.satellites];
@@ -530,6 +542,58 @@ function buildTitle(ctx: Ctx, beat: Extract<Beat, { type: "title" }>): void {
   const bottom = Math.max(laid.bbox.y + laid.bbox.h, uy + 6);
   ctx.cursor = { x: MARGIN_X, y: bottom + LINE_H.md * 0.92 };
   ctx.lastBottom = bottom;
+}
+
+/** Mount problem statement at t=0 in the banner so the board is never blank while the professor introduces the question */
+function mountBannerProblem(ctx: Ctx, questionText: string): void {
+  const cap = questionText.length > 55 ? CAP.sm : CAP.md;
+  const color: MarkerName = "yellow";
+  const x = BOARD_REGIONS.banner.x;
+  const y = BOARD_REGIONS.banner.y + (questionText.length > 55 ? 36 : 48);
+  const laid = layoutText(questionText, x, y, {
+    cap,
+    color,
+    maxWidth: BOARD_REGIONS.banner.w,
+    wrapX: x,
+    seed: "banner-problem",
+  });
+  const strokes: PathStroke[] = [];
+  for (const r of laid.strokes) {
+    if (r.pts.length < 2) continue;
+    const prof = defaultSynthesizer.synthesize(r.pts, r.width, r.tag, cap);
+    const s: PathStroke = {
+      kind: "path",
+      pts: r.pts,
+      color: r.color,
+      width: r.width,
+      t0: 0,
+      dur: 0.05,
+      cum: prof.cum,
+      len: prof.totalLength,
+      timeLut: prof.timeLut,
+      widths: prof.widths,
+      velocities: prof.velocities,
+      strokeTag: r.tag,
+    };
+    strokes.push(s);
+    ctx.scene.strokes.push(s);
+  }
+  if (strokes.length) {
+    const g: Group = {
+      id: "banner",
+      scene: ctx.sceneIdx,
+      text: questionText,
+      keep: true,
+      strokes,
+      bbox: laid.bbox,
+      born: 0,
+    };
+    ctx.groups.push(g);
+    ctx.scene.groups.push(g);
+    const bottom = laid.bbox.y + laid.bbox.h;
+    ctx.cursor = { x: MARGIN_X, y: Math.max(FIRST_BASELINE, bottom + LINE_H.md * 0.92) };
+    ctx.lastBottom = bottom;
+  }
 }
 
 const CONT_CHARS = new Set([
@@ -1855,7 +1919,8 @@ function paceSceneToNarration(
     const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan));
     for (const st of scene.strokes) {
       st.t0 = leadIn + (st.t0 - HEAD) * k;
-      st.dur = Math.max(0.03, st.dur * k);
+      const strokeScale = Math.min(1.15, Math.max(0.85, k));
+      st.dur = Math.max(0.03, st.dur * strokeScale);
     }
     for (const g of groups) {
       for (const st of g.strokes) {
@@ -2007,7 +2072,42 @@ export function compileTimeline(script: SolveScript): Timeline {
       beatMarks: [],
     };
     let lastCap = CAP.md;
-    for (const beat of sc.beats) {
+    // Banner problem mounting at t=0 for Scene 0 so board is never blank
+    if (
+      sceneIdx === 0 &&
+      !sc.intro &&
+      script.question &&
+      script.question.trim().length > 3 &&
+      !sc.beats.some((b) => b.type === "title") &&
+      (script as unknown as { mountQuestion?: boolean }).mountQuestion !== false
+    ) {
+      mountBannerProblem(ctx, script.question.trim());
+    }
+
+    // Automated deictic pointing resolution: schedule marker cursor hover on referenced terms
+    const beatsToProcess = [...sc.beats];
+    if (sc.segments && sc.segments.length > 0) {
+      const DEICTIC_PATTERN = /\b(this (?:integral|problem|equation|term|formula|expression|value|result|curve|ramp|incline|block)|the (?:integral|equation|term|formula|expression|denominator|numerator|exponent|curve|ramp|incline|diagram))\b/i;
+      const beatsWithDeixis: Beat[] = [];
+      sc.segments.forEach((seg) => {
+        if ((!seg.ink || seg.ink.length === 0) && DEICTIC_PATTERN.test(seg.say)) {
+          let target = "last";
+          if (/integral|problem/i.test(seg.say)) target = "banner";
+          else if (/denominator/i.test(seg.say)) target = "text:/";
+          const pointBeat: Beat = { type: "point", target, ms: 1400 };
+          seg.ink = [pointBeat];
+          beatsWithDeixis.push(pointBeat);
+        } else if (seg.ink) {
+          beatsWithDeixis.push(...seg.ink);
+        }
+      });
+      if (beatsWithDeixis.length >= beatsToProcess.length && beatsWithDeixis.length > 0) {
+        beatsToProcess.length = 0;
+        beatsToProcess.push(...beatsWithDeixis);
+      }
+    }
+
+    for (const beat of beatsToProcess) {
       ctx.beatNo++;
       ctx.startLen = scene.strokes.length;
       const markT0 = ctx.now;
@@ -2064,6 +2164,7 @@ export function compileTimeline(script: SolveScript): Timeline {
             x: MARGIN_X,
             y: ctx.cursor.y + LINE_H.md * n * 0.82 + (lastCap - CAP.md) * 0.2,
           };
+          ctx.now += 0.45 * n; // biomechanical repositioning pause
           break;
         }
       }
@@ -2124,9 +2225,10 @@ export function setSceneAudio(
        * professor finishing a line in silence). Rushing reads as AI. */
       k = Math.max(0.9, Math.min(1.35, k));
       const anchor = (t: number) => HEAD + (t - HEAD) * k;
+      const strokeScale = Math.min(1.12, Math.max(0.88, k));
       for (const st of s.strokes) {
         st.t0 = anchor(st.t0);
-        st.dur = Math.max(0.03, st.dur * k);
+        st.dur = Math.max(0.03, st.dur * strokeScale);
       }
       /* erase marks + survivor slides on ANY scene's strokes pointing
          into this scene move with it */

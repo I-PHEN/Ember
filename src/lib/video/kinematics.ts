@@ -267,7 +267,8 @@ export class KinematicStrokeSynthesizer {
   synthesize(
     points: Pt[],
     baseStrokeWidth = 3.6,
-    tag?: StrokeTag | string
+    tag?: StrokeTag | string,
+    capHeight = 38
   ): KinematicProfile {
     const pts = preprocessPolyline(points);
     const n = pts.length;
@@ -325,9 +326,13 @@ export class KinematicStrokeSynthesizer {
     const spX = new CubicSpline1D(cum, pts.map((p) => p.x));
     const spY = new CubicSpline1D(cum, pts.map((p) => p.y));
 
+    // Wright (1993) empirical scale factor: v ~ H^0.75
+    // Parameterized by letter cap height (nominal CAP.md = 38px -> ~160 px/s tip speed)
+    const hScale = Math.pow(Math.max(20, capHeight) / 38.0, 0.75);
+
     // Isochrony duration scaling: T ~ L^0.25 => v ~ L^0.75
     const isochronyScale = Math.pow(Math.max(totalLength, 15.0) / 50.0, 0.75);
-    const gamma = this.gamma0 * isochronyScale;
+    const gamma = this.gamma0 * hScale * isochronyScale;
 
     const vRaw: number[] = new Array(numEval);
     const curvatures: number[] = new Array(numEval);
