@@ -1,0 +1,59 @@
+import { sanitizeScript } from "../solve-schema";
+import { compileTimeline } from "../video/compile";
+import { scriptOverlap } from "../video/overlap";
+import { auditTimeline, type LayoutViolation } from "../video/layout-audit";
+import type { SolveScript, Timeline } from "../video/types";
+
+export interface MergedScriptResult {
+  script: SolveScript;
+  timeline: Timeline;
+  overlapPct: number;
+  layoutViolations: LayoutViolation[];
+}
+
+export function mergeScript(
+  outline: {
+    title: string;
+    subject?: string;
+    question: string;
+    scenes: Array<{ chapter: string }>;
+  },
+  results: Array<{ narration?: string; beats: unknown[] } | null>,
+  stats?: {
+    proseDropped?: number;
+    overlapPct?: number | null;
+    layoutViolations?: number | null;
+  }
+): MergedScriptResult | null {
+  const rawScript = {
+    title: outline.title,
+    subject: outline.subject,
+    question: outline.question,
+    scenes: outline.scenes.map((scene, i) => ({
+      chapter: scene.chapter,
+      narration: results[i]?.narration ?? "",
+      beats: results[i]?.beats ?? [],
+    })),
+  };
+
+  const script = sanitizeScript(rawScript, stats);
+  if (!script || script.scenes.length < 2) {
+    return null;
+  }
+
+  const timeline = compileTimeline(script);
+  const overlapPct = Math.round(scriptOverlap(script) * 100);
+  const layoutViolations = auditTimeline(timeline);
+
+  if (stats) {
+    stats.overlapPct = overlapPct;
+    stats.layoutViolations = layoutViolations.length;
+  }
+
+  return {
+    script,
+    timeline,
+    overlapPct,
+    layoutViolations,
+  };
+}

@@ -80,6 +80,8 @@ export interface ChatOpts {
   /** cap thinking tokens (the 3.x family rejects 0; small caps like 1024
    *  ARE accepted and much faster — the spec's planner demotion path) */
   thinkingBudget?: number;
+  /** optional JSON schema for structured output */
+  responseSchema?: Record<string, unknown>;
 }
 
 /** one chat completion → plain text (all parts joined).
@@ -100,6 +102,12 @@ export async function geminiChat(
     generationConfig: {
       temperature: 0.7,
       thinkingConfig: { thinkingBudget: opts.thinkingBudget ?? -1 },
+      ...(opts.responseSchema
+        ? {
+            responseMimeType: "application/json",
+            responseSchema: opts.responseSchema,
+          }
+        : {}),
     },
   });
   const cand = data.candidates as

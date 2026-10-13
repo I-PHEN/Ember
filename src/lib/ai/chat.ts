@@ -63,6 +63,8 @@ export async function chatComplete(
     /** cap gemini thinking tokens for THIS call (spec §7: the planner
      *  demotes before the director — its words are reviewable) */
     thinkingBudget?: number;
+    /** optional JSON schema for structured output */
+    responseSchema?: Record<string, unknown>;
     transport?: (e: LadderEntry) => Promise<string>;
   } = {}
 ): Promise<ChatResult> {
@@ -74,6 +76,7 @@ export async function chatComplete(
         ? geminiChat(system, user, {
             model: e.model,
             thinkingBudget: opts.thinkingBudget,
+            responseSchema: opts.responseSchema,
           })
         : groqChat(system, user, e.model));
   const ladder = buildLadder(tier, opts.withGroq ?? groqEnabled());

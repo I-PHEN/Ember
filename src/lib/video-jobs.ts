@@ -39,6 +39,14 @@ import { jobStore } from "./jobs/store";
 import { DurableJobStore, LeaseLostError } from "./jobs/repository";
 import { audioKey, ensureRecordedAudio } from "./jobs/audio-assets";
 import { storedAudioKey } from "./video/recorded-audio";
+import { createJobContext, type JobContext } from "./engine/context";
+import {
+  DIRECTOR_SCHEMA,
+  PLANNER_SCHEMA,
+  SOLVER_SCHEMA,
+  REVIEWER_SCHEMA,
+} from "./engine/schemas";
+import { mergeScript } from "./engine/merger";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -352,7 +360,9 @@ async function chatJson(
   tier: "reason" | "fast" = "reason",
   hopSink?: { providerHops: number },
   thinkingBudget?: number,
-  complete = chatComplete
+  complete = chatComplete,
+  ctx?: JobContext,
+  schema?: Record<string, unknown>
 ): Promise<string> {
   /* the ladder inside chatComplete retries 429/5xx briefly then hops
      provider — long sleeps are gone; callers keep their JSON-attempt
@@ -360,11 +370,17 @@ async function chatJson(
   const r = await complete(system, user, {
     tier,
     thinkingBudget,
+    responseSchema: schema,
     on429: (entry) => {
       lastChatWas429 = true;
       if (entry.kind === "groq") lastGroq429 = true;
+      if (ctx) {
+        ctx.rateLimits.saw429 = true;
+        if (entry.kind === "groq") ctx.rateLimits.sawGroq429 = true;
+      }
     },
     onHop: () => {
+      if (ctx) ctx.providerHops += 1;
       if (hopSink) hopSink.providerHops += 1;
     },
   });
@@ -391,7 +407,11 @@ function normalizeOutline(raw: unknown): Outline | null {
   return { title, subject, question, scenes };
 }
 
-async function callDirector(job: Job, complete = chatComplete): Promise<Outline | null> {
+async function callDirector(
+  job: Job,
+  complete = chatComplete,
+  ctx?: JobContext
+): Promise<Outline | null> {
   const user = `Make a solve video for this question:\n\n${job.question}`;
   const stageT0 = Date.now(); // the WHOLE stage, failed attempts included
   for (let attempt = 0; attempt < DIRECTOR_ATTEMPTS; attempt++) {
@@ -404,7 +424,11 @@ async function callDirector(job: Job, complete = chatComplete): Promise<Outline 
             : ""),
         user,
         "reason",
-        job.stats, undefined, complete
+        job.stats,
+        undefined,
+        complete,
+        ctx,
+        DIRECTOR_SCHEMA
       );
       const outline = normalizeOutline(extractJson(raw));
       job.directorMs = Date.now() - stageT0;
@@ -459,7 +483,8 @@ async function callPlanner(
   job: Job,
   outlineJson: string,
   sceneCount: number,
-  complete = chatComplete
+  complete = chatComplete,
+  ctx?: JobContext
 ): Promise<TranscriptScene[] | null> {
   const stageT0 = Date.now(); // the WHOLE stage, failed attempts included
   for (let attempt = 0; attempt < PLANNER_ATTEMPTS; attempt++) {
@@ -477,7 +502,10 @@ async function callPlanner(
            director does — its words are reviewable, structure errors are
            not. Probed 2026-10-01: 1024 accepted, full 9KB transcript in
            ~5s (dynamic took 30-55s when the model wasn't 503ing). */
-        1024, complete
+        1024,
+        complete,
+        ctx,
+        PLANNER_SCHEMA
       );
       const transcript = normalizeTranscript(extractJson(raw), sceneCount);
       job.plannerMs = Date.now() - stageT0;
@@ -494,7 +522,12 @@ async function writeScene(
   outlineJson: string,
   index: number,
   planned: TranscriptScene | null,
-  opts?: { note?: string; hops?: { providerHops: number }; complete?: typeof chatComplete }
+  opts?: {
+    note?: string;
+    hops?: { providerHops: number };
+    complete?: typeof chatComplete;
+    ctx?: JobContext;
+  }
 ): Promise<{ narration?: string; beats: unknown[] } | null> {
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
     if (attempt) await sleep(1200 * (attempt + 1));
@@ -510,7 +543,10 @@ async function writeScene(
           opts?.note
         ),
         "fast",
-        opts?.hops, undefined, opts?.complete
+        opts?.hops,
+        undefined,
+        opts?.complete,
+        opts?.ctx
       );
       const parsed = extractJson(raw);
       if (parsed && typeof parsed === "object") {
@@ -620,6 +656,7 @@ async function runJob(
   job: Job, save: () => Promise<void>, store: DurableJobStore, providers: EngineProviders,
 ): Promise<void> {
   let acceptingReviews = true;
+  const ctx = createJobContext(job.id, { plantBadBeat: existsSync(PLANT_BAD_BEAT_FLAG) });
   const cp = job.checkpoint;
   const voiceKeys = (cp.voiceKeys ??= {});
   const markWatchable = () => {
@@ -639,7 +676,16 @@ async function runJob(
       if (cp.solverDone) return cp.solver ?? null;
       let result: SolverAnswer | null = null;
       try {
-        const raw = await chatJson(SOLVER_SYSTEM, solverUser(job.question), "reason", job.stats, undefined, providers.complete);
+        const raw = await chatJson(
+          SOLVER_SYSTEM,
+          solverUser(job.question),
+          "reason",
+          job.stats,
+          undefined,
+          providers.complete,
+          ctx,
+          SOLVER_SCHEMA
+        );
         result = normalizeSolver(extractJson(raw));
       } catch {
         // No verdict; retain the attempted result across recovery.
@@ -653,10 +699,10 @@ async function runJob(
 
     /* 1 ─ the director plans the lesson */
     lastChatWas429 = false;
-    const outline = cp.outline ?? await callDirector(job, providers.complete);
+    const outline = cp.outline ?? (await callDirector(job, providers.complete, ctx));
     if (!outline) {
       job.phase = "error";
-      job.error = lastChatWas429
+      job.error = ctx.rateLimits.saw429 || lastChatWas429
         ? "The AI studio is busy right now — wait a minute and try again."
         : "The tutor couldn't storyboard that one — try rephrasing the question.";
       await save();
@@ -684,11 +730,15 @@ async function runJob(
     if (!cp.plannerDone && !job.script) job.phase = "scripting";
     job.scriptStartAt ??= Date.now();
     await save();
-    const transcript = cp.plannerDone ? cp.transcript ?? null : await callPlanner(
-      job,
-      outlineJson,
-      outline.scenes.length, providers.complete
-    );
+    const transcript = cp.plannerDone
+      ? cp.transcript ?? null
+      : await callPlanner(
+          job,
+          outlineJson,
+          outline.scenes.length,
+          providers.complete,
+          ctx
+        );
     cp.transcript = transcript;
     cp.plannerDone = true;
     job.phase = job.script ? "voicing" : "boarding";
@@ -775,7 +825,7 @@ async function runJob(
             (b as { type?: unknown })?.type === "write" &&
             isBoardProse(String((b as { text?: unknown }).text ?? ""))
         );
-      if (!shouldReview(lastGroq429, proseFlagged, Math.random())) {
+      if (!shouldReview(ctx.rateLimits.sawGroq429 || lastGroq429, proseFlagged, ctx.rng())) {
         reviewCounters.unreviewed++; // cost-control skip, not a failure
         cp.reviews[idx] = "skipped";
         return;
@@ -803,7 +853,11 @@ async function runJob(
               REVIEWER_SYSTEM,
               reviewerUser(chapter, narration, JSON.stringify(beats)),
               "fast",
-              job.stats, undefined, providers.complete
+              job.stats,
+              undefined,
+              providers.complete,
+              ctx,
+              REVIEWER_SCHEMA
             );
             if (!acceptingReviews) return;
             const outcome = normalizeReviewFix(extractJson(raw));
@@ -867,11 +921,15 @@ async function runJob(
           }
           if (myIndex > 0) await sleep(STAGGER_MS * (myIndex % WRITER_CONCURRENCY));
           /* if the API has been rate-limiting, space the writers out */
-          if (myIndex > 0 && lastChatWas429) await sleep(1500);
+          if (myIndex > 0 && (ctx.rateLimits.saw429 || lastChatWas429)) await sleep(1500);
           const t0 = Date.now();
           const planned = transcript ? transcript[myIndex] : null;
           const r =
-            (await writeScene(outlineJson, myIndex, planned, { hops: job.stats, complete: providers.complete })) ?? {
+            (await writeScene(outlineJson, myIndex, planned, {
+              hops: job.stats,
+              complete: providers.complete,
+              ctx,
+            })) ?? {
               /* graceful degradation: a single clean line + the PLANNER'S
                  words — a writer failure no longer costs the scene its
                  voice when the transcript exists */
@@ -892,7 +950,8 @@ async function runJob(
              would ship it if the reviewer failed) — active only while
              scripts/plant-bad-beat.flag exists (touch/rm it; no server
              restart needed, and scripts/ is gitignored). */
-          const planted = myIndex === 1 && existsSync(PLANT_BAD_BEAT_FLAG);
+          const planted =
+            myIndex === 1 && (ctx.plantBadBeat || existsSync(PLANT_BAD_BEAT_FLAG));
           const stored = planted
             ? { ...r, beats: [...r.beats, { type: "write", text: "2 + 2 = 5", color: "white" }] }
             : r;
@@ -953,27 +1012,16 @@ async function runJob(
     /* A merged artifact is immutable across worker recovery. */
     if (!job.script) {
       /* 4 ─ merge → sanitize → compile-check → deliver */
-      const rawScript = {
-        title: outline.title,
-        subject: outline.subject,
-        question: outline.question,
-        scenes: outline.scenes.map((scene, i) => ({
-          chapter: scene.chapter,
-          narration: results[i]?.narration ?? "",
-          beats: results[i]?.beats ?? [],
-        })),
-      };
-      let script = sanitizeScript(rawScript, job.stats);
-      if (!script || script.scenes.length < 2) {
+      const merged = mergeScript(outline, results, job.stats);
+      if (!merged) {
         job.phase = "error";
         job.error = "The storyboard came back incomplete — try again in a moment.";
         await save();
         return;
       }
-      let tl = compileTimeline(script); // server-side smoke test — must never crash a client
-      job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
-      let violations = auditTimeline(tl);
-      job.stats.layoutViolations = violations.length;
+      let script = merged.script;
+      let tl = merged.timeline;
+      let violations = merged.layoutViolations;
       if (violations.length) {
         console.warn(
           `[layout-audit] ${violations.length} violation(s): ` +
@@ -1027,6 +1075,7 @@ async function runJob(
               note,
               hops: job.stats,
               complete: providers.complete,
+              ctx,
             });
             if (r) {
               job.stats.writerMs.push(Date.now() - t0);
@@ -1038,23 +1087,11 @@ async function runJob(
         );
         cp.repaired = true;
         await save();
-        const rawScript2 = {
-          title: outline.title,
-          subject: outline.subject,
-          question: outline.question,
-          scenes: outline.scenes.map((scene, i) => ({
-            chapter: scene.chapter,
-            narration: results[i]?.narration ?? "",
-            beats: results[i]?.beats ?? [],
-          })),
-        };
-        const script2 = sanitizeScript(rawScript2, job.stats);
-        if (script2 && script2.scenes.length >= 2) {
-          script = script2;
-          tl = compileTimeline(script);
-          job.stats.overlapPct = Math.round(scriptOverlap(script) * 100);
-          violations = auditTimeline(tl);
-          job.stats.layoutViolations = violations.length;
+        const merged2 = mergeScript(outline, results, job.stats);
+        if (merged2) {
+          script = merged2.script;
+          tl = merged2.timeline;
+          violations = merged2.layoutViolations;
           scriptAnswer = extractScriptAnswer(script);
           if (solver.answer && scriptAnswer) {
             verdict = compareAnswers(solver.answer, scriptAnswer.answer);
