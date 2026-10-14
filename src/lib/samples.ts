@@ -194,9 +194,9 @@ export const HERO_SCRIPT: SolveScript = {
 
 /** Master Lesson: The Gaussian Integral */
 export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
-  title: "The Gaussian Integral: ∫_{-∞}^∞ e^{-x²} dx",
+  title: "The Gaussian Integral: ∫_{-∞}^∞ e^(-x²) dx = √π",
   subject: "Calculus",
-  question: "Evaluate the Gaussian integral: I = ∫_{-∞}^∞ e^{-x²} dx",
+  question: "Evaluate the Gaussian integral: I = ∫_{-∞}^∞ e^(-x²) dx by squaring and transforming to polar coordinates.",
   scenes: [
     {
       chapter: "Framing the Problem & The Squaring Trick",

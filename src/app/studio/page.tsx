@@ -66,6 +66,13 @@ import { THEMES, totalDuration } from "@/lib/video/types";
 import type { BoardThemeId, SolveScript } from "@/lib/video/types";
 import { narrationStore } from "@/lib/narration-store";
 import { cn } from "@/lib/utils";
+import {
+  formatMathTitle,
+  formatMathQuestion,
+  formatMathText,
+  type RefineMessage,
+  type ChatThread,
+} from "@/lib/format-math";
 
 type Phase = "home" | "watch";
 
@@ -158,59 +165,6 @@ function fmtDur(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.round(sec % 60);
   return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-export function formatMathTitle(title: string): string {
-  if (!title) return "";
-  let t = title.trim();
-  if (t.includes("$")) return t;
-
-  t = t.replace(/∫\s*([^$]+?)\s*dx/gi, (_, expr) => {
-    const cleanExpr = expr.replace(/e\^\(([^)]+)\)/g, "e^{$1}").replace(/·/g, " \\cdot ").trim();
-    return `$\\int ${cleanExpr} \\, dx$`;
-  });
-
-  t = t.replace(/Integral of\s+([a-zA-Z0-9\s^()·\+\-\*\/]+)/gi, (_, expr) => {
-    const cleanExpr = expr.replace(/e\^\(([^)]+)\)/g, "e^{$1}").replace(/·/g, " \\cdot ").trim();
-    return `$\\int ${cleanExpr} \\, dx$`;
-  });
-
-  t = t.replace(/(^|[^$\w])e\^\(([^)]+)\)(?![^$]*\$)/g, "$1$e^{$2}$");
-  return t;
-}
-
-export function formatMathText(content: string): string {
-  if (!content) return "";
-  let text = content;
-
-  // Standardize LaTeX delimiters: \[ ... \] -> $$ ... $$, \( ... \) -> $ ... $
-  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, eq) => `$$\n${eq.trim()}\n$$`);
-  text = text.replace(/\\\(([\s\S]*?)\\\)/g, (_, eq) => `$${eq.trim()}$`);
-
-  // Auto-format quoted titles containing math notation e.g. "Integration by Parts: Integral of x e^(2x)"
-  text = text.replace(/"([^"]*(?:Integral of|∫|e\^)[^"]*)"/gi, (_, inner) => {
-    return `**${formatMathTitle(inner)}**`;
-  });
-
-  // Convert standalone unbracketed e^(...) to $e^{...}$ if not inside $
-  text = text.replace(/(^|[^$\w])e\^\(([^)]+)\)(?![^$]*\$)/g, "$1$e^{$2}$");
-
-  return text;
-}
-
-export interface RefineMessage {
-  role: "user" | "ember";
-  content: string;
-  mode?: "answer" | "edit";
-  time?: number;
-  createdAt?: number;
-}
-
-export interface ChatThread {
-  id: string;
-  title: string;
-  createdAt: number;
-  messages: RefineMessage[];
 }
 
 export default function Page() {
@@ -1114,7 +1068,7 @@ export default function Page() {
                             </span>
                           </div>
                           <h4 className="mt-1 line-clamp-1 text-xs font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">
-                            {item.title}
+                            {formatMathTitle(item.title)}
                           </h4>
                         </div>
 
@@ -2396,7 +2350,7 @@ export default function Page() {
                           {formatMathTitle(item.title)}
                         </h3>
                         <p className="line-clamp-1 mt-0.5 text-xs text-[#8b8d8f] leading-relaxed">
-                          {item.question}
+                          {formatMathQuestion(item.question)}
                         </p>
                       </div>
 

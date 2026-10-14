@@ -18,7 +18,7 @@ import { renderToImage } from "@/lib/video/render";
 import { thumbnailTime } from "@/lib/video/thumbnail";
 import { THEMES, totalDuration } from "@/lib/video/types";
 import { cn } from "@/lib/utils";
-import { formatMathTitle } from "@/lib/format-math";
+import { formatMathTitle, formatMathQuestion } from "@/lib/format-math";
 import { useAuth } from "@/lib/firebase/auth-context";
 
 interface GalleryItem {
@@ -328,7 +328,7 @@ export default function GalleryPage() {
                       {formatMathTitle(item.title)}
                     </h3>
                     <p className="line-clamp-2 mt-1 text-xs text-[#8b8d8f] leading-relaxed">
-                      {item.description || item.script?.question}
+                      {formatMathQuestion(item.description || item.script?.question || "")}
                     </p>
                   </div>
 

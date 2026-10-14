@@ -532,6 +532,6 @@ export function renderToImage(
   c.height = Math.round((outW * BOARD_H) / BOARD_W);
   const g = c.getContext("2d")!;
   g.scale(outW / BOARD_W, outW / BOARD_W);
-  renderFrame(g, tl, t, theme);
+  renderFrame(g, tl, t, theme, { pen: false });
   return c.toDataURL("image/jpeg", 0.72);
 }
