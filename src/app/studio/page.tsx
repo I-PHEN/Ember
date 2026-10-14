@@ -400,10 +400,10 @@ export default function Page() {
       }
 
       if (!played) {
-        fallbackSpeech(clean, onEnd);
+        onEnd?.();
       }
     },
-    [stopSpeaking, fallbackSpeech]
+    [stopSpeaking]
   );
 
   // Speech-to-Text Recognition
