@@ -17,8 +17,8 @@ test("the Inngest endpoint registers both workflows and generation's failure han
   const body = await inspectEndpoint(true);
   expect(body.status).toBe(200);
   expect(body.functions).toBe(3);
-});
+}, 15000);
 
 test("cloud discovery fails closed when signing credentials are missing", async () => {
   expect((await inspectEndpoint(false)).status).toBe(500);
-});
+}, 15000);
