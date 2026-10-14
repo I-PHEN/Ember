@@ -4,10 +4,9 @@ import { measureText } from "../src/lib/video/text";
 import { CAP } from "../src/lib/video/types";
 import type { SolveScript } from "../src/lib/video/types";
 
-/* An Organic Chemistry Tutor pace, pinned by measurement: this exact 11-char
-   md write compiles to writeEnd ~ 13.5s at the 70px/s base with 0.18s
-   air-travel gaps between strokes. The old AI speed (210px/s) rushed 
-   through in 4.5s. The window [12.0, 15.0] enforces the methodical pace. */
+/* Natural blackboard pace: this 11-char write compiles to writeEnd ~ 8.8s
+   at the ~180-240px/s kinematic speed with biomechanical hesitations.
+   The window [7.0, 11.0] enforces brisk yet legible writing. */
 describe("pen pacing", () => {
   test("a mid-size write lands in the professor pace window", () => {
     const script = {
@@ -23,7 +22,7 @@ describe("pen pacing", () => {
     } as unknown as SolveScript;
     const tl = compileTimeline(script);
     const writeEnd = tl.scenes[0].writeEnd;
-    expect(writeEnd).toBeGreaterThan(12.0);
-    expect(writeEnd).toBeLessThan(15.0);
+    expect(writeEnd).toBeGreaterThan(7.0);
+    expect(writeEnd).toBeLessThan(11.0);
   });
 });

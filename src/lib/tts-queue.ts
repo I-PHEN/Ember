@@ -52,17 +52,11 @@ async function ttsOnce(
     return { buffer: await geminiTTS(input, voice), provider: "gemini" };
   }
 
-  const now = Date.now();
-  if (now < geminiExhaustedUntil) {
-    return { buffer: await edgeTTS(input, voice), provider: "edge" };
-  }
-
   try {
     return { buffer: await geminiTTS(input, voice), provider: "gemini" };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    geminiExhaustedUntil = now + 60 * 60 * 1000;
-    console.warn(`[TTS] Gemini TTS failed (${msg.slice(0, 80)}). Switched seamlessly to Edge TTS.`);
+    console.warn(`[TTS] Gemini TTS attempt failed (${msg.slice(0, 80)}). Trying fallback.`);
     return { buffer: await edgeTTS(input, voice), provider: "edge" };
   }
 }

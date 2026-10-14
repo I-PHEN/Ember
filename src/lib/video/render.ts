@@ -136,6 +136,7 @@ function drawPartialPath(
   dx = 0,
   dy = 0
 ): void {
+  if (s.len < 0.2 || s.width <= 0.02) return;
   const target = p * s.len;
   if (!s.widths || s.widths.length !== s.pts.length) {
     ctx.lineWidth = s.width;
@@ -200,7 +201,7 @@ export function humanStrokeEase(p: number): number {
   return p * p * (3 - 2 * p);
 }
 
-function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null {
+export function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null {
   const idx = sceneAt(tl, t);
   if (idx < 0) return null;
   const scene = tl.scenes[idx];
@@ -225,16 +226,16 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
     const pt = pointAtLen(active, p * active.len);
     // deictic hold (point beat): marker hovers LIFTED off the board pointing toward the term
     if (active.len < 0.5) {
-      const swayX = Math.sin(t * 2.2) * 3.5;
-      const swayY = Math.cos(t * 1.8) * 2.0;
+      const swayX = Math.sin(t * 1.5) * 1.2;
+      const swayY = Math.cos(t * 1.2) * 0.8;
       return {
         x: pt.x + swayX,
         y: pt.y + swayY,
         color: markerColor(theme, active.color),
         mode: "point",
         alpha: 1,
-        lift: 16 + Math.sin(t * 2.2) * 2.5,
-        angle: -0.52 + Math.sin(t * 2.2) * 0.04,
+        lift: 18 + Math.sin(t * 1.5) * 1.5,
+        angle: -0.52 + Math.sin(t * 1.5) * 0.03,
       };
     }
     // writing stroke: dynamic wrist tilt along the stroke tangent
@@ -327,18 +328,62 @@ function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState | null
   return null;
 }
 
-function drawPen(
+export function drawPen(
   ctx: CanvasRenderingContext2D,
   pen: PenState,
   t: number
 ): void {
-  // Pure static dot cursor (no animations, no halos, no focus rings)
   const rest = pen.mode === "rest" || pen.mode === "idle";
+  const isPoint = pen.mode === "point";
+
   ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha));
+
+  if (isPoint) {
+    // Lifted deictic pointer: marker hovers in 3D above the board (z >= 16px)
+    // 1. Soft ground shadow cast onto the board
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    ctx.beginPath();
+    ctx.ellipse(pen.x + 5, pen.y + 12, 9, 3.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Translucent hover ring indicating elevated pointer
+    ctx.save();
+    ctx.strokeStyle = pen.color;
+    ctx.lineWidth = 1.3;
+    ctx.globalAlpha = pen.alpha * 0.55;
+    ctx.beginPath();
+    ctx.arc(pen.x, pen.y, 6.0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 3. Central marker tip beacon
+    ctx.fillStyle = pen.color;
+    ctx.globalAlpha = pen.alpha * 0.90;
+    ctx.beginPath();
+    ctx.arc(pen.x, pen.y, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
+  // Airborne flight between strokes: cast soft shadow offset by lift
+  if (pen.lift > 2) {
+    const zOffset = pen.lift * 0.35;
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.16)";
+    ctx.beginPath();
+    ctx.ellipse(pen.x + zOffset * 0.4, pen.y + zOffset, 4.2, 2.0, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Grounded nib on board (active writing or resting)
   ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha)) * (rest ? 0.45 : 0.95);
   ctx.fillStyle = pen.color;
   ctx.beginPath();
-  // Fixed size 3.4px solid dot matching active ink exactly
   ctx.arc(pen.x, pen.y, 3.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();

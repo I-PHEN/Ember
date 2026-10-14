@@ -1029,8 +1029,8 @@ function buildPoint(ctx: Ctx, beat: Extract<Beat, { type: "point" }>): void {
   const b = movedBBox(ctx, g);
   // point FROM BESIDE the term (just under its left third) — a finger
   // pointing at a line, never covering the glyphs themselves
-  const c = { x: b.x + b.w * 0.32, y: b.y + b.h + 10 };
-  const dur = Math.max(0.5, Math.min(2.2, (beat.ms ?? 1000) / 1000));
+  const c = { x: b.x + b.w * 0.32, y: b.y + b.h + 18 };
+  const dur = Math.max(0.5, Math.min(1.8, (beat.ms ?? 1000) / 1000));
   const inkColor: MarkerName =
     (g.strokes.find((s) => s.kind === "path") as PathStroke | undefined)
       ?.color ?? "white";
@@ -1716,41 +1716,12 @@ function buildTable(ctx: Ctx, beat: Extract<Beat, { type: "table" }>): void {
 /* ---------------------- talk-hold (deixis) ------------------------ */
 
 /* A real professor finishes writing before finishing talking: they
-   step back and POINT at the line they are explaining. When the
-   narration will outlast the writing, park the pen beside the most
-   recent visible term with the same gentle sway a "point" beat uses
-   (embodied-cognition research: students mentally imitate the gesture).
-   Pure pen choreography — no ink, no clock changes. */
-function appendTalkHold(ctx: Ctx, estAudio: number): void {
-  if (!ctx.scene.narration) return;
-  const t0 = ctx.scene.writeEnd + 0.35;
-  const talkEnd = Math.max(ctx.scene.writeEnd + 0.9, estAudio + 0.25);
-  const holdDur = Math.min(25, talkEnd - 0.5 - t0);
-  if (holdDur < 1.6) return; // too brief to read as pointing
-  // most recent visible group (emphasis groups point at their target)
-  let g: Group | undefined;
-  for (let i = ctx.scene.groups.length - 1; i >= 0; i--) {
-    const cand = ctx.scene.groups[i];
-    if (ctx.gone.has(cand)) continue;
-    g = cand.anchor && !ctx.gone.has(cand.anchor) ? cand.anchor : cand;
-    break;
-  }
-  if (!g) return;
-  const b = movedBBox(ctx, g);
-  const c = { x: b.x + b.w * 0.32, y: b.y + b.h + 10 };
-  const inkColor: MarkerName =
-    (g.strokes.find((s) => s.kind === "path") as PathStroke | undefined)
-      ?.color ?? "white";
-  ctx.scene.strokes.push({
-    kind: "path",
-    pts: [c, { x: c.x + 0.01, y: c.y }],
-    color: inkColor,
-    width: 0.01,
-    t0,
-    dur: holdDur,
-    cum: [0, 0.01],
-    len: 0.01,
-  });
+   step back and gesture or rest. After active writing completes,
+   the pen gracefully lifts and drifts to rest rather than grinding/swaying
+   on top of written ink for 20+ seconds. Active deictic gestures are handled
+   strictly by explicit or segmented "point" beats. */
+function appendTalkHold(_ctx: Ctx, _estAudio: number): void {
+  return;
 }
 
 /* The trademark intro writes at SIGNATURE pace — twice the teaching
@@ -1785,8 +1756,8 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
    segment of the words they decorate. */
 
 const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.45; // allow pen to naturally brisk up when speech is quick so it never lags behind
-const SAY_SCALE_MAX = 8.5; // allow pen to stretch gracefully across spoken phrases
+const SAY_SCALE_MIN = 0.85; // brisk and agile writing
+const SAY_SCALE_MAX = 1.35; // natural upper limit — voice-ahead pauses absorb remaining speech rather than crawling ink
 /** speech windows start here — pen touches down in lockstep with the first word */
 const SAY_T0 = 0.08;
 
@@ -1913,13 +1884,13 @@ function paceSceneToNarration(
     const validMarks = marks.filter((m) => m.t1 > m.t0);
     if (!validMarks.length) return false;
     const est = estimateNarration(narration);
-    const leadIn = sceneIdx === 0 ? 8.0 : 2.5;
+    const leadIn = sceneIdx === 0 ? 1.6 : 1.2;
     const targetWriteEnd = Math.max(leadIn + 1.0, est * 0.82);
     const rawWriteSpan = Math.max(0.5, scene.writeEnd - HEAD);
     const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan));
     for (const st of scene.strokes) {
       st.t0 = leadIn + (st.t0 - HEAD) * k;
-      const strokeScale = Math.min(1.15, Math.max(0.85, k));
+      const strokeScale = Math.min(1.12, Math.max(0.90, k));
       st.dur = Math.max(0.03, st.dur * strokeScale);
     }
     for (const g of groups) {

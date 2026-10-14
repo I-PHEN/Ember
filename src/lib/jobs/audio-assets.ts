@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { normalizeVoice, TTS_MODEL } from "../ai/gemini";
+import { normalizeSpokenMath } from "../ai/spoken-math";
 import { speak } from "../tts-queue";
 import { jobStore } from "./store";
 
@@ -24,7 +25,8 @@ export async function ensureRecordedAudio(
   if (!/^[a-f0-9]{64}$/.test(key)) throw new Error("Invalid assigned audio identity");
   const existing = await store.readAudio(key);
   if (existing) return { key, buffer: existing, ms: Date.now() - t0, cached: true };
-  const recorded = await synthesize(text, voice, 1);
+  const spokenText = normalizeSpokenMath(text);
+  const recorded = await synthesize(spokenText, voice, 1);
   await store.saveAudio(key, recorded.buffer);
   // A competing caller may have stored the first immutable recording.
   const persisted = await store.readAudio(key);

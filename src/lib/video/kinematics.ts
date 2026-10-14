@@ -189,27 +189,27 @@ export function computeTransitionPause(
 
   switch (tag) {
     case "operator":
-      // Pre-operator hesitation: 400 - 800 ms (conceptual chunking before =, +, -, etc.)
-      hesitation = 0.58;
+      // Pre-operator hesitation: cognitive chunking before =, +, -, etc.
+      hesitation = 0.42;
       break;
     case "word-start":
-      // Inter-word repositioning: 250 - 450 ms across lexical word spaces
-      hesitation = 0.38;
+      // Inter-word repositioning: lexical word spaces
+      hesitation = 0.22;
       break;
     case "char-start":
-      // Inter-character transition: 120 - 250 ms
-      hesitation = 0.14;
+      // Inter-character transition: agile pen repositioning
+      hesitation = 0.04;
       break;
     case "glyph-stroke":
-      // Inter-stroke within same glyph: 80 - 180 ms (covered directly by Fitts flight)
+      // Inter-stroke within same glyph (covered directly by Fitts flight)
       hesitation = 0.0;
       break;
     case "ballistic-line":
       // Fast flick line (fraction bar / vinculum): minimal hesitation
-      hesitation = 0.04;
+      hesitation = 0.02;
       break;
     default:
-      hesitation = 0.06;
+      hesitation = 0.03;
       break;
   }
 
@@ -251,10 +251,10 @@ export function sampleMicroTremor(
  * Synthesizes natural human velocity profiles and dynamic calligraphic widths.
  */
 export class KinematicStrokeSynthesizer {
-  public gamma0 = 44.0; // Calibrated base pace factor for steady professor handwriting
+  public gamma0 = 100.0; // Calibrated base pace factor for natural professor handwriting (~180-240 px/s)
   public beta = 0.3333; // Lacquaniti Two-Thirds Power Law exponent (1/3)
   public epsilon = 0.0075; // Curvature regularization offset (px^-1)
-  public aMax = 3200.0; // Forearm/wrist tangential acceleration limit (px/s^2)
+  public aMax = 9600.0; // Forearm/wrist tangential acceleration limit (px/s^2)
   public vClamp = 2400.0; // Ballistic velocity ceiling (px/s)
   public vMin = 26.0; // Apex/turnaround minimum velocity (px/s)
   public nibAngleRad = 42 * (Math.PI / 180); // 42° inclination angle

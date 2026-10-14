@@ -364,40 +364,11 @@ export default function Page() {
       } catch {}
       audioRef.current = null;
     }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
     setIsSpeaking(false);
     setSpeakingMsgIndex(null);
   }, []);
 
-  // Web Speech synthesis fallback
-  const fallbackSpeech = useCallback((cleanText: string, onEnd?: () => void) => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      const voices = window.speechSynthesis.getVoices();
-      const preferred = voices.find(
-        (v) =>
-          v.lang.startsWith("en") &&
-          (v.name.includes("Samantha") ||
-            v.name.includes("Google UK English Female") ||
-            v.name.includes("Victoria") ||
-            v.name.includes("Female") ||
-            v.name.includes("Natural"))
-      );
-      if (preferred) utterance.voice = preferred;
-      utterance.rate = 1.0;
-      utterance.pitch = 1.05;
-      utterance.onend = () => onEnd?.();
-      utterance.onerror = () => onEnd?.();
-      window.speechSynthesis.speak(utterance);
-    } else {
-      onEnd?.();
-    }
-  }, []);
-
-  // Speak message helper: tries narrationStore first, falls back to Web Speech
+  // Speak message helper: uses Gemini neural TTS via narrationStore (never robotic Web Speech)
   const speakText = useCallback(
     async (text: string, onStart?: () => void, onEnd?: () => void) => {
       stopSpeaking();
@@ -417,7 +388,10 @@ export default function Page() {
           const audio = new Audio(audioUrl);
           audioRef.current = audio;
           audio.onended = () => onEnd?.();
-          audio.onerror = () => fallbackSpeech(clean, onEnd);
+          audio.onerror = () => {
+            console.warn("[Studio Audio] Playback error encountered.");
+            onEnd?.();
+          };
           await audio.play();
           played = true;
         } catch {

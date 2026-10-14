@@ -128,15 +128,13 @@ const SUB_MAP: Record<string, string> = {
 };
 
 function normalize(ch: string, sup: 0 | 1 | -1): { ch: string; sup: 0 | 1 | -1 } {
-  if (sup === 0) {
-    const s = SUP_MAP[ch];
-    if (s) return { ch: s, sup: 1 };
-    const b = SUB_MAP[ch];
-    if (b) return { ch: b, sup: -1 };
-  }
+  const s = SUP_MAP[ch];
+  if (s) return { ch: s, sup: sup !== 0 ? sup : 1 };
+  const b = SUB_MAP[ch];
+  if (b) return { ch: b, sup: sup !== 0 ? sup : -1 };
   // normalize dashes to the wide minus glyph
   if (ch === "–" || ch === "—" || ch === "−") return { ch: "−", sup };
-  if (ch === "⋅" || ch === "∙" || ch === "∙") return { ch: "·", sup };
+  if (ch === "⋅" || ch === "∙") return { ch: "·", sup };
   if (ch === "∗") return { ch: "×", sup };
   return { ch, sup };
 }
