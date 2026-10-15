@@ -44,40 +44,18 @@ export async function GET(req: NextRequest) {
       })
       .filter((p) => p.script);
 
-    if (items.length === 0) {
-      items = [
-        {
-          id: "gaussian-integral",
-          title: "The Gaussian Integral",
-          description: "Evaluating ∫_{-∞}^∞ e^{-x²} dx = √π using Poisson's squaring trick and polar coordinates.",
-          publisher: "Professor Ada",
-          upvotes: 42,
-          views: 318,
-          createdAt: Date.now() - 3600000,
-          script: SAMPLE_GAUSSIAN_INTEGRAL,
-        },
-        {
-          id: "inclined-plane",
-          title: "Block on an Incline with Friction",
-          description: "Deriving the critical angle tan(θ_c) = μ_s using free-body diagram equilibrium.",
-          publisher: "Professor Ada",
-          upvotes: 38,
-          views: 245,
-          createdAt: Date.now() - 7200000,
-          script: SAMPLE_INCLINED_PLANE,
-        },
-        {
-          id: "integration-by-parts",
-          title: "Integration by Parts: ∫ x·e^(2x) dx",
-          description: "Step-by-step tabular integration and constant verification.",
-          publisher: "Professor Ada",
-          upvotes: 29,
-          views: 189,
-          createdAt: Date.now() - 10800000,
-          script: SAMPLE_CALCULUS,
-        },
-      ];
-    }
+    const flagshipItem = {
+      id: "gaussian-integral",
+      title: "The Gaussian Integral",
+      description: "Evaluating ∫_{-∞}^∞ e^{-x²} dx = √π using Poisson's squaring trick, polar transformation, and biological handwriting kinematics.",
+      publisher: "Professor Ember",
+      upvotes: 42,
+      views: 318,
+      createdAt: Date.now() - 3600000,
+      script: SAMPLE_GAUSSIAN_INTEGRAL,
+    };
+
+    items = [flagshipItem];
 
     if (subject && subject !== "All") {
       items = items.filter(

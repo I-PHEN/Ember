@@ -6,12 +6,28 @@ export async function readRecordedAudioResponse(key: string, store = jobStore): 
     return NextResponse.json({ error: "Invalid audio reference." }, { status: 400 });
   }
   try {
-    const audio = await store.readAudio(key);
+    let audio = await store.readAudio(key);
+    if (!audio) {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const cachedFile = path.join(process.cwd(), "public", "audio", "cache", `${key}.wav`);
+      if (fs.existsSync(cachedFile)) {
+        audio = fs.readFileSync(cachedFile);
+      }
+    }
     if (!audio) return NextResponse.json({ error: "Audio is not available yet." }, {
       status: 404, headers: { "Cache-Control": "no-store", "Retry-After": "3" },
     });
     return recordedAudioResponse(audio);
   } catch {
+    try {
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const cachedFile = path.join(process.cwd(), "public", "audio", "cache", `${key}.wav`);
+      if (fs.existsSync(cachedFile)) {
+        return recordedAudioResponse(fs.readFileSync(cachedFile));
+      }
+    } catch {}
     return NextResponse.json({ error: "Audio storage is unavailable." }, { status: 503 });
   }
 }

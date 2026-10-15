@@ -2261,8 +2261,8 @@ export default function Page() {
             <h2 className="text-sm font-semibold text-[#f1eee7]">Curated Starters</h2>
           </div>
 
-          {/* Videos Grid */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full">
+          {/* Videos Grid - Flagship Showcase */}
+          <div className="grid grid-cols-1 gap-4 max-w-xl w-full">
               {SAMPLE_LESSONS.map((item) => {
                 const thumbUrl = sampleThumbs[item.title];
                 const durText = sampleDurs[item.title] || "3:00";

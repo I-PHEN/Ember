@@ -45,20 +45,11 @@ async function ttsOnce(
   voice: string,
   forceProvider?: "gemini" | "edge"
 ): Promise<{ buffer: Buffer; provider: "gemini" | "edge" }> {
-  if (forceProvider === "edge") {
+  if (forceProvider === "edge" || !process.env.GEMINI_API_KEY) {
     return { buffer: await edgeTTS(input, voice), provider: "edge" };
   }
-  if (forceProvider === "gemini") {
-    return { buffer: await geminiTTS(input, voice), provider: "gemini" };
-  }
-
-  try {
-    return { buffer: await geminiTTS(input, voice), provider: "gemini" };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[TTS] Gemini TTS attempt failed (${msg.slice(0, 80)}). Trying fallback.`);
-    return { buffer: await edgeTTS(input, voice), provider: "edge" };
-  }
+  // Pure Gemini 3.8 Flash Neural Speech
+  return { buffer: await geminiTTS(input, voice), provider: "gemini" };
 }
 
 async function ttsWithRetry(

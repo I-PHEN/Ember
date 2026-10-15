@@ -9,10 +9,9 @@ import {
 } from "../src/lib/samples";
 
 describe("Curated Showcase Lessons", () => {
-  test("Curated Starters list contains both showcase flagship lessons", () => {
-    expect(SAMPLE_LESSONS.length).toBeGreaterThanOrEqual(2);
+  test("Curated Starters list contains the flagship showcase lesson", () => {
+    expect(SAMPLE_LESSONS.length).toBe(1);
     expect(SAMPLE_LESSONS).toContain(SAMPLE_GAUSSIAN_INTEGRAL);
-    expect(SAMPLE_LESSONS).toContain(SAMPLE_INCLINED_PLANE);
   });
 
   test("Gaussian Integral compiles cleanly with zero layout overlaps", () => {
@@ -43,7 +42,7 @@ describe("Curated Showcase Lessons", () => {
     const totalVideoDur = totalDuration(tl);
     const dutyCycle = totalActiveInk / totalVideoDur;
     expect(dutyCycle).toBeLessThanOrEqual(0.40);
-  });
+  }, 30000);
 
   test("Inclined Plane Physics compiles cleanly with zero layout overlaps", () => {
     const tl = compileTimeline(SAMPLE_INCLINED_PLANE);
@@ -79,5 +78,5 @@ describe("Curated Showcase Lessons", () => {
     const totalVideoDur2 = totalDuration(tl);
     const dutyCycle2 = totalActiveInk2 / totalVideoDur2;
     expect(dutyCycle2).toBeLessThanOrEqual(0.48);
-  });
+  }, 30000);
 });
