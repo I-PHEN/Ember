@@ -155,10 +155,15 @@ export async function exportTimelineToMp4(
     videoEncoder.encode(frame, { keyFrame: f % (fps * 2) === 0 });
     frame.close();
 
+    // Backpressure: pause if hardware encoder queue is saturated (> 4 frames)
+    while (videoEncoder.encodeQueueSize > 4) {
+      await new Promise((r) => setTimeout(r, 6));
+    }
+
     if (f % 5 === 0) {
       options.onProgress?.(Math.min(0.9, (f / totalFrames) * 0.9));
       // Give the event loop room to breathe
-      await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 1));
     }
   }
 

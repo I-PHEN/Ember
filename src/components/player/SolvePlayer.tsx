@@ -960,8 +960,8 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
                 )}
               </div>
 
-              {/* export MP4 */}
-              <button
+              {/* export MP4 - temporarily disabled to prevent UI freeze/lag during frame rasterization */}
+              {/* <button
                 onClick={handleExportMp4}
                 disabled={exporting}
                 className={cn(
@@ -979,7 +979,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
                 ) : (
                   <Download className="h-5 w-5" />
                 )}
-              </button>
+              </button> */}
 
               <button
                 onClick={toggleFullscreen}
