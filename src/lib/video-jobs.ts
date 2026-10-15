@@ -872,7 +872,8 @@ async function runJob(
             }
           } catch (e) {
             if (e instanceof LeaseLostError) throw e;
-            if (cp.pinnedVoice?.provider === "gemini") {
+            // Keep Gemini provider on retry — do not downgrade to edge-tts when Gemini is configured
+            if (cp.pinnedVoice?.provider === "gemini" && !process.env.GEMINI_API_KEY) {
               cp.pinnedVoice = { provider: "edge", voice: "en-US-ChristopherNeural" };
               ctx.pinnedVoice = cp.pinnedVoice;
             }
