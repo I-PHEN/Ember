@@ -530,7 +530,7 @@ function sanitizeBeat(raw: unknown, narrationKey: string): Beat | null {
 export function sanitizeSceneBeats(
   rawBeats: unknown,
   narration: string,
-  stats?: { proseDropped: number },
+  stats?: { proseDropped?: number },
   label?: string
 ): Beat[] {
   if (!Array.isArray(rawBeats)) return [];
@@ -543,7 +543,7 @@ export function sanitizeSceneBeats(
     if (!beat) continue;
     if (beat.type === "write" && isBoardProse(beat.text)) {
       prose.push(beat.text); // explanations are SPOKEN, never written
-      if (stats) stats.proseDropped += 1;
+      if (stats && typeof stats.proseDropped === "number") stats.proseDropped += 1;
       continue;
     }
     // Board discipline: real lecturers do NOT circle or underline everything.
@@ -566,7 +566,7 @@ export function sanitizeSceneBeats(
 
 export function sanitizeSegments(
   rawSegments: unknown,
-  stats?: { proseDropped: number },
+  stats?: { proseDropped?: number },
   chapterLabel?: string
 ): SceneSegment[] {
   if (!Array.isArray(rawSegments)) return [];
@@ -598,7 +598,7 @@ export function sanitizeSegments(
 
 export function sanitizeScript(
   raw: unknown,
-  stats?: { proseDropped: number }
+  stats?: { proseDropped?: number }
 ): SolveScript | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;

@@ -12,7 +12,7 @@ export function normalizeSpokenMath(raw: string): string {
   // 1. Text wrappers and display markers (clean first so nested expressions are unmasked)
   s = s.replace(/\\displaystyle/g, "");
   s = s.replace(/\\limits/g, "");
-  s = s.replace(/\$\$(.*?)\$\$/gs, "$1");
+  s = s.replace(/\$\$([\s\S]*?)\$\$/g, "$1");
   s = s.replace(/\$(.*?)\$/g, "$1");
   s = s.replace(/\\text\{([^{}]+)\}/g, "$1");
   s = s.replace(/\\mathrm\{([^{}]+)\}/g, "$1");

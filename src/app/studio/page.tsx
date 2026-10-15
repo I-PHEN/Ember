@@ -1038,7 +1038,7 @@ export default function Page() {
                               </span>
                             )}
                             <span className="text-[10px] text-[#8b8d8f]">
-                              {fmtRelativeTime(item.timestamp)}
+                              {fmtRelativeTime(item.createdAt)}
                             </span>
                           </div>
                           <h4 className="mt-1 line-clamp-1 text-xs font-semibold text-[#f1eee7] group-hover:text-[#e6b784] transition-colors">
@@ -2261,15 +2261,15 @@ export default function Page() {
             <h2 className="text-sm font-semibold text-[#f1eee7]">Curated Starters</h2>
           </div>
 
-          {/* Videos Grid - Flagship Showcase */}
-          <div className="grid grid-cols-1 gap-4 max-w-xl w-full">
+          {/* Videos Grid - Standard 3-Column Grid Sizing */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full">
               {SAMPLE_LESSONS.map((item) => {
                 const thumbUrl = sampleThumbs[item.title];
                 const durText = sampleDurs[item.title] || "3:00";
                 return (
                   <div
                     key={item.title}
-                    className="group relative flex flex-col rounded-2xl border border-[#282c31] bg-[#16191b] overflow-hidden transition-all duration-200 hover:border-[#e6b784]/50 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+                    className="group relative flex flex-col rounded-2xl border border-[#282c31] bg-[#16191b] overflow-hidden transition-all duration-200 hover:border-[#e6b784]/50 hover:shadow-xl hover:shadow-black/50 cursor-pointer max-w-[320px] sm:max-w-none"
                     role="button"
                     tabIndex={0}
                     aria-label={`Watch ${item.title}`}

@@ -1006,6 +1006,9 @@ export const SAMPLE_LESSONS: SolveScript[] = [
   SAMPLE_GAUSSIAN_INTEGRAL,
 ];
 
+export const SAMPLE_SOLVE = SAMPLE_GAUSSIAN_INTEGRAL;
+export const SAMPLE_PHYSICS = SAMPLE_INCLINED_PLANE;
+
 export const EXAMPLE_QUESTIONS = [
   "Evaluate ∫ x · e^(2x) dx using integration by parts",
   "A 10 kg block slides on a 30° incline with friction — find its acceleration",

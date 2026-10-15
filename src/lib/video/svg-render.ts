@@ -132,7 +132,7 @@ export function renderTimelineToSvg(
         );
       } else {
         // Grounded writing nib
-        const restAlpha = pen.mode === "rest" || pen.mode === "idle" ? 0.45 : 0.95;
+        const restAlpha = pen.mode === "rest" ? 0.45 : 0.95;
         elements.push(
           `<circle cx="${pen.x.toFixed(2)}" cy="${pen.y.toFixed(2)}" r="3.4" fill="${pen.color}" opacity="${(pen.alpha * restAlpha).toFixed(3)}" />`
         );

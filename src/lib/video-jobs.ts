@@ -1136,7 +1136,7 @@ async function runJob(
          high-confidence disagreement re-write the solve-chain scenes ONCE
          with the discrepancy note. Never blocks delivery longer than the
          caps; a still-wrong answer ships flagged. */
-      let solver: SolverAnswer | null = null;
+      let solver: SolutionChain | null = null;
       try {
         let solverTimer: ReturnType<typeof setTimeout> | undefined;
         try {

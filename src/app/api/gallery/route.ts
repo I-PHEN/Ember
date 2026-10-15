@@ -5,6 +5,7 @@ import {
   SAMPLE_INCLINED_PLANE,
   SAMPLE_CALCULUS,
 } from "@/lib/samples";
+import type { SolveScript } from "@/lib/video/types";
 
 const prisma = new PrismaClient();
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
 
     let items = posts
       .map((p) => {
-        let script = null;
+        let script: SolveScript | null = null;
         try {
           if (p.videoVersion?.script) script = JSON.parse(p.videoVersion.script);
         } catch {

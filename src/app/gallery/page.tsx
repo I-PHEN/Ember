@@ -272,7 +272,7 @@ export default function GalleryPage() {
               <div
                 key={item.id}
                 onClick={() => handleWatch(item)}
-                className="group relative flex flex-col rounded-2xl border border-[#282c31] bg-[#16191b] overflow-hidden transition-all duration-200 hover:border-[#e6b784]/50 hover:shadow-xl hover:shadow-black/50 cursor-pointer"
+                className="group relative flex flex-col rounded-2xl border border-[#282c31] bg-[#16191b] overflow-hidden transition-all duration-200 hover:border-[#e6b784]/50 hover:shadow-xl hover:shadow-black/50 cursor-pointer max-w-[360px] w-full"
                 role="button"
                 tabIndex={0}
                 aria-label={`Watch ${item.title}`}

@@ -333,7 +333,7 @@ export function drawPen(
   pen: PenState,
   t: number
 ): void {
-  const rest = pen.mode === "rest" || pen.mode === "idle";
+  const rest = pen.mode === "rest";
   const isPoint = pen.mode === "point";
 
   ctx.save();
