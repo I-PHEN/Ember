@@ -38,6 +38,19 @@ export async function POST(req: NextRequest) {
           error: "Your lesson was saved, but the worker could not be reached. Dispatch recovery will retry it." },
         { status: 503 });
       }
+    } else {
+      // Local development: immediately claim and run the job in-process
+      void (async () => {
+        try {
+          const claim = await jobStore.claimJob(jobId);
+          if (claim) {
+            const { runClaimedJob } = await import("@/lib/video-jobs");
+            await runClaimedJob(claim);
+          }
+        } catch (err) {
+          console.error("[Local Worker] In-process execution failed:", err);
+        }
+      })();
     }
     return NextResponse.json({ jobId });
   } catch (err) {
