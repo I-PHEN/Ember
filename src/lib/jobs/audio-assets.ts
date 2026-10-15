@@ -24,7 +24,9 @@ export async function ensureRecordedAudio(
   const key = assignedKey;
   if (!/^[a-f0-9]{64}$/.test(key)) throw new Error("Invalid assigned audio identity");
   const existing = await store.readAudio(key);
-  if (existing) return { key, buffer: existing, ms: Date.now() - t0, cached: true };
+  if (existing && existing.length >= 4 && existing.subarray(0, 4).toString("ascii") === "RIFF") {
+    return { key, buffer: existing, ms: Date.now() - t0, cached: true };
+  }
   const spokenText = normalizeSpokenMath(text);
   const recorded = await synthesize(spokenText, voice, 1);
   await store.saveAudio(key, recorded.buffer);

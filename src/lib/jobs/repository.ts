@@ -147,9 +147,10 @@ export class DurableJobStore {
 
   async saveAudio(key: string, data: Buffer): Promise<void> {
     if (!/^[a-f0-9]{64}$/.test(key) || !data.length) throw new Error("Invalid recorded audio");
-    // First successful recording is immutable, even if two callers finish at once.
     await this.client.narrationAsset.upsert({
-      where: { key }, create: { key, data: new Uint8Array(data) }, update: {},
+      where: { key },
+      create: { key, data: new Uint8Array(data) },
+      update: { data: new Uint8Array(data) },
     });
   }
 

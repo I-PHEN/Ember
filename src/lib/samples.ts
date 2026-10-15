@@ -203,7 +203,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
       narration:
         "In this video, we want to evaluate one of the most famous and fundamental definite integrals in all of mathematics: the Gaussian integral, from negative infinity to infinity of e to the negative x squared dx. Looking at this integrand, there is no elementary antiderivative, so standard substitution or integration by parts will not work. Instead, we use a brilliant trick introduced by Poisson: we consider the square of the integral. We write I squared as the product of two independent single integrals: the integral with respect to x, times the integral with respect to y. Because x and y are dummy variables, both integrals have the exact same value I.",
       audio: {
-        key: "a8c6496a76696bbbdc33aae10b55a1538c262d8319045e8777a4bcd046d5c762",
+        key: "a47b9e18dbdac68438e66eb84a1ecd78f39df10fce926fa23c61d065a9c4d1ab",
         narration: "In this video, we want to evaluate one of the most famous and fundamental definite integrals in all of mathematics: the Gaussian integral, from negative infinity to infinity of e to the negative x squared dx. Looking at this integrand, there is no elementary antiderivative, so standard substitution or integration by parts will not work. Instead, we use a brilliant trick introduced by Poisson: we consider the square of the integral. We write I squared as the product of two independent single integrals: the integral with respect to x, times the integral with respect to y. Because x and y are dummy variables, both integrals have the exact same value I."
       },
       segments: [
@@ -242,7 +242,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
       narration:
         "Since x and y vary independently over the entire real line from negative infinity to infinity, Fubini's theorem allows us to combine these two single integrals into one double integral over the entire two-dimensional xy-plane. This gives the double integral over the plane of e to the negative x squared plus y squared dx dy. Notice that the exponent now contains x squared plus y squared, which has perfect circular symmetry around the origin.",
       audio: {
-        key: "b8a3e9f1814ddb783b102550e67a466080f4f69c0c5af8e198f435edb47b81e4",
+        key: "f7896f5dd4b9b6793019b857f9e044b1e4769b9f4bb4f64613e09aaa97b10c96",
         narration: "Since x and y vary independently over the entire real line from negative infinity to infinity, Fubini's theorem allows us to combine these two single integrals into one double integral over the entire two-dimensional xy-plane. This gives the double integral over the plane of e to the negative x squared plus y squared dx dy. Notice that the exponent now contains x squared plus y squared, which has perfect circular symmetry around the origin."
       },
       segments: [
@@ -292,7 +292,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
       narration:
         "That circular symmetry suggests transforming our coordinate system from Cartesian coordinates into polar coordinates. In polar coordinates, x squared plus y squared becomes r squared, the differential area element dx dy transforms into r dr dtheta, and the entire xy-plane is covered as r goes from zero to infinity, while theta goes from zero to 2pi. We substitute x squared plus y squared equals r squared, and dx dy equals r dr dtheta. Our double integral separates cleanly into the integral of dtheta from zero to 2pi, times the radial integral of r e to the negative r squared dr from zero to infinity. Notice that extra factor of r from the Jacobian determinant—that is the exact piece we needed to make the integrand analytically solvable.",
       audio: {
-        key: "ff0747d917311e5e687dc0262646d3e529f298f8df13c160259f5e88a90612ca",
+        key: "378acd8b4b5ae2356aed888d9e8535daaaae14a28afe4ec84206188305a84f83",
         narration: "That circular symmetry suggests transforming our coordinate system from Cartesian coordinates into polar coordinates. In polar coordinates, x squared plus y squared becomes r squared, the differential area element dx dy transforms into r dr dtheta, and the entire xy-plane is covered as r goes from zero to infinity, while theta goes from zero to 2pi. We substitute x squared plus y squared equals r squared, and dx dy equals r dr dtheta. Our double integral separates cleanly into the integral of dtheta from zero to 2pi, times the radial integral of r e to the negative r squared dr from zero to infinity. Notice that extra factor of r from the Jacobian determinant—that is the exact piece we needed to make the integrand analytically solvable."
       },
       segments: [
@@ -364,7 +364,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
       narration:
         "Now both integrals are completely straightforward to evaluate. The angular integral from zero to 2pi of dtheta is simply 2pi. For the radial integral, let us make a quick substitution: let u equal r squared, so du equals 2r dr, or r dr equals one half du. The angular integral over theta evaluates directly to 2pi. Setting u equal to r squared, the differential r dr becomes one half du. Integrating one half e to the negative u gives one half times negative e to the negative u from zero to infinity, which simplifies to one half. The negative sign cancels cleanly at the lower limit.",
       audio: {
-        key: "01a9e441a0cc035b029a8f11080bd3557feef8275221111ad92ab78e95fd46dd",
+        key: "162cb628e3ef50baf9a04f7899a367b121b5ef504814a8305026f6508b1628be",
         narration: "Now both integrals are completely straightforward to evaluate. The angular integral from zero to 2pi of dtheta is simply 2pi. For the radial integral, let us make a quick substitution: let u equal r squared, so du equals 2r dr, or r dr equals one half du. The angular integral over theta evaluates directly to 2pi. Setting u equal to r squared, the differential r dr becomes one half du. Integrating one half e to the negative u gives one half times negative e to the negative u from zero to infinity, which simplifies to one half. The negative sign cancels cleanly at the lower limit."
       },
       segments: [
@@ -445,7 +445,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
       narration:
         "Now let us multiply our two results together to find the value of I squared. Multiplying 2pi by one half, the twos cancel out to one, leaving I squared equals pi. Taking the square root of both sides, and remembering that e to the negative x squared is strictly positive everywhere, we conclude that I equals the square root of pi. And that is our celebrated final result: the Gaussian integral over the entire real line equals the square root of pi.",
       audio: {
-        key: "b6c64ef62fb7f4e98cb6a3ea32eae47365b6cf8c515975cdcd415fb2d8182a9f",
+        key: "6bad488cd4b0efe965fb0d19f26a44c23e39325b47de9a81377e913ac319f7e0",
         narration: "Now let us multiply our two results together to find the value of I squared. Multiplying 2pi by one half, the twos cancel out to one, leaving I squared equals pi. Taking the square root of both sides, and remembering that e to the negative x squared is strictly positive everywhere, we conclude that I equals the square root of pi. And that is our celebrated final result: the Gaussian integral over the entire real line equals the square root of pi."
       },
       segments: [
@@ -518,7 +518,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
       narration:
         "To double check our result, let us consider the symmetry of the integrand. Because e to the negative x squared is an even function, the integral from zero to infinity is exactly half of the total integral. Since e to the negative negative x squared equals e to the negative x squared, the function is symmetric about the y-axis. Therefore the one-sided integral from zero to infinity equals one half root pi, confirming our total area. This famous integral is the foundation of the normal distribution in probability and wave packet mechanics in quantum physics.",
       audio: {
-        key: "e9bfea3cf0e6a29cc898981b2af197ada9552e20f851b5c1eb94e3e112592a26",
+        key: "251e077c4bc960ff24647fc5c9422186a88c9fbfcb086ef8429c1814ca088d2d",
         narration: "To double check our result, let us consider the symmetry of the integrand. Because e to the negative x squared is an even function, the integral from zero to infinity is exactly half of the total integral. Since e to the negative negative x squared equals e to the negative x squared, the function is symmetric about the y-axis. Therefore the one-sided integral from zero to infinity equals one half root pi, confirming our total area. This famous integral is the foundation of the normal distribution in probability and wave packet mechanics in quantum physics."
       },
       segments: [
