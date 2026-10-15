@@ -127,20 +127,12 @@ export default function GalleryPage() {
   }, [items, selectedSubject, search]);
 
   const handleWatch = (item: GalleryItem) => {
-    const doWatch = () => {
-      try {
-        window.localStorage.setItem("ember.watch.active", JSON.stringify(item.script));
-        window.location.href = `/studio?solve=${item.id}`;
-      } catch {
-        window.location.href = "/studio";
-      }
-    };
-
-    if (!user) {
-      openAuthModal(doWatch);
-      return;
+    try {
+      window.localStorage.setItem("ember.watch.active", JSON.stringify(item.script));
+      window.location.href = `/studio?solve=${item.id}`;
+    } catch {
+      window.location.href = "/studio";
     }
-    doWatch();
   };
 
   const handleCreateSolve = () => {
