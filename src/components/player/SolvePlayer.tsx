@@ -259,7 +259,7 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
             if (cancelled) return;
             const effectiveDur = dur / BASE_SPEECH_RATE;
             audioRef.current?.attach(idx, url, effectiveDur);
-            setSceneAudio(tl, idx, effectiveDur);
+            setSceneAudio(tl, idx, effectiveDur, script.scenes[idx]?.audio?.segments);
             readyRef.current[idx] = true;
             onVoiced?.(idx);
             bumpDur();
@@ -710,11 +710,31 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const inIntro = scene?.intro === true;
     const playedFrac = total > 0 ? uiT / total : 0;
 
-    /* caption for the current moment — sentence chunks distributed
+    /* caption for the current moment — segment cues when stitched audio cues
+       are present (Spec §8), otherwise sentence chunks distributed
        proportionally across the scene's narration window */
     const captionText = (() => {
       if (!captions || mini || !scene?.narration) return null;
       const start = sceneStart(tl, currentScene);
+      const localT = Math.max(0, uiT - start);
+      if (
+        scene.segments &&
+        scene.segments.length > 0 &&
+        scene.audioCues &&
+        scene.audioCues.length === scene.segments.length
+      ) {
+        const cues = scene.audioCues;
+        for (let ci = cues.length - 1; ci >= 0; ci--) {
+          if (localT >= cues[ci].t0) {
+            return (
+              scene.segments[cues[ci].i]?.say ??
+              scene.segments[ci]?.say ??
+              null
+            );
+          }
+        }
+        return scene.segments[0]?.say ?? null;
+      }
       const t0 = start + scene.head;
       const t1 = start + Math.max(scene.dur - 0.15, t0 + 1);
       const off = Math.max(0, Math.min(uiT, t1) - t0);

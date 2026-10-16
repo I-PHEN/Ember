@@ -2076,7 +2076,7 @@ function paceSceneToNarration(
       if (hasMeasuredCues && si + 1 < segCount) {
         const availEnd = segStarts[si + 1] - 0.02;
         if (availEnd > n0 + 0.1 && n0 + oldDur > availEnd) {
-          scale = Math.max(0.55, (availEnd - n0) / oldDur);
+          scale = Math.max(0.25, (availEnd - n0) / oldDur);
         }
       }
       map.push({ rawMin: raw[0], o0: old[0], o1: old[1], n0, scale });
@@ -2376,13 +2376,13 @@ export function compileTimeline(script: SolveScript): Timeline {
       const segIndices: number[] = [];
       scene.segments.forEach((seg, sIdx) => {
         if (!seg.ink || seg.ink.length === 0) {
-          seg.mode ??= "speak_ahead";
           if (
             /\b(this|these|here|notice|look at|see how|observe|Looking at)\b/i.test(
               seg.say
             )
           ) {
-            const pointBeat: Beat = {
+            if (seg.pauseAfter === undefined) seg.mode ??= "speak_ahead";
+            const pointBeat: Beat & { say?: string } = {
               type: "point",
               target: "last",
               ms: 1500,
