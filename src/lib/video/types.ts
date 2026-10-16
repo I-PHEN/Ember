@@ -246,9 +246,27 @@ export interface WordTiming {
   t1: number;
 }
 
+export type SegmentMode =
+  | "speak_ahead"
+  | "write_ahead"
+  | "parallel"
+  | "point"
+  | "pause";
+
 export interface SceneSegment {
   say: string;
   ink?: Beat[];
+  /** cognitive tutoring mode — derived at compile when absent */
+  mode?: SegmentMode;
+  /** explicit trailing silence, seconds (clamped 0.2–2.5 by the sanitizer) */
+  pauseAfter?: number;
+}
+
+/** measured position of one narration segment inside the stitched WAV */
+export interface AudioSegmentCue {
+  i: number;
+  t0: number;
+  t1: number;
 }
 
 export interface SolveScene {
@@ -263,6 +281,7 @@ export interface SolveScene {
     key?: string;
     narration?: string;
     dur?: number;
+    segments?: AudioSegmentCue[];
     words?: WordTiming[];
   };
 }

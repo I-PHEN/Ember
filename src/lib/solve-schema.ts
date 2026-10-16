@@ -564,6 +564,14 @@ export function sanitizeSceneBeats(
   return beats;
 }
 
+const SEGMENT_MODES = new Set([
+  "speak_ahead",
+  "write_ahead",
+  "parallel",
+  "point",
+  "pause",
+]);
+
 export function sanitizeSegments(
   rawSegments: unknown,
   stats?: { proseDropped?: number },
@@ -576,6 +584,15 @@ export function sanitizeSegments(
     const seg = segRaw as Record<string, unknown>;
     const say = cleanNarration(seg.say);
     if (!say) continue;
+    const modeRaw = seg.mode;
+    const mode =
+      typeof modeRaw === "string" && SEGMENT_MODES.has(modeRaw)
+        ? (modeRaw as SceneSegment["mode"])
+        : undefined;
+    const pauseAfter =
+      typeof seg.pauseAfter === "number" && Number.isFinite(seg.pauseAfter)
+        ? Math.round(Math.min(2.5, Math.max(0.2, seg.pauseAfter)) * 100) / 100
+        : undefined;
     const inkRaw = Array.isArray(seg.ink)
       ? seg.ink
       : Array.isArray(seg.beats)
@@ -591,7 +608,12 @@ export function sanitizeSegments(
         }
       }
     }
-    segments.push({ say, ink: ink && ink.length ? ink : undefined });
+    segments.push({
+      say,
+      ink: ink && ink.length ? ink : undefined,
+      mode,
+      pauseAfter,
+    });
   }
   return segments;
 }

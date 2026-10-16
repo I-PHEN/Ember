@@ -173,3 +173,20 @@ describe("Segment Contract ({say, ink})", () => {
     expect(merged!.timeline.scenes[0].segments).toBeDefined();
   });
 });
+
+describe("sanitizeSegments v2 fields", () => {
+  test("keeps valid mode and clamps pauseAfter", () => {
+    const segs = sanitizeSegments([
+      { say: "Now we write the formula.", ink: [{ type: "write", text: "u = x" }], mode: "parallel", pauseAfter: 9 },
+      { say: "Let that land.", mode: "pause", pauseAfter: 0.3 },
+      { say: "Bad mode.", mode: "karaoke", pauseAfter: "no" },
+    ]);
+    expect(segs.length).toBe(3);
+    expect(segs[0].mode).toBe("parallel");
+    expect(segs[0].pauseAfter).toBe(2.5); // clamped
+    expect(segs[1].mode).toBe("pause");
+    expect(segs[1].pauseAfter).toBe(0.3);
+    expect(segs[2].mode).toBeUndefined();
+    expect(segs[2].pauseAfter).toBeUndefined();
+  });
+});
