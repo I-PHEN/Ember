@@ -154,6 +154,9 @@ In `audio-assets.ts` (new sibling `stitch-audio.ts`):
 - Stitch at merge: `gap_i = clamp(max(defaultFor(mode_i), penDeficit_i,
   pauseAfter_hint), 0.25, 4.0)`; silence = PCM zeros; output = one RIFF
   WAV + `segments[]` manifest with cumulative t0/t1.
+  `penDeficit_i = max(0, writeEnd(segment_i's ink) − (t1_i − t0_i))` —
+  how much longer the calibrated pen needs for this segment's ink than
+  its measured speech lasts.
 - Gap defaults (tunable constants): 0.35 s intra-thought, 0.9 s
   between-thought, write-ahead sized by pen deficit, 2.0 s boxed answer.
 - Audio identity: version the key (`ember-audio-v2`) so old cached WAVs
@@ -230,8 +233,8 @@ Machine gates (extend `scripts/eval/run-eval.ts` + `bun test`):
 - **M1 — Stitcher core**: `stitch-audio.ts` + schema extension + unit
   tests. No behavior change yet.
 - **M2 — Compiler**: segment-anchored pacing + stitch-last gap sizing +
-  legacy fallback + dead-code removal. Flagship renders through the new
-  path with hand-authored segments.
+  legacy fallback + dead-code removal. Verified with a hand-authored
+  segment fixture (inline test script), not the curated sample yet.
 - **M3 — Prompts**: planner segments, writer binding, reviewer
   preservation, `SAMPLE_CALCULUS` hand-segmented.
 - **M4 — Pipeline**: `video-jobs.ts` per-segment TTS at transcript time,
