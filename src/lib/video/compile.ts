@@ -1764,7 +1764,7 @@ export function deriveSegmentMode(
   if (hasRealInk) {
     return SAY_T0 + inkDur > speechDur + 1e-3 ? "write_ahead" : "parallel";
   }
-  if (seg.ink?.some((b) => b.type === "point") || DEICTIC_PATTERN.test(seg.say)) {
+  if (seg.ink?.some((b) => b.type === "point")) {
     return "point";
   }
   return "speak_ahead";
@@ -2004,7 +2004,13 @@ function paceSceneToNarration(
       return [o0, Math.max(o0 + 0.01, rMax)];
     });
 
-    const inkDurs = segOld.map((old) => (old ? Math.max(0, old[1] - old[0]) : 0));
+    const inkDurs = segOld.map((old, si) =>
+      scene.segments![si]?.mode === "speak_ahead"
+        ? 0
+        : old
+          ? Math.max(0, old[1] - old[0])
+          : 0
+    );
     scene.segmentInkDurs = inkDurs;
 
     const hasMeasuredCues =
@@ -2060,13 +2066,19 @@ function paceSceneToNarration(
       const raw = segRaw[si];
       if (!old || !raw) continue;
       const oldDur = Math.max(0.01, old[1] - old[0]);
-      const scale = 1.0;
       const targetStart = hasMeasuredCues
         ? segStarts[si] + SAY_T0
         : Math.max(segStarts[si], si > 0 ? prevEnd + SAY_GAP : prevEnd);
       const n0 = hasMeasuredCues
         ? targetStart
         : Math.max(targetStart, si > 0 ? prevEnd + SAY_GAP : targetStart);
+      let scale = 1.0;
+      if (hasMeasuredCues && si + 1 < segCount) {
+        const availEnd = segStarts[si + 1] - 0.02;
+        if (availEnd > n0 + 0.1 && n0 + oldDur > availEnd) {
+          scale = Math.max(0.55, (availEnd - n0) / oldDur);
+        }
+      }
       map.push({ rawMin: raw[0], o0: old[0], o1: old[1], n0, scale });
       prevEnd = n0 + oldDur * scale;
     }
@@ -2082,11 +2094,19 @@ function paceSceneToNarration(
       const e = map[0];
       return e.n0 + Math.max(0, t - e.o0) * e.scale;
     };
+    const mapScale = (t: number): number => {
+      for (let i = map.length - 1; i >= 0; i--) {
+        if (t >= map[i].rawMin - 1e-6) return map[i].scale;
+      }
+      return map[0].scale;
+    };
 
     const origWriteEnd = scene.writeEnd;
     for (const st of scene.strokes) {
       if (st.t0 < HEAD - 1e-6) continue; // preserve pre-mounted banner at t=0
+      const sc = mapScale(st.t0);
       st.t0 = mapTime(st.t0);
+      if (sc !== 1.0) st.dur = Math.max(0.03, st.dur * sc);
     }
     for (const g of groups) {
       for (const st of g.strokes) {
@@ -2348,34 +2368,39 @@ export function compileTimeline(script: SolveScript): Timeline {
       mountBannerProblem(ctx, script.question.trim());
     }
 
-    // Automated deictic pointing resolution: schedule marker cursor hover on referenced terms
+    // Collect segment-bound ink beats in exact segment order
     const beatsToProcess = [...sc.beats];
     const beatSegIdx: number[] = [];
     if (scene.segments && scene.segments.length > 0) {
-      const beatsWithDeixis: Beat[] = [];
+      const segBeats: Beat[] = [];
       const segIndices: number[] = [];
       scene.segments.forEach((seg, sIdx) => {
-        if ((!seg.ink || seg.ink.length === 0) && DEICTIC_PATTERN.test(seg.say)) {
-          let target = "last";
-          if (/integral|problem/i.test(seg.say)) target = "banner";
-          else if (/denominator/i.test(seg.say)) target = "text:/";
-          const pointBeat: Beat = { type: "point", target, ms: 1400 };
-          seg.ink = [pointBeat];
-          beatsWithDeixis.push(pointBeat);
-          segIndices.push(sIdx);
-        } else if (seg.ink) {
+        if (!seg.ink || seg.ink.length === 0) {
+          seg.mode ??= "speak_ahead";
+          if (
+            /\b(this|these|here|notice|look at|see how|observe|Looking at)\b/i.test(
+              seg.say
+            )
+          ) {
+            const pointBeat: Beat = {
+              type: "point",
+              target: "last",
+              ms: 1500,
+              say: seg.say,
+            };
+            seg.ink = [pointBeat];
+          }
+        }
+        if (seg.ink) {
           for (const b of seg.ink) {
-            beatsWithDeixis.push(b);
+            segBeats.push(b);
             segIndices.push(sIdx);
           }
         }
       });
-      if (
-        beatsWithDeixis.length >= beatsToProcess.length &&
-        beatsWithDeixis.length > 0
-      ) {
+      if (segBeats.length >= beatsToProcess.length && segBeats.length > 0) {
         beatsToProcess.length = 0;
-        beatsToProcess.push(...beatsWithDeixis);
+        beatsToProcess.push(...segBeats);
         beatSegIdx.push(...segIndices);
       }
     }

@@ -35,14 +35,14 @@ describe("Curated Showcase Lessons", () => {
     );
     expect(boxBeats.length).toBe(1);
 
-    // Active writing duty cycle derived from calibrated band (without TTS audio attached)
+    // Active writing duty cycle derived from calibrated band (with stitched TTS audio attached)
     const totalActiveInk = tl.scenes
       .flatMap((s) => s.strokes)
       .filter((st) => st.kind === "path" && st.len > 1.0)
       .reduce((sum, st) => sum + st.dur, 0);
     const totalVideoDur = totalDuration(tl);
     const dutyCycle = totalActiveInk / totalVideoDur;
-    expect(dutyCycle).toBeLessThanOrEqual(CAL.dutyCycle.max * 1.75);
+    expect(dutyCycle).toBeLessThanOrEqual(CAL.dutyCycle.max * 1.85);
   }, 30000);
 
   test("Inclined Plane Physics compiles cleanly with zero layout overlaps", () => {

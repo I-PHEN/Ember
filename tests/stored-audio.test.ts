@@ -1,6 +1,11 @@
 import { expect, test } from "bun:test";
-import { audioKey, ensureRecordedAudio } from "../src/lib/jobs/audio-assets";
+import {
+  audioKey,
+  ensureRecordedAudio,
+  ensureStitchedSceneAudio,
+} from "../src/lib/jobs/audio-assets";
 import { storedAudioKey } from "../src/lib/video/recorded-audio";
+import { pcmToWav } from "../src/lib/ai/gemini";
 import { readRecordedAudioResponse } from "../src/lib/jobs/audio-response";
 import { testStore } from "./helpers/durable-db";
 import { NarrationStore } from "../src/lib/narration-store";
@@ -83,3 +88,52 @@ test("an edited scene cannot reuse an old narration's recording reference", () =
   expect(storedAudioKey({ narration: "new", audio: { key, narration: "old" } })).toBeUndefined();
   expect(storedAudioKey({ narration: "old", audio: { key: "../bad", narration: "old" } })).toBeUndefined();
 });
+
+test("ensureStitchedSceneAudio synthesizes segments, stitches PCM with silence gaps, and returns AudioSegmentCue[]", async () => {
+  const mem = new Map<string, Buffer>();
+  const store = {
+    readAudio: async (k: string) => mem.get(k) ?? null,
+    saveAudio: async (k: string, d: Buffer) => {
+      mem.set(k, d);
+    },
+  };
+  // Build a 1.0s 24kHz mono 16-bit PCM tone
+  const makeToneWav = (sec: number) => {
+    const samples = Math.round(sec * 24000);
+    const pcm = Buffer.alloc(samples * 2);
+    for (let i = 0; i < samples; i++) {
+      pcm.writeInt16LE(4000, i * 2);
+    }
+    return pcmToWav(pcm, 24000);
+  };
+
+  const calls: string[] = [];
+  const synth = async (t: string) => {
+    calls.push(t);
+    return { buffer: makeToneWav(1.0), ms: 5, cached: false };
+  };
+
+  const scene = {
+    chapter: "Linear Equation",
+    narration: "First we frame the problem. Now we write two x equals eight.",
+    segments: [
+      { say: "First we frame the problem.", ink: [] },
+      {
+        say: "Now we write two x equals eight.",
+        ink: [{ type: "write" as const, text: "2x = 8", color: "white" as const }],
+      },
+    ],
+    beats: [{ type: "write" as const, text: "2x = 8", color: "white" as const }],
+  };
+
+  const res = await ensureStitchedSceneAudio(scene, "jam", store, synth as never);
+  expect(calls.length).toBe(2);
+  expect(res.segments.length).toBe(2);
+  expect(res.segments[0].t0).toBe(0);
+  expect(res.segments[0].t1).toBeCloseTo(1.0, 2);
+  // speak_ahead default gap is 0.35s
+  expect(res.segments[1].t0).toBeCloseTo(1.35, 2);
+  expect(res.segments[1].t1).toBeCloseTo(2.35, 2);
+  expect(res.dur).toBeCloseTo(2.35, 2);
+});
+

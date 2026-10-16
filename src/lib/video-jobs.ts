@@ -6,6 +6,7 @@ import {
   sanitizeScript,
   sanitizeSceneBeats,
   sanitizeSegments,
+  rebindBeatsToSegments,
   cleanNarration,
   isBoardProse,
 } from "./solve-schema";
@@ -34,11 +35,19 @@ import {
   type SolverAnswer,
   type VerifyVerdict,
 } from "./video/solver";
-import type { SolveScript } from "./video/types";
+import type {
+  AudioSegmentCue,
+  SceneSegment,
+  SolveScript,
+} from "./video/types";
 import { recordVoiceResult, finishVoicing } from "./video/voice-completion";
 import { jobStore } from "./jobs/store";
 import { DurableJobStore, LeaseLostError } from "./jobs/repository";
-import { audioKey, ensureRecordedAudio } from "./jobs/audio-assets";
+import {
+  audioKey,
+  ensureRecordedAudio,
+  ensureStitchedSceneAudio,
+} from "./jobs/audio-assets";
 import { storedAudioKey } from "./video/recorded-audio";
 import { createJobContext, type JobContext } from "./engine/context";
 import {
@@ -166,6 +175,8 @@ interface Job {
     results: (SceneResult | null)[];
     voices: Record<number, string>;
     voiceKeys?: Record<number, string>;
+    voiceCues?: Record<number, AudioSegmentCue[]>;
+    voiceDurs?: Record<number, number>;
     reviews: Record<number, "pass" | "fixed" | "skipped">;
     checkerScenes: number[];
     solverDone?: boolean;
@@ -463,6 +474,7 @@ async function callDirector(
 /** one scene's planned words + teaching cues */
 export interface TranscriptScene {
   script: string;
+  segments?: SceneSegment[];
   visualize?: string;
   analogy?: string;
 }
@@ -481,8 +493,15 @@ function normalizeTranscript(
       continue;
     }
     const s = sRaw as Record<string, unknown>;
-    const script = cleanNarration(s.script);
+    const segs = Array.isArray(s.segments)
+      ? sanitizeSegments(s.segments)
+      : [];
+    const joined = segs.length
+      ? segs.map((seg) => seg.say).join(" ")
+      : "";
+    const script = joined || cleanNarration(s.script);
     const ts: TranscriptScene = { script };
+    if (segs.length) ts.segments = segs;
     const visualize = cleanNarration(s.visualize);
     if (visualize) ts.visualize = visualize.slice(0, 160);
     const analogy = cleanNarration(s.analogy);
@@ -558,7 +577,8 @@ async function writeScene(
           planned && planned.script.length > 40 ? planned.script : null,
           planned?.visualize,
           planned?.analogy,
-          opts?.note
+          opts?.note,
+          planned?.segments
         ),
         "fast",
         opts?.hops,
@@ -570,15 +590,27 @@ async function writeScene(
       if (parsed && typeof parsed === "object") {
         const o = parsed as Record<string, unknown>;
         if (Array.isArray(o.segments) && o.segments.length) {
-          const segs = sanitizeSegments(o.segments);
+          let segs = sanitizeSegments(o.segments);
           if (segs.length) {
+            if (planned?.segments && planned.segments.length === segs.length) {
+              segs = segs.map((seg, si) => {
+                const canonicalSay = planned.segments![si].say;
+                const ink = seg.ink?.map((b) =>
+                  "say" in b ? { ...b, say: canonicalSay } : b
+                );
+                return {
+                  ...seg,
+                  say: canonicalSay,
+                  mode: seg.mode ?? planned.segments![si].mode,
+                  pauseAfter: seg.pauseAfter ?? planned.segments![si].pauseAfter,
+                  ink,
+                };
+              });
+            }
             const joinedSay = segs.map((s) => s.say).filter(Boolean).join(" ");
             const allBeats = segs.flatMap((s) => s.ink || []);
             return {
-              narration:
-                typeof o.narration === "string" && o.narration.trim()
-                  ? o.narration
-                  : joinedSay,
+              narration: joinedSay || (typeof o.narration === "string" ? o.narration : undefined),
               beats: allBeats.length
                 ? allBeats
                 : Array.isArray(o.beats)
@@ -589,10 +621,23 @@ async function writeScene(
           }
         }
         if (Array.isArray(o.beats) && o.beats.length) {
+          const narration =
+            planned && planned.script.length > 40
+              ? planned.script
+              : typeof o.narration === "string"
+              ? o.narration
+              : undefined;
+          const reboundSegs =
+            planned?.segments && planned.segments.length && narration
+              ? rebindBeatsToSegments(
+                  planned.segments,
+                  sanitizeSceneBeats(o.beats, narration)
+                )
+              : undefined;
           return {
-            narration:
-              typeof o.narration === "string" ? o.narration : undefined,
+            narration,
             beats: o.beats,
+            segments: reboundSegs,
           };
         }
       }
@@ -696,6 +741,8 @@ async function runJob(
   const ctx = createJobContext(job.id, { plantBadBeat: existsSync(PLANT_BAD_BEAT_FLAG) });
   const cp = job.checkpoint;
   const voiceKeys = (cp.voiceKeys ??= {});
+  const voiceCues = (cp.voiceCues ??= {});
+  const voiceDurs = (cp.voiceDurs ??= {});
   const markWatchable = () => {
     if (job.script && job.voicesDone >= job.voicesTotal) {
       job.stats.watchableMs ??= Date.now() - job.createdAt;
@@ -842,13 +889,47 @@ async function runJob(
             }
             const synth = (t: string, v = "jam", s = 1) =>
               providers.synthesize(t, v, s, cp.pinnedVoice?.provider);
-            const { ms, cached, key } = await ensureRecordedAudio(
-              text,
-              cp.pinnedVoice?.voice ?? "jam",
-              store,
-              synth as typeof speak,
-              expectedKey
-            );
+            const sceneRes = cp.results[idx];
+            const rawSegs = Array.isArray(sceneRes?.segments)
+              ? sanitizeSegments(sceneRes!.segments)
+              : [];
+            let key: string;
+            let ms: number;
+            let cached: boolean;
+            if (rawSegs.length > 0) {
+              const stitched = await ensureStitchedSceneAudio(
+                {
+                  chapter: outline.scenes[idx]?.chapter ?? `Step ${idx + 1}`,
+                  narration: text,
+                  beats: sanitizeSceneBeats(sceneRes?.beats, text),
+                  segments: rawSegs,
+                },
+                cp.pinnedVoice?.voice ?? "jam",
+                store,
+                synth as typeof speak,
+                expectedKey
+              );
+              key = stitched.key;
+              ms = stitched.ms;
+              cached = stitched.cached;
+              if (stitched.segments.length > 0) {
+                voiceCues[idx] = stitched.segments;
+              }
+              if (stitched.dur > 0) {
+                voiceDurs[idx] = stitched.dur;
+              }
+            } else {
+              const rec = await ensureRecordedAudio(
+                text,
+                cp.pinnedVoice?.voice ?? "jam",
+                store,
+                synth as typeof speak,
+                expectedKey
+              );
+              key = rec.key;
+              ms = rec.ms;
+              cached = rec.cached;
+            }
             cp.voices[idx] = key;
             job.voicesDone = Object.keys(cp.voices).length;
             if (job.stats.firstVoiceReadyMs === null) {
@@ -861,11 +942,12 @@ async function runJob(
             const scriptScene = job.script?.scenes[idx];
             if (scriptScene) {
               const buf = await store.readAudio(key);
-              const dur = buf ? getWavDuration(buf) : undefined;
+              const dur = voiceDurs[idx] ?? (buf ? getWavDuration(buf) : undefined);
               scriptScene.audio = {
                 key,
                 narration: text,
                 dur: dur ?? undefined,
+                segments: voiceCues[idx],
               };
             }
           } catch (e) {
@@ -977,10 +1059,19 @@ async function runJob(
                 checkSceneLines(idx, outcome.beats).flags.length <=
                   (checkerFlagsOf[idx] ?? 0)
               ) {
+                const origSegs = Array.isArray(results[idx]?.segments)
+                  ? sanitizeSegments(results[idx]!.segments)
+                  : [];
+                const nextSegments =
+                  outcome.segments && outcome.segments.length > 0
+                    ? sanitizeSegments(outcome.segments, job.stats, `reviewer fix, scene ${idx + 1}`)
+                    : origSegs.length > 0
+                    ? rebindBeatsToSegments(origSegs, cleaned)
+                    : results[idx]?.segments;
                 results[idx] = {
                   narration: results[idx]?.narration,
                   beats: outcome.beats,
-                  segments: results[idx]?.segments,
+                  segments: nextSegments,
                 };
                 cp.results[idx] = results[idx];
                 cp.reviews[idx] = "fixed";
@@ -1039,6 +1130,7 @@ async function runJob(
                   color: "white",
                 },
               ],
+              segments: planned?.segments,
             };
           const ms = Date.now() - t0;
           job.writerEwma = ewma(job.writerEwma, ms);
@@ -1225,12 +1317,13 @@ async function runJob(
           const index = cp.results.findIndex(result => cleanNarration(result?.narration) === scene.narration);
           const key = voiceKeys[index] ?? audioKey(scene.narration);
           const buf = await store.readAudio(key);
-          const dur = buf ? getWavDuration(buf) : undefined;
+          const dur = voiceDurs[index] ?? (buf ? getWavDuration(buf) : undefined);
           Object.assign(scene, {
             audio: {
               key,
               narration: scene.narration,
               dur: dur ?? undefined,
+              segments: voiceCues[index],
             },
           });
         }
