@@ -15,12 +15,18 @@ export interface AnalyzeOptions {
   burstGapFrames?: number;
   /** cap-height estimate clamp in px (a text line is never taller) */
   capSpanClamp?: number;
+  /** measured cap height in px — a visual anchor beats the row-span
+   *  proxy (transition frames span multiple lines and pollute any
+   *  percentile). Set by the driver; tests pin it. */
+  capHeightOverride?: number;
 }
 
 export interface PauseEvent {
   t: number;
   dur: number;
   kind: "line" | "hold";
+  /** pen travel across the pause: |burst_end_centroid − next_burst_start_centroid| */
+  distPx: number;
 }
 
 export interface HandwritingMetrics {
@@ -61,12 +67,21 @@ interface Burst {
   startT: number;
   endT: number;
   writing: number;
+  firstCx: number;
+  firstCy: number;
   lastCx: number;
   lastCy: number;
+  /** accumulated centroid travel across the burst's writing events */
+  pathPx: number;
 }
 
 export class FrameAnalyzer {
-  private opts: Required<AnalyzeOptions>;
+  private opts: AnalyzeOptions & {
+    diffThreshold: number;
+    minChanged: number;
+    burstGapFrames: number;
+    capSpanClamp: number;
+  };
   private prev: Uint8Array | null = null;
   private events: Event[] = [];
   private bursts: Burst[] = [];
@@ -85,6 +100,7 @@ export class FrameAnalyzer {
       minChanged: opts.minChanged ?? 25,
       burstGapFrames: opts.burstGapFrames ?? 3,
       capSpanClamp: opts.capSpanClamp ?? Math.round(h / 3),
+      capHeightOverride: opts.capHeightOverride,
     };
   }
 
@@ -135,13 +151,17 @@ export class FrameAnalyzer {
           startT: t,
           endT: t,
           writing: 1,
+          firstCx: ev.cx,
+          firstCy: ev.cy,
           lastCx: ev.cx,
           lastCy: ev.cy,
+          pathPx: 0,
         };
         this.bursts.push(this.cur);
       } else {
         this.cur.endT = t;
         this.cur.writing++;
+        this.cur.pathPx += Math.hypot(ev.cx - this.cur.lastCx, ev.cy - this.cur.lastCy);
         this.cur.lastCx = ev.cx;
         this.cur.lastCy = ev.cy;
       }
@@ -153,19 +173,48 @@ export class FrameAnalyzer {
 
   finish(): HandwritingMetrics {
     const writingEvents = this.events.filter((e) => e.writing);
-    const capHeightPx = Math.max(
-      2,
-      Math.round(percentile(writingEvents.map((e) => e.rowSpan), 50))
-    );
+    let capHeightPx: number;
+    if (
+      this.opts.capHeightOverride !== undefined &&
+      Number.isFinite(this.opts.capHeightOverride) &&
+      this.opts.capHeightOverride >= 2
+    ) {
+      capHeightPx = Math.round(this.opts.capHeightOverride);
+    } else {
+      /* fallback proxy from STRONG strokes only — a frame's new-ink
+         sliver spans the letter body on near-vertical strokes; the
+         median sliver underestimates, so P90; fragile either way,
+         which is why the driver passes the measured anchor */
+      const strongMin = Math.max(30, 3 * this.opts.minChanged);
+      const strongSpans = writingEvents
+        .filter((e) => e.changed >= strongMin)
+        .map((e) => e.rowSpan);
+      capHeightPx = Math.min(
+        60,
+        Math.max(
+          5,
+          Math.round(
+            percentile(
+              strongSpans.length >= 20
+                ? strongSpans
+                : writingEvents.map((e) => e.rowSpan),
+              90
+            )
+          )
+        )
+      );
+    }
 
-    /* speeds across consecutive writing frames inside one burst */
+    /* per-BURST speeds: accumulated centroid path ÷ burst wall time.
+       Frame-level speeds are threshold-biased at high fps (light
+       writing frames fall below minChanged and only fast frames
+       register), which inflates the median; the burst integral is
+       robust to missed frames. */
     const speedsPxPerSec: number[] = [];
-    for (let i = 1; i < this.events.length; i++) {
-      const a = this.events[i - 1];
-      const b = this.events[i];
-      if (!a.writing || !b.writing) continue;
-      const d = Math.hypot(b.cx - a.cx, b.cy - a.cy);
-      if (d > 2) speedsPxPerSec.push(d * this.fps);
+    for (const b of this.bursts) {
+      const dur = Math.max(b.endT - b.startT, 1 / this.fps);
+      const speed = b.pathPx / dur;
+      if (speed > 5) speedsPxPerSec.push(speed);
     }
 
     /* pauses between bursts, classified by the vertical jump across
@@ -177,11 +226,14 @@ export class FrameAnalyzer {
       const next = this.bursts[b];
       const dur = next.startT - prev.endT - 1 / this.fps;
       if (dur <= 0) continue;
-      const dy = Math.abs(next.lastCy - prev.lastCy);
+      const dy = Math.abs(next.firstCy - prev.lastCy);
+      /* 1.5×cap: centroid drag from vanishing ink halves the apparent
+         jump, so the threshold sits below the true 2-3-cap line pitch */
       pauses.push({
         t: prev.endT,
         dur,
-        kind: dy > 2 * capHeightPx ? "line" : "hold",
+        kind: dy > 1.5 * capHeightPx ? "line" : "hold",
+        distPx: Math.hypot(next.firstCx - prev.lastCx, next.firstCy - prev.lastCy),
       });
     }
 
@@ -195,10 +247,12 @@ export class FrameAnalyzer {
       else windows.push([w0, w1]);
     }
     const totalT = windows.reduce((a, [s, e]) => a + (e - s), 0);
-    const dutyCycle =
-      totalT > 0
-        ? Math.min(1, writingEvents.length / this.fps / totalT)
-        : 0;
+    /* duty from burst wall time — detected-frame counts are fps-biased */
+    const burstT = this.bursts.reduce(
+      (a, b) => a + (b.endT - b.startT + 1 / this.fps),
+      0
+    );
+    const dutyCycle = totalT > 0 ? Math.min(1, burstT / totalT) : 0;
 
     return {
       fps: this.fps,

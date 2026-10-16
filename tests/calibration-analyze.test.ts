@@ -18,7 +18,7 @@ function frame(penX: number, penY: number): Uint8Array {
 
 describe("FrameAnalyzer", () => {
   test("detects a writing burst, its speed, and no pause after it", () => {
-    const a = new FrameAnalyzer(W, H, 10, { minChanged: 4 });
+    const a = new FrameAnalyzer(W, H, 10, { minChanged: 4, capHeightOverride: 4 });
     // burst: pen moves 10→30 (5 frames), then identical frames (no diff)
     for (let x = 10; x <= 30; x += 5) a.push(frame(x, 18));
     for (let i = 0; i < 6; i++) a.push(frame(30, 18));
@@ -33,14 +33,18 @@ describe("FrameAnalyzer", () => {
   });
 
   test("splits two bursts and classifies the pause by vertical jump", () => {
-    const a = new FrameAnalyzer(W, H, 10, { minChanged: 4, burstGapFrames: 3 });
+    const a = new FrameAnalyzer(W, H, 10, {
+      minChanged: 4,
+      burstGapFrames: 3,
+      capHeightOverride: 4,
+    });
     for (let x = 5; x <= 15; x += 5) a.push(frame(x, 10)); // line 1
     for (let i = 0; i < 5; i++) a.push(frame(15, 10)); // 0.5s pause
     for (let x = 5; x <= 15; x += 5) a.push(frame(x, 30)); // line 2 (Δy=20)
     const m = a.finish();
     expect(m.pauses.length).toBe(1);
     expect(m.pauses[0].dur).toBeCloseTo(0.5, 1);
-    // Δy (20) > 2 × capHeight (~3) → "line" pause
+    // Δy (20) > 1.5 × cap (4) → "line" pause
     expect(m.pauses[0].kind).toBe("line");
     expect(m.dutyCycle).toBeGreaterThan(0);
     expect(m.dutyCycle).toBeLessThanOrEqual(1);
