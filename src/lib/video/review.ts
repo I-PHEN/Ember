@@ -4,15 +4,25 @@
 
 export type ReviewOutcome =
   | { verdict: "pass" }
-  | { verdict: "fixed"; beats: unknown[] }
+  | { verdict: "fixed"; beats: unknown[]; segments?: unknown[] }
   | null; // unusable output → the original beats ship
 
 export function normalizeReviewFix(raw: unknown): ReviewOutcome {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
   if (o.verdict === "pass") return { verdict: "pass" };
-  if (o.verdict === "fixed" && Array.isArray(o.beats) && o.beats.length) {
-    return { verdict: "fixed", beats: o.beats.slice(0, 22) };
+  if (o.verdict === "fixed") {
+    const segs = Array.isArray(o.segments) && o.segments.length ? o.segments.slice(0, 20) : undefined;
+    const rawBeats = Array.isArray(o.beats) && o.beats.length
+      ? o.beats.slice(0, 22)
+      : segs
+      ? segs.flatMap((s) => (s && typeof s === "object" && Array.isArray((s as { ink?: unknown[] }).ink) ? (s as { ink: unknown[] }).ink : [])).slice(0, 22)
+      : [];
+    if (rawBeats.length) {
+      return segs
+        ? { verdict: "fixed", beats: rawBeats, segments: segs }
+        : { verdict: "fixed", beats: rawBeats };
+    }
   }
   return null;
 }

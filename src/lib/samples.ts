@@ -21,6 +21,28 @@ export const SAMPLE_CALCULUS: SolveScript = {
       chapter: "Understanding the integral",
       narration:
         "In this video, we are going to focus on integration by parts. Now, before we write down any formulas, let us take a moment to look at our problem. We want to evaluate the indefinite integral of x times e to the 2x dx. Notice that regular u-substitution does not work here, because x is an algebraic polynomial, while e to the 2x is an exponential function. Whenever you face a product of two fundamentally different functions, integration by parts is our primary method. So let us write down our integral.",
+      segments: [
+        {
+          say: "In this video, we are going to focus on integration by parts. Now, before we write down any formulas, let us take a moment to look at our problem. We want to evaluate the indefinite integral of x times e to the 2x dx. Notice that regular u-substitution does not work here, because x is an algebraic polynomial, while e to the 2x is an exponential function. Whenever you face a product of two fundamentally different functions, integration by parts is our primary method.",
+          ink: [],
+        },
+        {
+          say: "So let us write down our integral.",
+          ink: [
+            {
+              type: "title",
+              text: "Integration by Parts",
+              color: "yellow",
+            },
+            {
+              type: "write",
+              text: "Evaluate: ∫ x · e^(2x) dx",
+              color: "blue",
+              size: "lg",
+            },
+          ],
+        },
+      ],
       beats: [
         {
           type: "title",
@@ -32,7 +54,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "Evaluate: ∫ x · e^(2x) dx",
           color: "blue",
           size: "lg",
-          say: "So let us write down our integral: the indefinite integral of x times e to the 2x dx",
+          say: "So let us write down our integral.",
         },
       ],
     },
@@ -40,13 +62,56 @@ export const SAMPLE_CALCULUS: SolveScript = {
       chapter: "The formula & LIATE strategy",
       narration:
         "Now let us recall the governing formula for integration by parts. The formula states that the integral of u dv equals u times v minus the integral of v du. To choose our u and dv wisely, we follow the classic LIATE rule: Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, and Exponential. Since algebraic x comes before exponential e to the 2x, we choose u to be x.",
+      segments: [
+        {
+          say: "Now let us recall the governing formula for integration by parts.",
+          ink: [],
+        },
+        {
+          say: "The formula states that the integral of u dv equals u times v minus the integral of v du.",
+          ink: [
+            {
+              type: "write",
+              text: "Formula: ∫ u dv = u·v − ∫ v du",
+              color: "orange",
+              size: "md",
+            },
+            {
+              type: "underline",
+              target: "text:Formula: ∫ u dv = u·v − ∫ v du",
+              color: "orange",
+            },
+          ],
+        },
+        {
+          say: "To choose our u and dv wisely, we follow the classic LIATE rule: Logarithmic, Inverse trigonometric, Algebraic, Trigonometric, and Exponential.",
+          ink: [],
+        },
+        {
+          say: "Since algebraic x comes before exponential e to the 2x, we choose u to be x.",
+          ink: [
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "Choose: u = x  (Algebraic before Exponential)",
+              color: "yellow",
+              size: "md",
+            },
+            {
+              type: "point",
+              target: "text:Choose: u = x",
+              ms: 1500,
+            },
+          ],
+        },
+      ],
       beats: [
         {
           type: "write",
           text: "Formula: ∫ u dv = u·v − ∫ v du",
           color: "orange",
           size: "md",
-          say: "The formula states that the integral of u dv equals u times v minus the integral of v du",
+          say: "The formula states that the integral of u dv equals u times v minus the integral of v du.",
         },
         {
           type: "underline",
@@ -59,7 +124,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "Choose: u = x  (Algebraic before Exponential)",
           color: "yellow",
           size: "md",
-          say: "Since algebraic x comes before exponential e to the 2x, we choose u to be x",
+          say: "Since algebraic x comes before exponential e to the 2x, we choose u to be x.",
         },
         {
           type: "point",
@@ -72,6 +137,46 @@ export const SAMPLE_CALCULUS: SolveScript = {
       chapter: "Assigning u, dv and computing du, v",
       narration:
         "Now let us find all four components for our formula. First, setting u equal to x, we differentiate both sides to get du equals dx. Next, what remains in our integrand becomes dv, so dv equals e to the 2x dx. Integrating both sides gives v equals one half e to the 2x. Notice how clean this is: differentiating u reduced x to a constant.",
+      segments: [
+        {
+          say: "Now let us find all four components for our formula.",
+          ink: [],
+        },
+        {
+          say: "First, setting u equal to x, we differentiate both sides to get du equals dx.",
+          ink: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "u = x            →   du = dx",
+              color: "white",
+              size: "md",
+            },
+          ],
+        },
+        {
+          say: "Next, what remains in our integrand becomes dv, so dv equals e to the 2x dx. Integrating both sides gives v equals one half e to the 2x.",
+          ink: [
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "dv = e^(2x) dx   →   v = ½ e^(2x)",
+              color: "yellow",
+              size: "md",
+            },
+          ],
+        },
+        {
+          say: "Notice how clean this is: differentiating u reduced x to a constant.",
+          ink: [
+            {
+              type: "point",
+              target: "text:v = ½ e^(2x)",
+              ms: 1400,
+            },
+          ],
+        },
+      ],
       beats: [
         { type: "erase" },
         {
@@ -79,7 +184,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "u = x            →   du = dx",
           color: "white",
           size: "md",
-          say: "First, setting u equal to x, we differentiate both sides to get du equals dx",
+          say: "First, setting u equal to x, we differentiate both sides to get du equals dx.",
         },
         { type: "newline", n: 1 },
         {
@@ -87,7 +192,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "dv = e^(2x) dx   →   v = ½ e^(2x)",
           color: "yellow",
           size: "md",
-          say: "Next, what remains in our integrand becomes dv, so dv equals e to the 2x dx. Integrating both sides gives v equals one half e to the 2x",
+          say: "Next, what remains in our integrand becomes dv, so dv equals e to the 2x dx. Integrating both sides gives v equals one half e to the 2x.",
         },
         {
           type: "point",
@@ -100,6 +205,34 @@ export const SAMPLE_CALCULUS: SolveScript = {
       chapter: "Applying the integration by parts formula",
       narration:
         "With all four components ready, we assemble them into our integration by parts formula. First, we write u times v, which gives one half x times e to the 2x. Next, we subtract the integral of v du, which is one half integral of e to the 2x dx. Notice how the troublesome x has completely vanished from inside the integral.",
+      segments: [
+        {
+          say: "With all four components ready, we assemble them into our integration by parts formula.",
+          ink: [],
+        },
+        {
+          say: "First, we write u times v, which gives one half x times e to the 2x. Next, we subtract the integral of v du, which is one half integral of e to the 2x dx.",
+          ink: [
+            { type: "erase" },
+            {
+              type: "write",
+              text: "∫ x·e^(2x) dx = ½ x·e^(2x) − ½ ∫ e^(2x) dx",
+              color: "white",
+              size: "md",
+            },
+          ],
+        },
+        {
+          say: "Notice how the troublesome x has completely vanished from inside the integral.",
+          ink: [
+            {
+              type: "point",
+              target: "text:∫ x·e^(2x) dx = ½ x·e^(2x) − ½ ∫ e^(2x) dx",
+              ms: 1500,
+            },
+          ],
+        },
+      ],
       beats: [
         { type: "erase" },
         {
@@ -107,7 +240,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "∫ x·e^(2x) dx = ½ x·e^(2x) − ½ ∫ e^(2x) dx",
           color: "white",
           size: "md",
-          say: "First, we write u times v, which gives one half x times e to the 2x. Next, we subtract the integral of v du, which is one half integral of e to the 2x dx",
+          say: "First, we write u times v, which gives one half x times e to the 2x. Next, we subtract the integral of v du, which is one half integral of e to the 2x dx.",
         },
         {
           type: "point",
@@ -120,6 +253,36 @@ export const SAMPLE_CALCULUS: SolveScript = {
       chapter: "Evaluating the final integral & boxing result",
       narration:
         "Now we evaluate the remaining integral. Integrating e to the 2x brings down another factor of one half, producing one fourth e to the 2x, plus our constant of integration C. And that is our final answer. Let us put a box around that.",
+      segments: [
+        {
+          say: "Now we evaluate the remaining integral.",
+          ink: [],
+        },
+        {
+          say: "Integrating e to the 2x brings down another factor of one half, producing one fourth e to the 2x, plus our constant of integration C.",
+          ink: [
+            { type: "newline", n: 2 },
+            {
+              type: "write",
+              text: "= ½ x·e^(2x) − ¼ e^(2x) + C",
+              color: "green",
+              size: "lg",
+              keep: true,
+            },
+          ],
+        },
+        {
+          say: "And that is our final answer. Let us put a box around that.",
+          pauseAfter: 2.0,
+          ink: [
+            {
+              type: "box",
+              target: "text:= ½ x·e^(2x) − ¼ e^(2x) + C",
+              color: "yellow",
+            },
+          ],
+        },
+      ],
       beats: [
         { type: "newline", n: 2 },
         {
@@ -128,7 +291,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           color: "green",
           size: "lg",
           keep: true,
-          say: "Integrating e to the 2x brings down another factor of one half, producing one fourth e to the 2x, plus our constant of integration C",
+          say: "Integrating e to the 2x brings down another factor of one half, producing one fourth e to the 2x, plus our constant of integration C.",
         },
         {
           type: "box",
@@ -141,6 +304,45 @@ export const SAMPLE_CALCULUS: SolveScript = {
       chapter: "Verifying the answer by differentiation",
       narration:
         "Finally, let us verify our answer by differentiating with the product rule. The derivative of one half x e to the 2x gives one half e to the 2x plus x e to the 2x, and the derivative of minus one fourth e to the 2x gives minus one half e to the 2x. The one half terms cancel out to zero, leaving exactly x e to the 2x. Our result matches the original integrand perfectly.",
+      segments: [
+        {
+          say: "Finally, let us verify our answer by differentiating with the product rule.",
+          ink: [
+            { type: "erase", keep: ["= ½ x·e^(2x) − ¼ e^(2x) + C"] },
+            {
+              type: "write",
+              text: "Check: d/dx [ ½ x·e^(2x) − ¼ e^(2x) + C ]",
+              color: "white",
+              size: "md",
+            },
+          ],
+        },
+        {
+          say: "The derivative of one half x e to the 2x gives one half e to the 2x plus x e to the 2x, and the derivative of minus one fourth e to the 2x gives minus one half e to the 2x.",
+          ink: [],
+        },
+        {
+          say: "The one half terms cancel out to zero, leaving exactly x e to the 2x.",
+          ink: [
+            { type: "newline", n: 1 },
+            {
+              type: "write",
+              text: "= ½ e^(2x) + x·e^(2x) − ½ e^(2x) = x·e^(2x) ✓",
+              color: "green",
+              size: "md",
+            },
+            {
+              type: "point",
+              target: "text:= x·e^(2x) ✓",
+              ms: 1600,
+            },
+          ],
+        },
+        {
+          say: "Our result matches the original integrand perfectly.",
+          ink: [],
+        },
+      ],
       beats: [
         { type: "erase", keep: ["= ½ x·e^(2x) − ¼ e^(2x) + C"] },
         {
@@ -148,7 +350,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "Check: d/dx [ ½ x·e^(2x) − ¼ e^(2x) + C ]",
           color: "white",
           size: "md",
-          say: "Finally, let us verify our answer by differentiating with the product rule",
+          say: "Finally, let us verify our answer by differentiating with the product rule.",
         },
         { type: "newline", n: 1 },
         {
@@ -156,7 +358,7 @@ export const SAMPLE_CALCULUS: SolveScript = {
           text: "= ½ e^(2x) + x·e^(2x) − ½ e^(2x) = x·e^(2x) ✓",
           color: "green",
           size: "md",
-          say: "The one half terms cancel out to zero, leaving exactly x e to the 2x",
+          say: "The one half terms cancel out to zero, leaving exactly x e to the 2x.",
         },
         {
           type: "point",
@@ -467,6 +669,7 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
         },
         {
           say: "Taking the square root of both sides, and remembering that e to the negative x squared is strictly positive everywhere, we conclude that I equals the square root of pi.",
+          pauseAfter: 2.0,
           ink: [
             { type: "newline", n: 2 },
             {
@@ -877,6 +1080,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         },
         {
           say: "Dividing both sides by mg cosine theta c, the mass m and gravity g cancel completely, leaving tangent theta c equals mu s.",
+          pauseAfter: 2.0,
           ink: [
             { type: "newline", n: 2 },
             {

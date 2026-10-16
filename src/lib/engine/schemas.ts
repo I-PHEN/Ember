@@ -33,6 +33,17 @@ export const PLANNER_SCHEMA: Record<string, unknown> = {
         type: "object",
         properties: {
           script: { type: "string" },
+          segments: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                say: { type: "string" },
+                pauseAfter: { type: "number" },
+              },
+              required: ["say"],
+            },
+          },
           visualize: { type: "string" },
           analogy: { type: "string" },
         },
@@ -73,6 +84,10 @@ export const REVIEWER_SCHEMA: Record<string, unknown> = {
   properties: {
     verdict: { type: "string", enum: ["pass", "fixed"] },
     beats: {
+      type: "array",
+      items: { type: "object" },
+    },
+    segments: {
       type: "array",
       items: { type: "object" },
     },

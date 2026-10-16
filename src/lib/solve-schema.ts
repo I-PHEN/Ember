@@ -618,6 +618,103 @@ export function sanitizeSegments(
   return segments;
 }
 
+/**
+ * Re-binds a flat `beats` array onto canonical thought-level `segments`
+ * (e.g. after Reviewer fixes `beats` or when `sanitizeScript` normalizes
+ * both `segments` and `beats`). Preserves segment `say`, `mode`, and `pauseAfter`.
+ */
+export function rebindBeatsToSegments(
+  segments: SceneSegment[],
+  beats: Beat[]
+): SceneSegment[] {
+  if (!segments.length) return [];
+  if (!beats.length) {
+    return segments.map((s) => ({ ...s, ink: undefined }));
+  }
+
+  const segKeys = segments.map((s) => normSpeechKey(s.say));
+  const buckets: Beat[][] = segments.map(() => []);
+
+  // Track original segment index per beat type for beats without `say` (e.g. point, box)
+  const origTypeQueues = new Map<string, number[]>();
+  segments.forEach((seg, si) => {
+    for (const b of seg.ink ?? []) {
+      const q = origTypeQueues.get(b.type) ?? [];
+      q.push(si);
+      origTypeQueues.set(b.type, q);
+    }
+  });
+
+  const matchSegmentBySay = (sayRaw: string | undefined): number => {
+    if (!sayRaw) return -1;
+    const key = normSpeechKey(sayRaw);
+    if (!key) return -1;
+    for (let i = 0; i < segKeys.length; i++) {
+      if (segKeys[i] === key) return i;
+    }
+    for (let i = 0; i < segKeys.length; i++) {
+      if (segKeys[i] && (segKeys[i].includes(key) || key.includes(segKeys[i]))) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  let lastIdx = Math.min(1, segments.length - 1);
+  const pendingPrefix: Beat[] = [];
+
+  for (const beat of beats) {
+    if (beat.type === "erase" || beat.type === "newline") {
+      pendingPrefix.push(beat);
+      continue;
+    }
+
+    const beatSay = "say" in beat ? (beat as { say?: string }).say : undefined;
+    let targetIdx = matchSegmentBySay(beatSay);
+
+    if (targetIdx < 0) {
+      const q = origTypeQueues.get(beat.type);
+      if (q && q.length > 0) {
+        targetIdx = q.shift()!;
+      } else {
+        targetIdx = lastIdx;
+      }
+    } else {
+      const q = origTypeQueues.get(beat.type);
+      if (q && q.length > 0) {
+        const pos = q.indexOf(targetIdx);
+        if (pos >= 0) q.splice(pos, 1);
+      }
+    }
+
+    targetIdx = Math.max(0, Math.min(segments.length - 1, targetIdx));
+    lastIdx = targetIdx;
+
+    if (pendingPrefix.length > 0) {
+      buckets[targetIdx].push(...pendingPrefix.splice(0, pendingPrefix.length));
+    }
+    const cloned = { ...beat };
+    if (
+      ["write", "title", "fraction", "freebody", "graph", "numberline", "table"].includes(
+        cloned.type
+      ) &&
+      !(cloned as { say?: string }).say
+    ) {
+      (cloned as { say?: string }).say = segments[targetIdx].say;
+    }
+    buckets[targetIdx].push(cloned);
+  }
+
+  if (pendingPrefix.length > 0) {
+    buckets[lastIdx].push(...pendingPrefix);
+  }
+
+  return segments.map((seg, si) => ({
+    ...seg,
+    ink: buckets[si].length > 0 ? buckets[si] : undefined,
+  }));
+}
+
 export function sanitizeScript(
   raw: unknown,
   stats?: { proseDropped?: number }
@@ -648,10 +745,13 @@ export function sanitizeScript(
     if (Array.isArray(s.segments)) {
       segments = sanitizeSegments(s.segments, stats, `"${chapter}"`);
     }
-    let narration = cleanNarration(s.narration);
-    if (!narration && segments && segments.length) {
-      narration = segments.map((seg) => seg.say).join(" ");
-    }
+    // Spec §5 Verbatim Guarantee: when segments exist, narration equals segments joined by space
+    let narration =
+      segments && segments.length
+        ? segments.map((seg) => seg.say).join(" ")
+        : cleanNarration(s.narration);
+    if (!narration) narration = cleanNarration(s.narration);
+
     let beatsRaw: unknown = s.beats;
     if (!Array.isArray(beatsRaw) && Array.isArray(s.blocks)) beatsRaw = s.blocks;
     if ((!Array.isArray(beatsRaw) || !beatsRaw.length) && segments) {
@@ -659,6 +759,14 @@ export function sanitizeScript(
     }
     const beats = sanitizeSceneBeats(beatsRaw, narration, stats, `"${chapter}"`);
     if (!beats.length) continue;
+
+    if (segments && segments.length) {
+      const hasInk = segments.some((seg) => seg.ink && seg.ink.length > 0);
+      if (!hasInk) {
+        segments = rebindBeatsToSegments(segments, beats);
+      }
+    }
+
     scenes.push({
       chapter,
       narration,
