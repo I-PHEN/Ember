@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { sanitizeSegments, sanitizeScript } from "../src/lib/solve-schema";
-import { compileTimeline } from "../src/lib/video/compile";
+import {
+  compileTimeline,
+  computeSegmentGaps,
+  deriveSegmentMode,
+  SAY_T0,
+  splitNarrationIntoSegments,
+} from "../src/lib/video/compile";
 import { mergeScript } from "../src/lib/engine/merger";
 import type { SolveScript } from "../src/lib/video/types";
 
@@ -188,5 +194,105 @@ describe("sanitizeSegments v2 fields", () => {
     expect(segs[1].pauseAfter).toBe(0.3);
     expect(segs[2].mode).toBeUndefined();
     expect(segs[2].pauseAfter).toBeUndefined();
+  });
+});
+
+describe("Sync V2 M2 — segment-anchored compiler, gap sizing, and sentence-split fallback", () => {
+  test("anchors each segment beat group t0 to measured cue.t0 + SAY_T0 and preserves calibrated stroke durations", () => {
+    const script: SolveScript = {
+      title: "Anchored Sync Demo",
+      question: "Solve 2x + 5 = 13",
+      scenes: [
+        {
+          chapter: "Step 1",
+          narration:
+            "First let us frame the linear equation. We write two x plus five equals thirteen. Subtracting five gives x equals four.",
+          segments: [
+            {
+              say: "First let us frame the linear equation.",
+              ink: [],
+            },
+            {
+              say: "We write two x plus five equals thirteen.",
+              ink: [{ type: "write", text: "2x + 5 = 13", color: "white" }],
+            },
+            {
+              say: "Subtracting five and dividing by two gives x equals four.",
+              ink: [{ type: "write", text: "x = 4", color: "green" }],
+            },
+            {
+              say: "Let that result land.",
+              ink: [],
+              pauseAfter: 2.0,
+            },
+          ],
+          beats: [
+            { type: "write", text: "2x + 5 = 13", color: "white" },
+            { type: "write", text: "x = 4", color: "green" },
+          ],
+          audio: {
+            key: "stitched-key",
+            dur: 16.5,
+            segments: [
+              { i: 0, t0: 0, t1: 2.4 },
+              { i: 1, t0: 2.75, t1: 6.2 },
+              { i: 2, t0: 9.1, t1: 14.5 },
+              { i: 3, t0: 14.85, t1: 16.0 },
+            ],
+          },
+        },
+      ],
+    };
+
+    const tl = compileTimeline(script);
+    const scene = tl.scenes[0];
+
+    const gEq = scene.groups.find((g) => g.text === "2x + 5 = 13");
+    const gAns = scene.groups.find((g) => g.text === "x = 4");
+    expect(gEq).toBeDefined();
+    expect(gAns).toBeDefined();
+
+    // Beat t0 == segment cue.t0 + SAY_T0
+    expect(gEq!.born).toBeCloseTo(2.75 + SAY_T0, 3);
+    expect(gEq!.strokes[0].t0).toBeCloseTo(2.75 + SAY_T0, 3);
+    expect(gAns!.born).toBeCloseTo(9.1 + SAY_T0, 3);
+    expect(gAns!.strokes[0].t0).toBeCloseTo(9.1 + SAY_T0, 3);
+
+    // Derived modes populated: speak_ahead, write_ahead (ink > 3.45s speech), parallel (ink < 4.4s speech), pause
+    expect(scene.segments?.[0].mode).toBe("speak_ahead");
+    expect(scene.segments?.[1].mode).toBe("write_ahead");
+    expect(scene.segments?.[2].mode).toBe("parallel");
+    expect(scene.segments?.[3].mode).toBe("pause");
+  });
+
+  test("computeSegmentGaps sizes write_ahead gaps by penDeficit", () => {
+    const segments = [
+      { say: "Short speech, long equation.", ink: [{ type: "write" as const, text: "I² = [∫ e^{-x²} dx] · [∫ e^{-y²} dy]" }] },
+      { say: "Closing thought.", ink: [] },
+    ];
+    // Speech is 1.5s, calibrated ink takes 3.2s -> penDeficit = 0.08 + 3.2 - 1.5 = 1.78s
+    const gaps = computeSegmentGaps(segments, [1.5, 2.0], [3.2, 0]);
+    expect(gaps.length).toBe(1);
+    expect(gaps[0]).toBeCloseTo(1.78, 2);
+    expect(deriveSegmentMode(segments[0], 1.5, 3.2)).toBe("write_ahead");
+  });
+
+  test("splitNarrationIntoSegments splits legacy scenes on sentence boundaries and binds beats", () => {
+    const narration =
+      "Let us introduce the problem first. Next we write down the linear equation. Finally we isolate x to get four.";
+    const beats = [
+      { type: "write" as const, text: "2x + 5 = 13", color: "white" as const },
+      { type: "write" as const, text: "x = 4", color: "green" as const },
+      { type: "box" as const, target: "text:x = 4", color: "yellow" as const },
+    ];
+    const segs = splitNarrationIntoSegments(narration, beats);
+    expect(segs.length).toBe(3);
+    expect(segs[0].say).toBe("Let us introduce the problem first.");
+    // Sentence 0 is left as spoken lead-in because 3 sentences > 2 beat groups
+    expect(segs[0].ink).toBeUndefined();
+    expect(segs[1].ink?.length).toBe(1);
+    expect(segs[1].ink?.[0]).toMatchObject({ type: "write", text: "2x + 5 = 13" });
+    expect(segs[2].ink?.length).toBe(2); // write + trailing box
+    expect(segs[2].ink?.[1]).toMatchObject({ type: "box" });
   });
 });

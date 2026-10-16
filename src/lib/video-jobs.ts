@@ -54,7 +54,7 @@ import {
   type SolutionChain,
 } from "./engine/chain";
 import { type PinnedVoice } from "./engine/context";
-import { getWavDuration, estimateWordTimings } from "./video/timings";
+import { getWavDuration } from "./video/timings";
 
 /* ------------------------------------------------------------------
    The multi-agent video studio.
@@ -862,12 +862,10 @@ async function runJob(
             if (scriptScene) {
               const buf = await store.readAudio(key);
               const dur = buf ? getWavDuration(buf) : undefined;
-              const words = estimateWordTimings(text, dur ?? undefined);
               scriptScene.audio = {
                 key,
                 narration: text,
                 dur: dur ?? undefined,
-                words,
               };
             }
           } catch (e) {
@@ -1228,13 +1226,11 @@ async function runJob(
           const key = voiceKeys[index] ?? audioKey(scene.narration);
           const buf = await store.readAudio(key);
           const dur = buf ? getWavDuration(buf) : undefined;
-          const words = estimateWordTimings(scene.narration, dur ?? undefined);
           Object.assign(scene, {
             audio: {
               key,
               narration: scene.narration,
               dur: dur ?? undefined,
-              words,
             },
           });
         }

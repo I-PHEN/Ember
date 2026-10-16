@@ -240,12 +240,6 @@ export type Beat =
 
 export type ScriptBeat = Beat; // alias used by the sanitizer
 
-export interface WordTiming {
-  w: string;
-  t0: number;
-  t1: number;
-}
-
 export type SegmentMode =
   | "speak_ahead"
   | "write_ahead"
@@ -282,7 +276,6 @@ export interface SolveScene {
     narration?: string;
     dur?: number;
     segments?: AudioSegmentCue[];
-    words?: WordTiming[];
   };
 }
 
@@ -394,15 +387,12 @@ export interface SceneTime {
   dur: number;
   /** known narration duration, once TTS resolves */
   audioDur?: number;
+  /** measured per-segment cues inside the stitched WAV */
+  audioCues?: AudioSegmentCue[];
+  /** calibrated raw ink durations (s) per segment, used by two-pass stitcher */
+  segmentInkDurs?: number[];
   /** duration frozen (scene started playing or audio attached) */
   locked: boolean;
-  /** say/write pacing active — stroke schedule was stretched to the
-   *  narration, so a real TTS duration re-scales it (see setSceneAudio) */
-  paced?: boolean;
-  /** the audio duration the schedule is currently paced for */
-  pacedFor?: number;
-  /** word-level timestamps when audio is resolved */
-  words?: WordTiming[];
 }
 
 export interface Timeline {

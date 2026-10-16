@@ -23,11 +23,13 @@ import {
   type MarkerName,
   type PathStroke,
   type Pt,
+  type SceneSegment,
   type SceneTime,
+  type SegmentMode,
   type SolveScript,
   type Stroke,
   type Timeline,
-  type WordTiming,
+  type AudioSegmentCue,
 } from "./types";
 import { layoutText, measureText, measureWrap } from "./text";
 import {
@@ -45,10 +47,10 @@ import { normSpeechKey } from "../solve-schema";
 import {
   defaultSynthesizer,
   computeTransitionPause,
-  balanceAudioVisualTiming,
   type StrokeTag,
 } from "./kinematics";
 import { CAL } from "./calibration";
+import { gapSeconds } from "./stitch-audio";
 
 /* ----------------------------- helpers ---------------------------- */
 
@@ -1714,17 +1716,6 @@ function buildTable(ctx: Ctx, beat: Extract<Beat, { type: "table" }>): void {
   ctx.cursor = { x: MARGIN_X, y: yEnd + LINE_H.md * 0.7 };
 }
 
-/* ---------------------- talk-hold (deixis) ------------------------ */
-
-/* A real professor finishes writing before finishing talking: they
-   step back and gesture or rest. After active writing completes,
-   the pen gracefully lifts and drifts to rest rather than grinding/swaying
-   on top of written ink for 20+ seconds. Active deictic gestures are handled
-   strictly by explicit or segmented "point" beats. */
-function appendTalkHold(_ctx: Ctx, _estAudio: number): void {
-  return;
-}
-
 /* The trademark intro writes at SIGNATURE pace — twice the teaching
    speed, like someone writing their own name. It is a brand bumper,
    not a lesson: compress the baked stroke schedule after compile.
@@ -1743,24 +1734,172 @@ function compressScene(scene: SceneTime, k: number, sceneIdx: number): void {
   scene.writeEnd = scene.writeEnd * k;
 }
 
-/* ----------------- say/write pacing (the lecture sync) ---------------
-   When beats carry "say" tags (the exact words spoken while they are
-   written), the natural pen schedule is RE-SHAPED so each beat group
-   lands inside the time window where its words are actually spoken:
-   the narration is split into ordered speech segments (tagged text +
-   the pure-talk remainders between them), each segment's window is
-   proportional to its share of the (estimated) audio, and the beats
-   mapped into their window with a clamped time scale — writing slows
-   down when there is much to say about one line (a real professor
-   dragging the chalk while they explain), and pauses open up where
-   the professor talks without writing. Beats with no tag join the
-   segment of the words they decorate. */
+/* ----------------- segment-anchored pacing (Sync V2) -----------------
+   Each beat group's t0 is anchored to its segment's measured t0 (+ SAY_T0);
+   stroke durations keep their calibrated kinematic values; any ink overrun
+   flows into the following gap via the stitcher (two-pass: compile -> gap
+   sizes -> stitch). */
 
-const SAY_GAP = 0.12; // breathing between speech segments
-const SAY_SCALE_MIN = 0.85; // brisk and agile writing
-const SAY_SCALE_MAX = 1.35; // natural upper limit — voice-ahead pauses absorb remaining speech rather than crawling ink
+const SAY_GAP = 0.12; // minimum breathing between speech segments when un-voiced
+const SAY_SCALE_MIN = 0.85; // legacy fallback clamp
+const SAY_SCALE_MAX = 1.35; // legacy fallback clamp
 /** speech windows start here — pen touches down in lockstep with the first word */
-const SAY_T0 = 0.08;
+export const SAY_T0 = 0.08;
+/** trailing breath after the stitched WAV ends (spec §8) */
+export const SCENE_TAIL_SEC = 0.4;
+
+const DEICTIC_PATTERN =
+  /\b(this (?:integral|problem|equation|term|formula|expression|value|result|curve|ramp|incline|block)|the (?:integral|equation|term|formula|expression|denominator|numerator|exponent|curve|ramp|incline|diagram))\b/i;
+
+/** derive cognitive tutoring mode at compile when absent (spec §5) */
+export function deriveSegmentMode(
+  seg: SceneSegment,
+  speechDur: number,
+  inkDur: number
+): SegmentMode {
+  if (seg.mode) return seg.mode;
+  if (seg.pauseAfter !== undefined) return "pause";
+  const hasRealInk =
+    inkDur > 0 && Boolean(seg.ink?.some((b) => b.type !== "point"));
+  if (hasRealInk) {
+    return SAY_T0 + inkDur > speechDur + 1e-3 ? "write_ahead" : "parallel";
+  }
+  if (seg.ink?.some((b) => b.type === "point") || DEICTIC_PATTERN.test(seg.say)) {
+    return "point";
+  }
+  return "speak_ahead";
+}
+
+/** compute inter-segment gaps (len = segments.length - 1) from calibrated
+ *  ink durations and measured/estimated speech durations (spec §6). */
+export function computeSegmentGaps(
+  segments: SceneSegment[],
+  speechDurs: number[],
+  inkDurs: number[]
+): number[] {
+  if (segments.length <= 1) return [];
+  const gaps: number[] = [];
+  for (let i = 0; i < segments.length - 1; i++) {
+    const seg = segments[i];
+    const speechDur = speechDurs[i] ?? 0;
+    const inkDur = inkDurs[i] ?? 0;
+    const penDeficit =
+      inkDur > 0 ? Math.max(0, SAY_T0 + inkDur - speechDur) : 0;
+    const mode = deriveSegmentMode(seg, speechDur, inkDur);
+    gaps.push(
+      gapSeconds({
+        mode,
+        penDeficit,
+        pauseAfter: seg.pauseAfter,
+      })
+    );
+  }
+  return gaps;
+}
+
+const CONTENT_BEAT_TYPES = new Set([
+  "title",
+  "write",
+  "fraction",
+  "graph",
+  "freebody",
+  "numberline",
+  "table",
+]);
+
+/** Sentence-split fallback for legacy scenes without segments (spec §5, §7).
+ *  Splits narration on [.!?] boundaries and greedily binds beats to sentences. */
+export function splitNarrationIntoSegments(
+  narration: string,
+  beats: Beat[]
+): SceneSegment[] {
+  const clean = narration.trim();
+  if (!clean) {
+    return beats.length ? [{ say: "", ink: [...beats] }] : [];
+  }
+  const sentences = clean
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (!sentences.length) {
+    return [{ say: clean, ink: beats.length ? [...beats] : undefined }];
+  }
+  const segs: SceneSegment[] = sentences.map((say) => ({ say }));
+  if (!beats.length) return segs;
+
+  const hasSayTags = beats.some(
+    (b) => "say" in b && typeof b.say === "string" && b.say.trim().length > 0
+  );
+  const sentKeys = segs.map((s) => normSpeechKey(s.say));
+
+  if (hasSayTags) {
+    let curSi = 0;
+    for (const b of beats) {
+      const bSay = "say" in b && typeof b.say === "string" ? b.say : undefined;
+      if (bSay) {
+        const bKey = normSpeechKey(bSay);
+        let matched = -1;
+        if (bKey) {
+          for (let si = curSi; si < sentKeys.length; si++) {
+            if (sentKeys[si].includes(bKey) || bKey.includes(sentKeys[si])) {
+              matched = si;
+              break;
+            }
+          }
+          if (matched < 0) {
+            // word overlap fallback
+            const bWords = new Set(bKey.split(/\s+/).filter(Boolean));
+            let bestScore = 0;
+            for (let si = 0; si < sentKeys.length; si++) {
+              const sWords = sentKeys[si].split(/\s+/).filter(Boolean);
+              const hits = sWords.filter((w) => bWords.has(w)).length;
+              if (hits > bestScore) {
+                bestScore = hits;
+                matched = si;
+              }
+            }
+          }
+        }
+        if (matched >= 0) curSi = matched;
+      }
+      const copy = { ...b };
+      if (CONTENT_BEAT_TYPES.has(copy.type) && !("say" in copy && copy.say)) {
+        (copy as { say?: string }).say = segs[curSi].say;
+      }
+      (segs[curSi].ink ??= []).push(copy);
+    }
+    return segs;
+  }
+
+  // Greedy grouping when no beats carry say tags:
+  // group each content beat with its trailing decoration beats
+  const beatGroups: Beat[][] = [];
+  for (const b of beats) {
+    if (CONTENT_BEAT_TYPES.has(b.type) || beatGroups.length === 0) {
+      beatGroups.push([{ ...b }]);
+    } else {
+      beatGroups[beatGroups.length - 1].push({ ...b });
+    }
+  }
+  const G = beatGroups.length;
+  const S = segs.length;
+  // When there are more sentences than beat groups, leave sentence 0 as spoken lead-in
+  const offset = S > G ? 1 : 0;
+  const span = Math.max(1, S - offset);
+  beatGroups.forEach((grp, gIdx) => {
+    const si = Math.min(
+      S - 1,
+      offset + Math.floor((gIdx * span) / Math.max(1, G))
+    );
+    for (const b of grp) {
+      if (CONTENT_BEAT_TYPES.has(b.type)) {
+        (b as { say?: string }).say = segs[si].say;
+      }
+      (segs[si].ink ??= []).push(b);
+    }
+  });
+  return segs;
+}
 
 /** lowercase alnum-only key with an index map back to the raw string */
 function normalizeWithMap(raw: string): { key: string; idx: number[] } {
@@ -1801,97 +1940,240 @@ function rawRangeFor(
   return r0 < 0 ? null : [r0, r1 + 1];
 }
 
-/** reshape the compiled pen schedule onto the speech segments.
- *  returns true when the scene is say-paced (real TTS durations then
- *  re-scale it — see setSceneAudio). */
+/** Anchor compiled beat groups onto segment speech windows (spec §7).
+ *  Stroke durations keep their calibrated kinematic values (scale = 1.0). */
 function paceSceneToNarration(
   scene: SceneTime,
   groups: Group[],
   marks: BeatMark[],
-  sceneIdx: number
+  sceneIdx: number,
+  beatSegIdx?: number[]
 ): boolean {
   const narration = scene.narration;
   if (!narration || !marks.length) return false;
 
-  /* ordered speech segments (in raw chars) */
+  /* --- Path 1: Segment-anchored pacing (Sync V2) --- */
+  if (scene.segments && scene.segments.length > 0) {
+    const segCount = scene.segments.length;
+    const markSeg = new Array<number>(marks.length).fill(0);
+    if (beatSegIdx && beatSegIdx.length === marks.length) {
+      for (let i = 0; i < marks.length; i++) markSeg[i] = beatSegIdx[i];
+    } else {
+      let markCursor = 0;
+      scene.segments.forEach((seg, sIdx) => {
+        const beatCount = seg.ink?.length ?? 0;
+        for (let b = 0; b < beatCount && markCursor < marks.length; b++) {
+          markSeg[markCursor++] = sIdx;
+        }
+      });
+      while (markCursor < marks.length) {
+        markSeg[markCursor] = markCursor > 0 ? markSeg[markCursor - 1] : 0;
+        markCursor++;
+      }
+    }
+
+    // Raw mark bounds per segment
+    const segRaw: Array<[number, number] | null> = scene.segments.map(() => null);
+    marks.forEach((m, i) => {
+      if (m.t1 <= m.t0) return;
+      const si = Math.max(0, Math.min(segCount - 1, markSeg[i]));
+      const prev = segRaw[si];
+      segRaw[si] = prev
+        ? [Math.min(prev[0], m.t0), Math.max(prev[1], m.t1)]
+        : [m.t0, m.t1];
+    });
+
+    // Refine o0 of each segment to its first actual stroke or erase event (>= HEAD)
+    // so the first stroke of segment i starts at exact cue.t0 + SAY_T0
+    const segOld: Array<[number, number] | null> = segRaw.map((raw) => {
+      if (!raw) return null;
+      const [rMin, rMax] = raw;
+      let firstEvent = Infinity;
+      for (const st of scene.strokes) {
+        if (st.t0 < HEAD - 1e-6) continue;
+        if (st.t0 >= rMin - 1e-6 && st.t0 <= rMax + 1e-6) {
+          if (st.t0 < firstEvent) firstEvent = st.t0;
+        }
+      }
+      for (const e of scene.erases) {
+        if (e.at >= rMin - 1e-6 && e.at <= rMax + 1e-6) {
+          if (e.at < firstEvent) firstEvent = e.at;
+        }
+      }
+      const o0 = Number.isFinite(firstEvent) ? firstEvent : rMin;
+      return [o0, Math.max(o0 + 0.01, rMax)];
+    });
+
+    const inkDurs = segOld.map((old) => (old ? Math.max(0, old[1] - old[0]) : 0));
+    scene.segmentInkDurs = inkDurs;
+
+    const hasMeasuredCues =
+      Boolean(scene.audioCues) && scene.audioCues!.length === segCount;
+    const speechDurs: number[] = new Array<number>(segCount).fill(0);
+    const segStarts: number[] = new Array<number>(segCount).fill(0);
+
+    if (hasMeasuredCues) {
+      scene.audioCues!.forEach((cue, si) => {
+        segStarts[si] = cue.t0;
+        speechDurs[si] = Math.max(0.05, cue.t1 - cue.t0);
+      });
+    } else {
+      const est = scene.audioDur ?? estimateNarration(narration);
+      const totalChars = Math.max(
+        1,
+        scene.segments.reduce((s, seg) => s + seg.say.length, 0)
+      );
+      for (let si = 0; si < segCount; si++) {
+        speechDurs[si] = Math.max(
+          0.35,
+          (est * scene.segments[si].say.length) / totalChars
+        );
+      }
+      const gaps = computeSegmentGaps(scene.segments, speechDurs, inkDurs);
+      let acc = sceneIdx === 0 ? 1.8 : 1.2;
+      for (let si = 0; si < segCount; si++) {
+        segStarts[si] = acc;
+        acc += speechDurs[si] + (gaps[si] ?? 0);
+      }
+    }
+
+    // Populate derived cognitive mode on each segment when absent
+    for (let si = 0; si < segCount; si++) {
+      scene.segments[si].mode ??= deriveSegmentMode(
+        scene.segments[si],
+        speechDurs[si],
+        inkDurs[si]
+      );
+    }
+
+    interface MapEntry {
+      rawMin: number;
+      o0: number;
+      o1: number;
+      n0: number;
+      scale: number;
+    }
+    const map: MapEntry[] = [];
+    let prevEnd = hasMeasuredCues ? 0 : sceneIdx === 0 ? 1.8 : 1.2;
+    for (let si = 0; si < segCount; si++) {
+      const old = segOld[si];
+      const raw = segRaw[si];
+      if (!old || !raw) continue;
+      const oldDur = Math.max(0.01, old[1] - old[0]);
+      const scale = 1.0;
+      const targetStart = hasMeasuredCues
+        ? segStarts[si] + SAY_T0
+        : Math.max(segStarts[si], si > 0 ? prevEnd + SAY_GAP : prevEnd);
+      const n0 = hasMeasuredCues
+        ? targetStart
+        : Math.max(targetStart, si > 0 ? prevEnd + SAY_GAP : targetStart);
+      map.push({ rawMin: raw[0], o0: old[0], o1: old[1], n0, scale });
+      prevEnd = n0 + oldDur * scale;
+    }
+    if (!map.length) return false;
+
+    const mapTime = (t: number): number => {
+      for (let i = map.length - 1; i >= 0; i--) {
+        const e = map[i];
+        if (t >= e.rawMin - 1e-6) {
+          return e.n0 + Math.max(0, t - e.o0) * e.scale;
+        }
+      }
+      const e = map[0];
+      return e.n0 + Math.max(0, t - e.o0) * e.scale;
+    };
+
+    const origWriteEnd = scene.writeEnd;
+    for (const st of scene.strokes) {
+      if (st.t0 < HEAD - 1e-6) continue; // preserve pre-mounted banner at t=0
+      st.t0 = mapTime(st.t0);
+    }
+    for (const g of groups) {
+      for (const st of g.strokes) {
+        if (st.eraseScene === sceneIdx && st.eraseAt !== undefined) {
+          st.eraseAt = mapTime(st.eraseAt);
+        }
+        if (st.moves) {
+          for (const m of st.moves) {
+            if (m.scene === sceneIdx) m.at = mapTime(m.at);
+          }
+        }
+      }
+    }
+    for (const e of scene.erases) e.at = mapTime(e.at);
+    for (const g of scene.groups) {
+      if (g.id === "banner") continue;
+      if (g.strokes.length) g.born = g.strokes[0].t0;
+    }
+    scene.writeEnd = Math.max(SAY_T0, mapTime(origWriteEnd));
+    return true;
+  }
+
+  /* --- Path 2: Legacy fallback when no segments exist --- */
+  if (!marks.some((m) => m.say)) return false;
+  const { key: nKey, idx: nIdx } = normalizeWithMap(narration);
+  if (!nKey) return false;
+
   interface Seg {
     r0: number;
     r1: number;
     isSay: boolean;
   }
   const segs: Seg[] = [];
-  const markSeg = new Array<number>(marks.length).fill(-1); // segment a tagged mark opens
+  const markSeg = new Array<number>(marks.length).fill(-1);
 
-  if (scene.segments && scene.segments.length > 0) {
-    let charOffset = 0;
-    scene.segments.forEach((seg) => {
-      const segLen = seg.say.length;
-      segs.push({
-        r0: charOffset,
-        r1: charOffset + segLen,
-        isSay: Boolean(seg.ink && seg.ink.length),
-      });
-      charOffset += segLen + 1;
-    });
-
-    let markCursor = 0;
-    scene.segments.forEach((seg, sIdx) => {
-      const beatCount = seg.ink?.length ?? 0;
-      for (let b = 0; b < beatCount && markCursor < marks.length; b++) {
-        markSeg[markCursor++] = sIdx;
-      }
-    });
-  } else {
-    if (!marks.some((m) => m.say)) return false;
-    const { key: nKey, idx: nIdx } = normalizeWithMap(narration);
-    if (!nKey) return false;
-
-    let searchFrom = 0;
-    let rawPos = 0;
-    marks.forEach((m, i) => {
-      if (!m.say) return;
-      const sKey = normSpeechKey(m.say);
-      if (!sKey) return;
-      let at = nKey.indexOf(sKey, searchFrom);
-      let matchedLen = sKey.length;
-      if (at < 0 && searchFrom > 0) {
-        at = nKey.indexOf(sKey, 0); // fallback if slightly out of sequence
-      }
-      if (at < 0) {
-        // subphrase fallback: try matching 3+ word chunks
-        const words = sKey.split(/\s+/);
-        for (let len = words.length - 1; len >= 3; len--) {
-          const sub = words.slice(0, len).join(" ");
-          at = nKey.indexOf(sub, searchFrom);
-          if (at < 0 && searchFrom > 0) at = nKey.indexOf(sub, 0);
-          if (at >= 0) {
-            matchedLen = sub.length;
-            break;
-          }
+  let searchFrom = 0;
+  let rawPos = 0;
+  marks.forEach((m, i) => {
+    if (!m.say) return;
+    const sKey = normSpeechKey(m.say);
+    if (!sKey) return;
+    let at = nKey.indexOf(sKey, searchFrom);
+    let matchedLen = sKey.length;
+    if (at < 0 && searchFrom > 0) {
+      at = nKey.indexOf(sKey, 0);
+    }
+    if (at < 0) {
+      const words = sKey.split(/\s+/);
+      for (let len = words.length - 1; len >= 3; len--) {
+        const sub = words.slice(0, len).join(" ");
+        at = nKey.indexOf(sub, searchFrom);
+        if (at < 0 && searchFrom > 0) at = nKey.indexOf(sub, 0);
+        if (at >= 0) {
+          matchedLen = sub.length;
+          break;
         }
       }
-      if (at < 0) return; // duplicate / truly absent tag
-      const rr = rawRangeFor(nIdx, at, at + Math.min(matchedLen - 1, nKey.length - 1 - at));
-      if (!rr) return;
-      if (rr[0] > rawPos) segs.push({ r0: rawPos, r1: rr[0], isSay: false });
-      segs.push({ r0: rr[0], r1: rr[1], isSay: true });
-      markSeg[i] = segs.length - 1;
-      rawPos = rr[1];
-      searchFrom = Math.max(searchFrom, at + matchedLen);
-    });
-  }
+    }
+    if (at < 0) return;
+    const rr = rawRangeFor(
+      nIdx,
+      at,
+      at + Math.min(matchedLen - 1, nKey.length - 1 - at)
+    );
+    if (!rr) return;
+    if (rr[0] > rawPos) segs.push({ r0: rawPos, r1: rr[0], isSay: false });
+    segs.push({ r0: rr[0], r1: rr[1], isSay: true });
+    markSeg[i] = segs.length - 1;
+    rawPos = rr[1];
+    searchFrom = Math.max(searchFrom, at + matchedLen);
+  });
+
   if (!segs.some((s) => s.isSay)) {
-    /* Fallback pacing: distribute marks smoothly across the speech window */
     const validMarks = marks.filter((m) => m.t1 > m.t0);
     if (!validMarks.length) return false;
     const est = estimateNarration(narration);
     const leadIn = sceneIdx === 0 ? 1.6 : 1.2;
     const targetWriteEnd = Math.max(leadIn + 1.0, est * 0.82);
     const rawWriteSpan = Math.max(0.5, scene.writeEnd - HEAD);
-    const k = Math.min(SAY_SCALE_MAX, Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan));
+    const k = Math.min(
+      SAY_SCALE_MAX,
+      Math.max(SAY_SCALE_MIN, (targetWriteEnd - leadIn) / rawWriteSpan)
+    );
     for (const st of scene.strokes) {
+      if (st.t0 < HEAD - 1e-6) continue;
       st.t0 = leadIn + (st.t0 - HEAD) * k;
-      const strokeScale = Math.min(1.12, Math.max(0.90, k));
+      const strokeScale = Math.min(1.12, Math.max(0.9, k));
       st.dur = Math.max(0.03, st.dur * strokeScale);
     }
     for (const g of groups) {
@@ -1902,20 +2184,20 @@ function paceSceneToNarration(
       }
     }
     for (const e of scene.erases) e.at = leadIn + (e.at - HEAD) * k;
+    for (const g of scene.groups) {
+      if (g.id === "banner") continue;
+      if (g.strokes.length) g.born = g.strokes[0].t0;
+    }
     scene.writeEnd = leadIn + (scene.writeEnd - HEAD) * k;
     return true;
   }
 
-  /* every mark joins the segment of the nearest PRECEDING say (marks
-     before the first tag join the opening segment — the pen starts
-     writing as the first words play) */
   let cur = 0;
   const markSegFinal = marks.map((_, i) => {
     if (markSeg[i] >= 0) cur = markSeg[i];
     return cur;
   });
 
-  /* per-segment windows ∝ share of the estimated audio */
   const est = estimateNarration(narration);
   const totalChars = Math.max(1, narration.length);
   const gaps = SAY_GAP * Math.max(0, segs.length - 1);
@@ -1923,10 +2205,9 @@ function paceSceneToNarration(
   const windowFor = (s: Seg) =>
     Math.max(0.2, (span * (s.r1 - s.r0)) / totalChars);
 
-  /* old time range of the marks inside each segment */
   const segOld: Array<[number, number] | null> = segs.map(() => null);
   marks.forEach((m, i) => {
-    if (m.t1 <= m.t0) return; // zero-time marks (newline) carry nothing
+    if (m.t1 <= m.t0) return;
     const si = markSegFinal[i];
     const o = segOld[si];
     segOld[si] = o
@@ -1934,7 +2215,6 @@ function paceSceneToNarration(
       : [m.t0, m.t1];
   });
 
-  /* planned proportional starts, monotonic placement, clamped scale */
   interface MapEntry {
     o0: number;
     o1: number;
@@ -1950,7 +2230,6 @@ function paceSceneToNarration(
     const old = segOld[si];
     if (old) {
       const oldDur = Math.max(0.05, old[1] - old[0]);
-      // Pacing: Stroke durations keep their kinematic speed (~175 px/s blackboard pace).
       const scale = 1.0;
       const n0 = Math.max(planned, si > 0 ? prevEnd + SAY_GAP : prevEnd);
       map.push({ o0: old[0], o1: old[1], n0, scale });
@@ -1960,11 +2239,6 @@ function paceSceneToNarration(
   }
   if (!map.length) return false;
 
-  /* containment search, REVERSED: segment ranges are contiguous
-     (o1 of one == o0 of the next), so a forward `t <= o1` scan would
-     steal the first stroke of every new segment for the previous
-     segment's window — the reversed scan resolves ties to the LATER
-     entry, which is the stroke's own segment */
   const mapTime = (t: number): number => {
     for (let i = map.length - 1; i >= 0; i--) {
       const e = map[i];
@@ -1982,14 +2256,11 @@ function paceSceneToNarration(
 
   const origWriteEnd = scene.writeEnd;
   for (const st of scene.strokes) {
+    if (st.t0 < HEAD - 1e-6) continue;
     const sc = mapScale(st.t0);
     st.t0 = mapTime(st.t0);
     st.dur = Math.max(0.03, st.dur * sc);
   }
-  /* erase marks and SURVIVOR SLIDES pointing INTO this scene live on
-     strokes of ANY scene (a later scene can erase/slide earlier ink) —
-     remap them all, or slides would fire before the ink they replace
-     has faded (a mapped-time overlap) */
   for (const g of groups) {
     for (const st of g.strokes) {
       if (st.eraseScene === sceneIdx && st.eraseAt !== undefined) {
@@ -2003,6 +2274,10 @@ function paceSceneToNarration(
     }
   }
   for (const e of scene.erases) e.at = mapTime(e.at);
+  for (const g of scene.groups) {
+    if (g.id === "banner") continue;
+    if (g.strokes.length) g.born = g.strokes[0].t0;
+  }
   scene.writeEnd = Math.max(SAY_T0, mapTime(origWriteEnd));
   return true;
 }
@@ -2017,10 +2292,25 @@ export function compileTimeline(script: SolveScript): Timeline {
   let cursor: Pt = { x: MARGIN_X, y: FIRST_BASELINE };
   let lastBottom = -Infinity;
   script.scenes.forEach((sc, sceneIdx) => {
+    let clonedSegments: SceneSegment[] | undefined = sc.segments?.length
+      ? sc.segments.map((seg) => ({
+          ...seg,
+          ink: seg.ink ? [...seg.ink] : undefined,
+        }))
+      : undefined;
+    if (
+      (!clonedSegments || !clonedSegments.length) &&
+      sc.audio?.segments &&
+      sc.audio.segments.length > 0 &&
+      sc.narration
+    ) {
+      clonedSegments = splitNarrationIntoSegments(sc.narration, sc.beats);
+    }
+
     const scene: SceneTime = {
       chapter: sc.chapter,
       narration: sc.narration,
-      segments: sc.segments,
+      segments: clonedSegments,
       intro: sc.intro === true,
       strokes: [],
       groups: [],
@@ -2028,6 +2318,8 @@ export function compileTimeline(script: SolveScript): Timeline {
       head: HEAD,
       writeEnd: HEAD,
       dur: 0,
+      audioDur: sc.audio?.dur,
+      audioCues: sc.audio?.segments,
       locked: false,
     };
     const ctx: Ctx = {
@@ -2044,7 +2336,7 @@ export function compileTimeline(script: SolveScript): Timeline {
       beatMarks: [],
     };
     let lastCap = CAP.md;
-    // Banner problem mounting at t=0 for Scene 0 so board is never blank
+    // Banner problem mounting at t=0 for Scene 0 (documented pre-mounted board intro choice, spec §7)
     if (
       sceneIdx === 0 &&
       !sc.intro &&
@@ -2058,10 +2350,11 @@ export function compileTimeline(script: SolveScript): Timeline {
 
     // Automated deictic pointing resolution: schedule marker cursor hover on referenced terms
     const beatsToProcess = [...sc.beats];
-    if (sc.segments && sc.segments.length > 0) {
-      const DEICTIC_PATTERN = /\b(this (?:integral|problem|equation|term|formula|expression|value|result|curve|ramp|incline|block)|the (?:integral|equation|term|formula|expression|denominator|numerator|exponent|curve|ramp|incline|diagram))\b/i;
+    const beatSegIdx: number[] = [];
+    if (scene.segments && scene.segments.length > 0) {
       const beatsWithDeixis: Beat[] = [];
-      sc.segments.forEach((seg) => {
+      const segIndices: number[] = [];
+      scene.segments.forEach((seg, sIdx) => {
         if ((!seg.ink || seg.ink.length === 0) && DEICTIC_PATTERN.test(seg.say)) {
           let target = "last";
           if (/integral|problem/i.test(seg.say)) target = "banner";
@@ -2069,13 +2362,21 @@ export function compileTimeline(script: SolveScript): Timeline {
           const pointBeat: Beat = { type: "point", target, ms: 1400 };
           seg.ink = [pointBeat];
           beatsWithDeixis.push(pointBeat);
+          segIndices.push(sIdx);
         } else if (seg.ink) {
-          beatsWithDeixis.push(...seg.ink);
+          for (const b of seg.ink) {
+            beatsWithDeixis.push(b);
+            segIndices.push(sIdx);
+          }
         }
       });
-      if (beatsWithDeixis.length >= beatsToProcess.length && beatsWithDeixis.length > 0) {
+      if (
+        beatsWithDeixis.length >= beatsToProcess.length &&
+        beatsWithDeixis.length > 0
+      ) {
         beatsToProcess.length = 0;
         beatsToProcess.push(...beatsWithDeixis);
+        beatSegIdx.push(...segIndices);
       }
     }
 
@@ -2144,23 +2445,20 @@ export function compileTimeline(script: SolveScript): Timeline {
     }
     scene.writeEnd = ctx.now;
     const estAudio = estimateNarration(scene.narration);
-    /* say/write pacing — the pen lands on the words being spoken.
-       Runs BEFORE the talk-hold so the pointing tail follows the
-       reshaped schedule. */
-    const paced = paceSceneToNarration(scene, groups, ctx.beatMarks, sceneIdx);
-    scene.paced = paced;
-    scene.pacedFor = paced ? estAudio : undefined;
-    appendTalkHold(ctx, estAudio);
+    paceSceneToNarration(
+      scene,
+      groups,
+      ctx.beatMarks,
+      sceneIdx,
+      beatSegIdx.length === ctx.beatMarks.length ? beatSegIdx : undefined
+    );
     if (sc.intro) {
       compressScene(scene, 0.5, sceneIdx); // signature pace — bumper, not lesson
     }
-    if (sc.audio?.dur) {
-      scene.audioDur = sc.audio.dur;
-    }
-    if (sc.audio?.words) {
-      scene.words = sc.audio.words;
-    }
-    scene.dur = Math.max(HEAD + scene.writeEnd + 0.5, (sc.audio?.dur ?? estAudio) + 0.5);
+    const baseAudioDur = sc.audio?.dur ?? estAudio;
+    scene.dur = sc.audio?.dur
+      ? Math.max(scene.writeEnd + SCENE_TAIL_SEC, sc.audio.dur + SCENE_TAIL_SEC)
+      : Math.max(HEAD + scene.writeEnd + SCENE_TAIL_SEC, baseAudioDur + SCENE_TAIL_SEC);
     scenes.push(scene);
     cursor = ctx.cursor;
     lastBottom = ctx.lastBottom;
@@ -2173,58 +2471,19 @@ export function compileTimeline(script: SolveScript): Timeline {
   };
 }
 
-/** attach a known narration duration (TTS resolved) */
+/** attach a measured narration duration (no rescale — pacing already used
+ *  real segment cues; spec §7) */
 export function setSceneAudio(
   tl: Timeline,
   i: number,
   audioDur: number,
-  words?: WordTiming[]
+  cues?: AudioSegmentCue[]
 ): void {
   const s = tl.scenes[i];
   if (!s || !Number.isFinite(audioDur) || audioDur <= 0) return;
   s.audioDur = audioDur;
-  if (words) s.words = words;
-
-  /* say-paced scenes stretch their whole pen schedule to the REAL
-     speech length (TTS speaks at a steady rate, so scaling the baked
-     schedule keeps every beat inside its own words' window). */
-  if (s.paced && s.pacedFor !== audioDur) {
-    const base = s.pacedFor ?? estimateNarration(s.narration);
-    let k = (audioDur + 0.5 - HEAD) / (base + 0.5 - HEAD);
-    if (Number.isFinite(k) && k > 0 && Math.abs(k - 1) > 0.01) {
-      /* audio shorter than planned → do NOT rush the pen past ~0.8×;
-       * the scene simply runs a touch longer than the voice (a real
-       * professor finishing a line in silence). Rushing reads as AI. */
-      k = Math.max(0.9, Math.min(1.35, k));
-      const anchor = (t: number) => HEAD + (t - HEAD) * k;
-      const strokeScale = Math.min(1.12, Math.max(0.88, k));
-      for (const st of s.strokes) {
-        st.t0 = anchor(st.t0);
-        st.dur = Math.max(0.03, st.dur * strokeScale);
-      }
-      /* erase marks + survivor slides on ANY scene's strokes pointing
-         into this scene move with it */
-      for (const sc of tl.scenes) {
-        for (const st of sc.strokes) {
-          if (st.eraseScene === i && st.eraseAt !== undefined) {
-            st.eraseAt = anchor(st.eraseAt);
-          }
-          if (st.moves) {
-            for (const m of st.moves) {
-              if (m.scene === i) m.at = anchor(m.at);
-            }
-          }
-        }
-      }
-      for (const e of s.erases) e.at = anchor(e.at);
-      s.writeEnd = anchor(s.writeEnd);
-      s.pacedFor = audioDur;
-    } else if (Number.isFinite(k) && k > 0) {
-      s.pacedFor = audioDur;
-    }
-  }
-
-  const want = Math.max(HEAD + s.writeEnd + 0.5, audioDur + 0.5);
+  if (cues) s.audioCues = cues;
+  const want = Math.max(s.writeEnd + SCENE_TAIL_SEC, audioDur + SCENE_TAIL_SEC);
   if (!s.locked || want > s.dur) s.dur = want;
   s.locked = true;
 }
