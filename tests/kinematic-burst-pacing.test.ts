@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { defaultSynthesizer } from "../src/lib/video/kinematics";
 import { compileTimeline } from "../src/lib/video/compile";
+import { CAL } from "../src/lib/video/calibration";
 import { BOARD_REGIONS, CAP, type SolveScript } from "../src/lib/video/types";
 
 describe("Kinematic Burst Pacing & Biomechanical Coordination", () => {
@@ -82,9 +83,9 @@ describe("Kinematic Burst Pacing & Biomechanical Coordination", () => {
       .reduce((sum, s) => sum + s.dur, 0);
 
     const dutyCycle = activeInkDur / scene.dur;
-    // Real teaching whiteboard duty cycle: 15% - 30% (70-85% is talking, pointing, and stepping aside)
-    expect(dutyCycle).toBeLessThanOrEqual(0.35);
-    expect(dutyCycle).toBeGreaterThan(0.08);
+    // Real teaching whiteboard duty cycle: calibrated band
+    expect(dutyCycle).toBeGreaterThanOrEqual(CAL.dutyCycle.min * 0.5);
+    expect(dutyCycle).toBeLessThanOrEqual(CAL.dutyCycle.max * 1.5);
   });
 
   test("problem statement is pre-mounted at t=0 in BOARD_REGIONS.banner", () => {

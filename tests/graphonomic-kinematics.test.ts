@@ -8,6 +8,7 @@ import {
   sampleMicroTremor,
 } from "../src/lib/video/kinematics";
 import { compileTimeline } from "../src/lib/video/compile";
+import { CAL } from "../src/lib/video/calibration";
 import type { SolveScript } from "../src/lib/video/types";
 
 describe("Graphonomic Kinematics & Biomechanical Modeling", () => {
@@ -69,8 +70,8 @@ describe("Graphonomic Kinematics & Biomechanical Modeling", () => {
     const opPause = computeTransitionPause(from, to, "operator");
     const wordPause = computeTransitionPause(from, to, "word-start");
 
-    expect(opPause).toBeGreaterThan(glyphPause + 0.40); // Pre-operator hesitation
-    expect(wordPause).toBeGreaterThan(glyphPause + 0.20); // Inter-word transition
+    expect(opPause).toBeGreaterThan(glyphPause + (CAL.hesitations.operator - CAL.hesitations.charStart) * 0.8);
+    expect(wordPause).toBeGreaterThan(glyphPause + (CAL.hesitations.wordStart - CAL.hesitations.charStart) * 0.8);
   });
 
   test("Calligraphic stroke width: modulates dynamically with nib angle and speed", () => {

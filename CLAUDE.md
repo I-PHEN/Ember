@@ -51,8 +51,11 @@ solve-chain scenes with the discrepancy note, never blocks delivery.
 Prompts: `src/lib/prompts.ts` (WRITER_SYSTEM is a static prefix — keep
 dynamic content in the user turn). Board discipline: `isBoardProse` +
 `stats.proseDropped/overlapPct/layoutViolations`. Canvas integrity:
-`layout-audit.ts` + clearance in `compile.ts`. Pen pace: 165 px/s
-professor chalk (tests/pen-pacing.test.ts pins it — do not speed up).
+`layout-audit.ts` + clearance in `compile.ts`. Pen pace: calibrated
+against human handwriting footage in `src/lib/video/calibration.ts`
+(`tests/calibration-constants.test.ts` pins it to
+`docs/research/handwriting-calibration-data.json` — do not invent new
+constants).
 Stats worth knowing: `watchableMs` (delivery), `providerHops` (failovers),
 `reviewedScenes/fixedScenes/unreviewedScenes`, `checkerChecked/checkerFlags`,
 `verification {verdict, solverAnswer, scriptAnswer, rerun}`. Progress %

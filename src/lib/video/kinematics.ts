@@ -10,6 +10,7 @@
 ------------------------------------------------------------------- */
 
 import type { PathStroke, Pt } from "./types";
+import { CAL } from "./calibration";
 
 export type StrokeTag =
   | "operator"
@@ -167,8 +168,8 @@ export function preprocessPolyline(raw: Pt[]): Pt[] {
  */
 export function computeFittsFlightDuration(from: Pt, to: Pt, targetWidth = 12): number {
   const D = Math.hypot(to.x - from.x, to.y - from.y);
-  const a = 0.11; // s
-  const b = 0.09; // s/bit
+  const a = CAL.fitts.a; // s — fitted to measured pause/distance pairs
+  const b = CAL.fitts.b; // s/bit
   const id = Math.log2(1 + D / Math.max(1, targetWidth));
   const flight = a + b * id;
   return Math.max(0.08, Math.min(0.68, flight));
@@ -190,15 +191,17 @@ export function computeTransitionPause(
   switch (tag) {
     case "operator":
       // Pre-operator hesitation: cognitive chunking before =, +, -, etc.
-      hesitation = 0.42;
+      // (measured 150 ms — the invented 420 ms was the "hovers more
+      // than it writes" defect)
+      hesitation = CAL.hesitations.operator;
       break;
     case "word-start":
-      // Inter-word repositioning: lexical word spaces
-      hesitation = 0.22;
+      // Inter-word repositioning: lexical word spaces (measured 100 ms)
+      hesitation = CAL.hesitations.wordStart;
       break;
     case "char-start":
-      // Inter-character transition: agile pen repositioning
-      hesitation = 0.04;
+      // Inter-character transition: agile pen repositioning (measured 67 ms)
+      hesitation = CAL.hesitations.charStart;
       break;
     case "glyph-stroke":
       // Inter-stroke within same glyph (covered directly by Fitts flight)
@@ -251,7 +254,9 @@ export function sampleMicroTremor(
  * Synthesizes natural human velocity profiles and dynamic calligraphic widths.
  */
 export class KinematicStrokeSynthesizer {
-  public gamma0 = 100.0; // Calibrated base pace factor for natural professor handwriting (~180-240 px/s)
+  // Calibrated base pace factor — fitted to measured reference footage
+  // (docs/research/handwriting-calibration.md); ~6.2 cap-heights/s strokes
+  public gamma0: number = CAL.gamma0;
   public beta = 0.3333; // Lacquaniti Two-Thirds Power Law exponent (1/3)
   public epsilon = 0.0075; // Curvature regularization offset (px^-1)
   public aMax = 9600.0; // Forearm/wrist tangential acceleration limit (px/s^2)

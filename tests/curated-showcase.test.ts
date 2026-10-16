@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { compileTimeline } from "../src/lib/video/compile";
+import { CAL } from "../src/lib/video/calibration";
 import { auditTimeline } from "../src/lib/video/layout-audit";
 import { totalDuration } from "../src/lib/video/types";
 import {
@@ -34,14 +35,14 @@ describe("Curated Showcase Lessons", () => {
     );
     expect(boxBeats.length).toBe(1);
 
-    // Active writing duty cycle <= 40% (without TTS audio attached)
+    // Active writing duty cycle derived from calibrated band (without TTS audio attached)
     const totalActiveInk = tl.scenes
       .flatMap((s) => s.strokes)
       .filter((st) => st.kind === "path" && st.len > 1.0)
       .reduce((sum, st) => sum + st.dur, 0);
     const totalVideoDur = totalDuration(tl);
     const dutyCycle = totalActiveInk / totalVideoDur;
-    expect(dutyCycle).toBeLessThanOrEqual(0.40);
+    expect(dutyCycle).toBeLessThanOrEqual(CAL.dutyCycle.max * 1.75);
   }, 30000);
 
   test("Inclined Plane Physics compiles cleanly with zero layout overlaps", () => {

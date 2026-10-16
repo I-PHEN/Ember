@@ -48,6 +48,7 @@ import {
   balanceAudioVisualTiming,
   type StrokeTag,
 } from "./kinematics";
+import { CAL } from "./calibration";
 
 /* ----------------------------- helpers ---------------------------- */
 
@@ -228,8 +229,8 @@ function addPaths(
     prevPt = r.pts[r.pts.length - 1];
   }
 
-  if (out.length && (opts?.settle ?? 0.18) > 0) {
-    ctx.now += opts?.settle ?? 0.18;
+  if (out.length && (opts?.settle ?? CAL.settleMs / 1000) > 0) {
+    ctx.now += opts?.settle ?? CAL.settleMs / 1000;
   }
   return out;
 }
