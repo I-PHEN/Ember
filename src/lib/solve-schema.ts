@@ -385,7 +385,7 @@ function sanitizeBeat(raw: unknown, narrationKey: string): Beat | null {
         angle: clamp(num(b.angle, 0), 0, 70),
         color: normColor(b.color, "yellow"),
       } as Beat;
-      const block = cleanBoardText(String(b.block ?? ""), 10);
+      const block = cleanBoardText(String(b.block ?? ""), 14);
       if (block) (beat as { block: string }).block = block;
       if (Array.isArray(b.forces)) {
         const forces = b.forces
@@ -393,7 +393,7 @@ function sanitizeBeat(raw: unknown, narrationKey: string): Beat | null {
           .map((f) => {
             const fp = (f ?? {}) as Record<string, unknown>;
             const dir = FB_DIRS.has(String(fp.dir)) ? (String(fp.dir) as never) : "down";
-            const label = cleanBoardText(String(fp.label ?? ""), 10);
+            const label = cleanBoardText(String(fp.label ?? ""), 18);
             return { dir, label: label || undefined } as ForceArrow;
           })
           .filter((f) => f.label || f.dir);

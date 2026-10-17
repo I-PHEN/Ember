@@ -2074,12 +2074,19 @@ function paceSceneToNarration(
         ? targetStart
         : Math.max(targetStart, si > 0 ? prevEnd + SAY_GAP : targetStart);
       let scale = 1.0;
-      const availEnd =
-        hasMeasuredCues && si + 1 < segCount
+      const lastCueEnd = hasMeasuredCues
+        ? Math.max(
+            scene.audioDur ?? 0,
+            segStarts[si] + speechDurs[si] + (scene.segments[si].pauseAfter ?? 0.35)
+          )
+        : Infinity;
+      const availEnd = hasMeasuredCues
+        ? si + 1 < segCount
           ? segStarts[si + 1] - 0.02
-          : Infinity;
+          : lastCueEnd
+        : Infinity;
       if (hasMeasuredCues && availEnd > n0 + 0.1 && n0 + oldDur > availEnd) {
-        scale = Math.max(0.25, (availEnd - n0) / oldDur);
+        scale = Math.max(0.02, ((availEnd - n0) * 0.96) / oldDur);
       }
       map.push({ rawMin: raw[0], o0: old[0], o1: old[1], n0, scale, availEnd });
       prevEnd = n0 + oldDur * scale;

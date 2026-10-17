@@ -54,11 +54,15 @@ describe("Whiteboard Thumbnail Blueprint Frame Selection", () => {
     // Should NOT pick the early empty intro (< 3s)
     expect(t).toBeGreaterThan(5);
 
-    // Scene 1 contains the freebody diagram
-    const scene1Start = tl.scenes[0].dur;
-    const scene2Start = scene1Start + tl.scenes[1].dur;
-    expect(t).toBeGreaterThanOrEqual(scene1Start);
-    expect(t).toBeLessThanOrEqual(scene2Start);
+    // Find the scene that contains the freebody diagram
+    const fbIdx = tl.scenes.findIndex((s) =>
+      s.groups.some((g) => g.text === "freebody diagram")
+    );
+    expect(fbIdx).toBeGreaterThanOrEqual(0);
+    const fbStart = tl.scenes.slice(0, fbIdx).reduce((acc, s) => acc + s.dur, 0);
+    const fbEnd = fbStart + tl.scenes[fbIdx].dur;
+    expect(t).toBeGreaterThanOrEqual(fbStart);
+    expect(t).toBeLessThanOrEqual(fbEnd);
   });
 
   test("Gaussian Integral thumbnail selects settled mathematical derivation rather than empty intro", () => {

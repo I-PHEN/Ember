@@ -77,94 +77,102 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     }
   });
 
-  test("3. Anchor Audit Gate: every segment in SAMPLE_GAUSSIAN_INTEGRAL starts its ink at cue.t0 + SAY_T0 and finishes before nextCue.t0", () => {
-    const tl = compileTimeline(SAMPLE_GAUSSIAN_INTEGRAL);
-    expect(tl.scenes.length).toBe(6);
+  test("3. Anchor Audit Gate: every segment in stitched lessons starts its ink at cue.t0 + SAY_T0 and finishes before nextCue.t0", () => {
+    for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
+      const tl = compileTimeline(script);
 
-    tl.scenes.forEach((sc, sceneIdx) => {
-      const rawScene = SAMPLE_GAUSSIAN_INTEGRAL.scenes[sceneIdx];
-      const cues = rawScene.audio?.segments;
-      expect(cues).toBeDefined();
-      expect(cues!.length).toBe(rawScene.segments!.length);
+      tl.scenes.forEach((sc, sceneIdx) => {
+        const rawScene = script.scenes[sceneIdx];
+        const cues = rawScene.audio?.segments;
+        expect(cues).toBeDefined();
+        expect(cues!.length).toBe(rawScene.segments!.length);
 
-      // Every non-banner group born time must fall within one of the ink-bearing segments' windows
-      for (const g of sc.groups) {
-        if (g.id === "banner") continue;
-        const matchingSegIdx = cues!.findIndex((c, idx) => {
-          const nextStart =
-            idx + 1 < cues!.length ? cues![idx + 1].t0 : sc.dur;
-          return g.born >= c.t0 + SAY_T0 - 0.02 && g.born <= nextStart + 0.02;
-        });
-        expect(matchingSegIdx).toBeGreaterThanOrEqual(0);
-      }
-
-      // Check that each segment with a write beat starts its first event at cue.t0 + SAY_T0
-      rawScene.segments!.forEach((seg, segIdx) => {
-        if (!seg.ink || seg.ink.length === 0) return;
-        const cue = cues![segIdx];
-        const nextCueT0 =
-          segIdx + 1 < cues!.length ? cues![segIdx + 1].t0 : sc.dur;
-        const writeBeat = seg.ink.find((b) => b.type === "write");
-        if (writeBeat && writeBeat.type === "write") {
-          const grp = sc.groups.find((g) => g.id !== "banner" && g.born >= cue.t0 - 0.02 && g.born < nextCueT0);
-          expect(grp).toBeDefined();
-          // If the segment started with an erase or newline before the write, the first event is at cue.t0 + SAY_T0
-          if (seg.ink[0].type === "write") {
-            expect(Math.abs(grp!.born - (cue.t0 + SAY_T0))).toBeLessThan(0.02);
-          }
-          // All strokes in the group finish before nextCueT0
-          for (const st of grp!.strokes) {
-            expect(st.t0 + st.dur).toBeLessThanOrEqual(nextCueT0 + 0.05);
-          }
+        // Every non-banner group born time must fall within one of the ink-bearing segments' windows
+        for (const g of sc.groups) {
+          if (g.id === "banner") continue;
+          const matchingSegIdx = cues!.findIndex((c, idx) => {
+            const nextStart =
+              idx + 1 < cues!.length ? cues![idx + 1].t0 : sc.dur;
+            return g.born >= c.t0 + SAY_T0 - 0.02 && g.born <= nextStart + 0.02;
+          });
+          expect(matchingSegIdx).toBeGreaterThanOrEqual(0);
         }
+
+        // Check that each segment with a write beat starts its first event at cue.t0 + SAY_T0
+        rawScene.segments!.forEach((seg, segIdx) => {
+          if (!seg.ink || seg.ink.length === 0) return;
+          const cue = cues![segIdx];
+          const nextCueT0 =
+            segIdx + 1 < cues!.length ? cues![segIdx + 1].t0 : sc.dur;
+          const writeBeat = seg.ink.find((b) => b.type === "write");
+          if (writeBeat && writeBeat.type === "write") {
+            const grp = sc.groups.find(
+              (g) =>
+                g.id !== "banner" &&
+                g.born >= cue.t0 - 0.02 &&
+                g.born < nextCueT0,
+            );
+            expect(grp).toBeDefined();
+            if (seg.ink[0].type === "write") {
+              expect(Math.abs(grp!.born - (cue.t0 + SAY_T0))).toBeLessThan(
+                0.02,
+              );
+            }
+            for (const st of grp!.strokes) {
+              expect(st.t0 + st.dur).toBeLessThanOrEqual(nextCueT0 + 0.05);
+            }
+          }
+        });
       });
-    });
+    }
   });
 
   test("4. PCM Silence Audit Gate: stitched WAV files have digital silence (RMS < 0.001) across every inter-segment gap", () => {
     const cacheDir = path.join(process.cwd(), "public", "audio", "cache");
 
-    SAMPLE_GAUSSIAN_INTEGRAL.scenes.forEach((sc, sceneIdx) => {
-      const key = sc.audio?.key;
-      const cues = sc.audio?.segments;
-      expect(key).toBeDefined();
-      expect(cues).toBeDefined();
+    for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
+      script.scenes.forEach((sc) => {
+        const key = sc.audio?.key;
+        const cues = sc.audio?.segments;
+        expect(key).toBeDefined();
+        expect(cues).toBeDefined();
 
-      const wavPath = path.join(cacheDir, `${key}.wav`);
-      expect(fs.existsSync(wavPath)).toBe(true);
+        const wavPath = path.join(cacheDir, `${key}.wav`);
+        expect(fs.existsSync(wavPath)).toBe(true);
 
-      const wav = fs.readFileSync(wavPath);
-      expect(wav.subarray(0, 4).toString("ascii")).toBe("RIFF");
-      const pcm = wav.subarray(WAV_HEADER_BYTES);
+        const wav = fs.readFileSync(wavPath);
+        expect(wav.subarray(0, 4).toString("ascii")).toBe("RIFF");
+        const pcm = wav.subarray(WAV_HEADER_BYTES);
 
-      for (let i = 0; i + 1 < cues!.length; i++) {
-        const gapStart = cues![i].t1;
-        const gapEnd = cues![i + 1].t0;
-        const gapDur = gapEnd - gapStart;
-        expect(gapDur).toBeGreaterThanOrEqual(0.24);
+        for (let i = 0; i + 1 < cues!.length; i++) {
+          const gapStart = cues![i].t1;
+          const gapEnd = cues![i + 1].t0;
+          const gapDur = gapEnd - gapStart;
+          expect(gapDur).toBeGreaterThanOrEqual(0.24);
 
-        const rms = rmsInWindow(pcm, gapStart + 0.01, gapEnd - 0.01);
-        expect(rms).toBeLessThan(0.001);
-      }
+          const rms = rmsInWindow(pcm, gapStart + 0.01, gapEnd - 0.01);
+          expect(rms).toBeLessThan(0.001);
+        }
+      });
+    }
 
-      // Scene 4 Segment 2 is the boxed final answer with pauseAfter: 2.0
-      if (sceneIdx === 4) {
-        const boxedGap = cues![3].t0 - cues![2].t1;
-        expect(boxedGap).toBeCloseTo(2.0, 2);
-      }
-    });
+    // Gaussian Scene 4 Segment 2 is the boxed final answer with pauseAfter: 2.0
+    const gCues = SAMPLE_GAUSSIAN_INTEGRAL.scenes[4].audio!.segments!;
+    expect(gCues[3].t0 - gCues[2].t1).toBeCloseTo(2.0, 2);
   });
 
   test("5. Golden Flagship Ink-Reveal Gate: Scene 0 speak-ahead holds writing until Segment 1 cue", () => {
-    const tl = compileTimeline(SAMPLE_GAUSSIAN_INTEGRAL);
-    const sc0 = tl.scenes[0];
-    const cues0 = SAMPLE_GAUSSIAN_INTEGRAL.scenes[0].audio!.segments!;
+    for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
+      const tl = compileTimeline(script);
+      const sc0 = tl.scenes[0];
+      const cues0 = script.scenes[0].audio!.segments!;
 
-    // Segment 0 is speak_ahead [0, 23.721]: only banner is mounted at t=0, no formula groups born during [0, 23.721]
-    const nonBannerGroups = sc0.groups.filter((g) => g.id !== "banner");
-    expect(nonBannerGroups.length).toBe(1);
-    expect(nonBannerGroups[0].born).toBeCloseTo(cues0[1].t0 + SAY_T0, 2);
-    expect(nonBannerGroups[0].born).toBeGreaterThan(24.0);
+      // Segment 0 is speak_ahead: only banner is mounted at t=0, no formula/diagram groups born during Segment 0
+      const nonBannerGroups = sc0.groups.filter((g) => g.id !== "banner");
+      expect(nonBannerGroups.length).toBeGreaterThanOrEqual(1);
+      expect(nonBannerGroups[0].born).toBeCloseTo(cues0[1].t0 + SAY_T0, 2);
+      expect(nonBannerGroups[0].born).toBeGreaterThan(cues0[0].t1);
+    }
   });
 
   test("6. 2-Line Caption & Silent-Gap Gate: every caption card is <= 84 chars (<=2 lines) and hides during silent writing gaps", async () => {

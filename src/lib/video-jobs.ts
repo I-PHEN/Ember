@@ -487,15 +487,29 @@ function normalizeTranscript(
   const o = raw as Record<string, unknown>;
   if (!Array.isArray(o.scenes)) return null;
   const out: TranscriptScene[] = [];
-  for (const sRaw of o.scenes.slice(0, sceneCount)) {
+  const slice = o.scenes.slice(0, sceneCount);
+  for (let sIdx = 0; sIdx < slice.length; sIdx++) {
+    const sRaw = slice[sIdx];
     if (!sRaw || typeof sRaw !== "object") {
       out.push({ script: "" }); // hole — the writer self-authors
       continue;
     }
     const s = sRaw as Record<string, unknown>;
-    const segs = Array.isArray(s.segments)
+    const isFinalScene = sIdx === sceneCount - 1;
+    let segs = Array.isArray(s.segments)
       ? sanitizeSegments(s.segments)
       : [];
+    if (segs.length) {
+      let seenPause = false;
+      segs = segs.map((seg) => {
+        if (!isFinalScene || seenPause || seg.pauseAfter === undefined) {
+          const { pauseAfter: _p, ...rest } = seg;
+          return rest;
+        }
+        seenPause = true;
+        return seg;
+      });
+    }
     const joined = segs.length
       ? segs.map((seg) => seg.say).join(" ")
       : "";
@@ -555,6 +569,76 @@ async function callPlanner(
   return null;
 }
 
+function enforceFourBeatSegments(
+  inputSegs: SceneSegment[],
+  sceneIndex: number,
+  isFinalScene: boolean
+): SceneSegment[] {
+  const cleanBeat = (b: SceneSegment["ink"] extends Array<infer T> | undefined ? T : never) => {
+    if (b.type === "write") {
+      const { x: _x, y: _y, below: _below, keep, ...rest } = b;
+      return isFinalScene && keep ? { ...rest, keep: true } : rest;
+    }
+    return b;
+  };
+  let segs = inputSegs.map((s) => ({
+    ...s,
+    ink: s.ink ? s.ink.map(cleanBeat) : undefined,
+  }));
+  // Scene 0 mounts the problem banner at t=0 when no title beat exists
+  if (sceneIndex === 0) {
+    segs = segs.map((seg) => {
+      const filtered = seg.ink?.filter((b) => b.type !== "title");
+      return {
+        ...seg,
+        ink: filtered && filtered.length > 0 ? filtered : undefined,
+      };
+    });
+  }
+  // Enforce Beat 1 (WHY) speak-ahead lead-in on segments[0] when >= 2 segments exist
+  if (segs.length >= 2 && segs[0].ink && segs[0].ink.length > 0) {
+    const targetSay = segs[1].say;
+    const shifted = segs[0].ink.map((b) =>
+      "say" in b ? { ...b, say: targetSay } : b
+    );
+    segs[1] = {
+      ...segs[1],
+      ink: [...shifted, ...(segs[1].ink ?? [])],
+    };
+    segs[0] = {
+      ...segs[0],
+      mode: "speak_ahead",
+      ink: undefined,
+    };
+  }
+  // Enforce pauseAfter only on the final scene's boxed-answer segment (at most 1)
+  const boxSegIdx = segs.findIndex((seg) =>
+    seg.ink?.some((b) => b.type === "box")
+  );
+  let pauseUsed = false;
+  segs = segs.map((seg, si) => {
+    if (!isFinalScene) {
+      const { pauseAfter: _p, ...rest } = seg;
+      return rest;
+    }
+    if (boxSegIdx >= 0) {
+      if (si === boxSegIdx) {
+        pauseUsed = true;
+        return { ...seg, pauseAfter: seg.pauseAfter ?? 2.0 };
+      }
+      const { pauseAfter: _p, ...rest } = seg;
+      return rest;
+    }
+    if (!pauseUsed && seg.pauseAfter !== undefined) {
+      pauseUsed = true;
+      return seg;
+    }
+    const { pauseAfter: _p, ...rest } = seg;
+    return rest;
+  });
+  return segs;
+}
+
 async function writeScene(
   outlineJson: string,
   index: number,
@@ -564,6 +648,7 @@ async function writeScene(
     hops?: { providerHops: number };
     complete?: typeof chatComplete;
     ctx?: JobContext;
+    isFinalScene?: boolean;
   }
 ): Promise<SceneResult | null> {
   for (let attempt = 0; attempt < WRITER_ATTEMPTS; attempt++) {
@@ -607,6 +692,11 @@ async function writeScene(
                 };
               });
             }
+            segs = enforceFourBeatSegments(
+              segs,
+              index,
+              opts?.isFinalScene === true
+            );
             const joinedSay = segs.map((s) => s.say).filter(Boolean).join(" ");
             const allBeats = segs.flatMap((s) => s.ink || []);
             return {
@@ -614,13 +704,17 @@ async function writeScene(
               beats: allBeats.length
                 ? allBeats
                 : Array.isArray(o.beats)
-                ? o.beats
+                ? (index === 0 ? o.beats.filter((b) => (b as { type?: string })?.type !== "title") : o.beats)
                 : [],
               segments: segs,
             };
           }
         }
         if (Array.isArray(o.beats) && o.beats.length) {
+          const filteredBeats =
+            index === 0
+              ? o.beats.filter((b) => (b as { type?: string })?.type !== "title")
+              : o.beats;
           const narration =
             planned && planned.script.length > 40
               ? planned.script
@@ -629,14 +723,20 @@ async function writeScene(
               : undefined;
           const reboundSegs =
             planned?.segments && planned.segments.length && narration
-              ? rebindBeatsToSegments(
-                  planned.segments,
-                  sanitizeSceneBeats(o.beats, narration)
+              ? enforceFourBeatSegments(
+                  rebindBeatsToSegments(
+                    planned.segments,
+                    sanitizeSceneBeats(filteredBeats, narration)
+                  ),
+                  index,
+                  opts?.isFinalScene === true
                 )
               : undefined;
           return {
             narration,
-            beats: o.beats,
+            beats: reboundSegs
+              ? reboundSegs.flatMap((s) => s.ink || [])
+              : filteredBeats,
             segments: reboundSegs,
           };
         }
@@ -1062,15 +1162,24 @@ async function runJob(
                 const origSegs = Array.isArray(results[idx]?.segments)
                   ? sanitizeSegments(results[idx]!.segments)
                   : [];
-                const nextSegments =
+                const rawNextSegments =
                   outcome.segments && outcome.segments.length > 0
                     ? sanitizeSegments(outcome.segments, job.stats, `reviewer fix, scene ${idx + 1}`)
                     : origSegs.length > 0
                     ? rebindBeatsToSegments(origSegs, cleaned)
-                    : results[idx]?.segments;
+                    : undefined;
+                const nextSegments = rawNextSegments
+                  ? enforceFourBeatSegments(
+                      rawNextSegments,
+                      idx,
+                      idx === outline.scenes.length - 1
+                    )
+                  : results[idx]?.segments;
                 results[idx] = {
                   narration: results[idx]?.narration,
-                  beats: outcome.beats,
+                  beats: nextSegments
+                    ? nextSegments.flatMap((s) => s.ink || [])
+                    : outcome.beats,
                   segments: nextSegments,
                 };
                 cp.results[idx] = results[idx];
@@ -1118,6 +1227,7 @@ async function runJob(
               hops: job.stats,
               complete: providers.complete,
               ctx,
+              isFinalScene: myIndex === outline.scenes.length - 1,
             })) ?? {
               /* graceful degradation: a single clean line + the PLANNER'S
                  words — a writer failure no longer costs the scene its
@@ -1267,6 +1377,7 @@ async function runJob(
               hops: job.stats,
               complete: providers.complete,
               ctx,
+              isFinalScene: i === outline.scenes.length - 1,
             });
             if (r) {
               job.stats.writerMs.push(Date.now() - t0);

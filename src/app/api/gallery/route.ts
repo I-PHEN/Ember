@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       script: SAMPLE_GAUSSIAN_INTEGRAL,
     };
 
-    items = [flagshipItem];
+    items = [flagshipItem, ...items.filter((i) => i.id !== "gaussian-integral")];
 
     if (subject && subject !== "All") {
       items = items.filter(

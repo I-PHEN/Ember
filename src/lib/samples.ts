@@ -837,423 +837,734 @@ export const SAMPLE_GAUSSIAN_INTEGRAL: SolveScript = {
   ],
 };
 
-/** Master Lesson: Block on Incline with Static Friction */
+/** Master Lesson: Block on Incline with Kinetic Friction (Ember 4-Beat Signature) */
 export const SAMPLE_INCLINED_PLANE: SolveScript = {
-  title: "Block on Incline: Critical Angle tan(θ_c) = μ_s",
-  subject: "Physics",
-  question: "Find the critical angle θ_c at which a block on an incline begins to slip, given static friction coefficient μ_s.",
-  scenes: [
+  "title": "Acceleration of a Block Sliding Down an Inclined Plane with Friction",
+  "subject": "Physics",
+  "question": "A 5 kg block slides down a 30° incline with coefficient of kinetic friction μk = 0.20 (take g = 9.8 m/s²). Find the acceleration of the block down the incline.",
+  "scenes": [
     {
-      chapter: "Problem Setup & Coordinate Axes",
-      narration:
-        "In this mechanics lecture, we analyze a classic physics question: a block of mass m rests on an inclined plane with a static friction coefficient mu s. As we slowly tilt the ramp upward, at what critical angle theta c will the block just begin to slip down the slope? We are given a block of mass m and a static friction coefficient mu s. We tilt our coordinate system so the x-axis points down along the ramp and the y-axis is perpendicular to the surface. Tilting our axes ensures the normal force and acceleration lie along single coordinate directions.",
-      segments: [
+      "chapter": "Setup & Free-Body Diagram",
+      "narration": "Imagine releasing a wooden block onto an icy ramp; gravity pulls it down while friction drags its heels. Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero. Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp. By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis.",
+      "beats": [
         {
-          say: "In this mechanics lecture, we analyze a classic physics question: a block of mass m rests on an inclined plane with a static friction coefficient mu s. As we slowly tilt the ramp upward, at what critical angle theta c will the block just begin to slip down the slope?",
-          ink: [],
+          "type": "write",
+          "text": "GIVEN: m = 5 kg, θ = 30°",
+          "color": "blue",
+          "size": "md",
+          "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
         },
         {
-          say: "We are given a block of mass m and a static friction coefficient mu s.",
-          ink: [
+          "type": "write",
+          "text": "μ_k = 0.20, g = 9.8 m/s²",
+          "color": "blue",
+          "size": "md",
+          "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
+        },
+        {
+          "type": "write",
+          "text": "FIND: a down slope",
+          "color": "blue",
+          "size": "md",
+          "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
+        },
+        {
+          "type": "freebody",
+          "angle": 30,
+          "color": "yellow",
+          "block": "5 kg",
+          "forces": [
             {
-              type: "write",
-              text: "Given: Mass m,  Static friction coefficient μ_s",
-              color: "yellow",
-              size: "md",
+              "dir": "down",
+              "label": "mg"
             },
-          ],
-        },
-        {
-          say: "We tilt our coordinate system so the x-axis points down along the ramp and the y-axis is perpendicular to the surface.",
-          ink: [
-            { type: "newline", n: 1 },
             {
-              type: "write",
-              text: "Axes:  x || downslope,   y ⊥ ramp",
-              color: "orange",
-              size: "md",
+              "dir": "normal",
+              "label": "N"
             },
-          ],
-        },
-        {
-          say: "Tilting our axes ensures the normal force and acceleration lie along single coordinate directions.",
-          ink: [],
-        },
-      ],
-      beats: [
-        {
-          type: "write",
-          text: "Given: Mass m,  Static friction coefficient μ_s",
-          color: "yellow",
-          size: "md",
-          say: "We are given a block of mass m and a static friction coefficient mu s.",
-        },
-        { type: "newline", n: 1 },
-        {
-          type: "write",
-          text: "Axes:  x || downslope,   y ⊥ ramp",
-          color: "orange",
-          size: "md",
-          say: "We tilt our coordinate system so the x-axis points down along the ramp and the y-axis is perpendicular to the surface.",
-        },
-      ],
-    },
-    {
-      chapter: "Constructing the Free-Body Diagram",
-      narration:
-        "Whenever you solve an inclined plane problem in mechanics, the single most important step is constructing an accurate free-body diagram to identify every force acting on the block. Three forces act on our block: gravity mg acting vertically downward, the normal force N pointing perpendicular out of the incline, and static friction f s opposing motion by pointing up the slope. Notice that gravity does not align with our tilted axes, so we must resolve it into perpendicular and parallel components.",
-      segments: [
-        {
-          say: "Whenever you solve an inclined plane problem in mechanics, the single most important step is constructing an accurate free-body diagram to identify every force acting on the block.",
-          ink: [],
-        },
-        {
-          say: "Three forces act on our block: gravity mg acting vertically downward, the normal force N pointing perpendicular out of the incline, and static friction f s opposing motion by pointing up the slope.",
-          ink: [
-            { type: "erase" },
             {
-              type: "freebody",
-              angle: 30,
-              block: "m",
-              forces: [
-                { label: "mg", dir: "down" },
-                { label: "N", dir: "normal" },
-                { label: "f_s", dir: "upslope" },
+              "dir": "upslope",
+              "label": "f_k"
+            },
+            {
+              "dir": "downslope",
+              "label": "mg sin30°"
+            }
+          ],
+          "say": "Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp."
+        },
+        {
+          "type": "point",
+          "ms": 1400,
+          "target": "text:m = 5 kg",
+          "say": "By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis."
+        }
+      ],
+      "segments": [
+        {
+          "say": "Imagine releasing a wooden block onto an icy ramp; gravity pulls it down while friction drags its heels.",
+          "ink": []
+        },
+        {
+          "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "GIVEN: m = 5 kg, θ = 30°",
+              "color": "blue",
+              "size": "md",
+              "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
+            },
+            {
+              "type": "write",
+              "text": "μ_k = 0.20, g = 9.8 m/s²",
+              "color": "blue",
+              "size": "md",
+              "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
+            },
+            {
+              "type": "write",
+              "text": "FIND: a down slope",
+              "color": "blue",
+              "size": "md",
+              "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
+            }
+          ]
+        },
+        {
+          "say": "Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp.",
+          "ink": [
+            {
+              "type": "freebody",
+              "angle": 30,
+              "color": "yellow",
+              "block": "5 kg",
+              "forces": [
+                {
+                  "dir": "down",
+                  "label": "mg"
+                },
+                {
+                  "dir": "normal",
+                  "label": "N"
+                },
+                {
+                  "dir": "upslope",
+                  "label": "f_k"
+                },
+                {
+                  "dir": "downslope",
+                  "label": "mg sin30°"
+                }
               ],
-              color: "yellow",
-            },
-          ],
+              "say": "Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp."
+            }
+          ]
         },
         {
-          say: "Notice that gravity does not align with our tilted axes, so we must resolve it into perpendicular and parallel components.",
-          ink: [
+          "say": "By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis.",
+          "ink": [
             {
-              type: "point",
-              target: "last",
-              ms: 1500,
-            },
-          ],
-        },
+              "type": "point",
+              "ms": 1400,
+              "target": "text:m = 5 kg",
+              "say": "By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis."
+            }
+          ]
+        }
       ],
-      beats: [
-        { type: "erase" },
-        {
-          type: "freebody",
-          angle: 30,
-          block: "m",
-          forces: [
-            { label: "mg", dir: "down" },
-            { label: "N", dir: "normal" },
-            { label: "f_s", dir: "upslope" },
-          ],
-          color: "yellow",
-          say: "Three forces act on our block: gravity mg acting vertically downward, the normal force N pointing perpendicular out of the incline, and static friction f s opposing motion by pointing up the slope.",
-        },
-        {
-          type: "point",
-          target: "last",
-          ms: 1500,
-        },
-      ],
+      "intro": false,
+      "audio": {
+        "key": "1dc406af9c05347e106efb9956e1cf069b77d32bf4da34fd8333aa5e15b16206",
+        "narration": "Imagine releasing a wooden block onto an icy ramp; gravity pulls it down while friction drags its heels. Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero. Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp. By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis.",
+        "dur": 39.143,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 7.367
+          },
+          {
+            "i": 1,
+            "t0": 7.717,
+            "t1": 14.925
+          },
+          {
+            "i": 2,
+            "t0": 18.925,
+            "t1": 27.772
+          },
+          {
+            "i": 3,
+            "t0": 31.772,
+            "t1": 39.143
+          }
+        ]
+      }
     },
     {
-      chapter: "Resolving Gravity into Components",
-      narration:
-        "Let us break the gravitational force mg into its two components relative to the incline. By similar triangles with the ramp angle theta, the component acting perpendicular into the incline is mg cosine theta, while the component pulling the block down along the ramp is mg sine theta. The perpendicular component pushing the block into the ramp is mg cosine theta. The downslope component pulling the block downhill is mg sine theta. As the tilt angle increases, the downslope pull mg sine theta increases, while the normal clamping force decreases.",
-      segments: [
+      "chapter": "Governing Equations",
+      "narration": "Why do we tilt the coordinate system instead of using standard horizontal and vertical axes? Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis. Along y, perpendicular to the ramp, the forces perfectly balance out to zero. Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force.",
+      "beats": [
         {
-          say: "Let us break the gravitational force mg into its two components relative to the incline. By similar triangles with the ramp angle theta, the component acting perpendicular into the incline is mg cosine theta, while the component pulling the block down along the ramp is mg sine theta.",
-          ink: [],
+          "type": "erase",
+          "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
         },
         {
-          say: "The perpendicular component pushing the block into the ramp is mg cosine theta.",
-          ink: [
-            { type: "erase" },
-            {
-              type: "write",
-              text: "mg_⊥ = mg·cosθ   (Normal clamping)",
-              color: "white",
-              size: "md",
-            },
-          ],
+          "type": "write",
+          "text": "Tilted Axes: x down slope, y normal",
+          "color": "yellow",
+          "size": "md",
+          "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
         },
         {
-          say: "The downslope component pulling the block downhill is mg sine theta.",
-          ink: [
-            { type: "newline", n: 1 },
-            {
-              type: "write",
-              text: "mg_|| = mg·sinθ   (Downhill driving)",
-              color: "orange",
-              size: "md",
-            },
-          ],
+          "type": "write",
+          "text": "F_y = N − m·g·cosθ = 0",
+          "color": "white",
+          "size": "md",
+          "say": "Along y, perpendicular to the ramp, the forces perfectly balance out to zero."
         },
         {
-          say: "As the tilt angle increases, the downslope pull mg sine theta increases, while the normal clamping force decreases.",
-          ink: [
-            {
-              type: "point",
-              target: "text:mg·sinθ",
-              ms: 1500,
-            },
-          ],
+          "type": "write",
+          "text": "Fₓ = m·a",
+          "color": "yellow",
+          "size": "md",
+          "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
         },
+        {
+          "type": "write",
+          "text": "f_k = μ_k · N",
+          "color": "yellow",
+          "size": "md",
+          "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+        },
+        {
+          "type": "point",
+          "ms": 1200,
+          "target": "text:Fₓ = m·a",
+          "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+        }
       ],
-      beats: [
-        { type: "erase" },
+      "segments": [
         {
-          type: "write",
-          text: "mg_⊥ = mg·cosθ   (Normal clamping)",
-          color: "white",
-          size: "md",
-          say: "The perpendicular component pushing the block into the ramp is mg cosine theta.",
-        },
-        { type: "newline", n: 1 },
-        {
-          type: "write",
-          text: "mg_|| = mg·sinθ   (Downhill driving)",
-          color: "orange",
-          size: "md",
-          say: "The downslope component pulling the block downhill is mg sine theta.",
+          "say": "Why do we tilt the coordinate system instead of using standard horizontal and vertical axes?",
+          "ink": []
         },
         {
-          type: "point",
-          target: "text:mg·sinθ",
-          ms: 1500,
+          "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
+            },
+            {
+              "type": "write",
+              "text": "Tilted Axes: x down slope, y normal",
+              "color": "yellow",
+              "size": "md",
+              "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
+            }
+          ]
         },
+        {
+          "say": "Along y, perpendicular to the ramp, the forces perfectly balance out to zero.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "F_y = N − m·g·cosθ = 0",
+              "color": "white",
+              "size": "md",
+              "say": "Along y, perpendicular to the ramp, the forces perfectly balance out to zero."
+            }
+          ]
+        },
+        {
+          "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "Fₓ = m·a",
+              "color": "yellow",
+              "size": "md",
+              "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+            },
+            {
+              "type": "write",
+              "text": "f_k = μ_k · N",
+              "color": "yellow",
+              "size": "md",
+              "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+            },
+            {
+              "type": "point",
+              "ms": 1200,
+              "target": "text:Fₓ = m·a",
+              "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+            }
+          ]
+        }
       ],
+      "intro": false,
+      "audio": {
+        "key": "c772ada9e9bb8f14e7e99b376432619278214cf5bac4b0c52b519250ac49fcfd",
+        "narration": "Why do we tilt the coordinate system instead of using standard horizontal and vertical axes? Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis. Along y, perpendicular to the ramp, the forces perfectly balance out to zero. Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force.",
+        "dur": 34.903,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 5.487
+          },
+          {
+            "i": 1,
+            "t0": 5.837,
+            "t1": 12.008
+          },
+          {
+            "i": 2,
+            "t0": 16.008,
+            "t1": 21.736
+          },
+          {
+            "i": 3,
+            "t0": 25.736,
+            "t1": 34.903
+          }
+        ]
+      }
     },
     {
-      chapter: "Equilibrium Equations in Perpendicular & Downslope Directions",
-      narration:
-        "Right before the block begins to slip, the system is in static equilibrium, so Newton's second law requires the sum of forces to equal zero in both coordinate directions. In the y direction, the normal force N minus mg cosine theta equals zero, so N equals mg cosine theta. In the x direction, the downhill pull mg sine theta minus static friction f s equals zero, so f s equals mg sine theta. The static friction force adjusts itself to exactly match the downhill pull, up to its maximum threshold.",
-      segments: [
+      "chapter": "Normal Force Calculation",
+      "narration": "Before calculating downhill forces, we have to determine how hard the surface presses back against the block. Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp. Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees. Pause here: what does that make our friction force? Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty.",
+      "beats": [
         {
-          say: "Right before the block begins to slip, the system is in static equilibrium, so Newton's second law requires the sum of forces to equal zero in both coordinate directions.",
-          ink: [],
+          "type": "erase",
+          "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
         },
         {
-          say: "In the y direction, the normal force N minus mg cosine theta equals zero, so N equals mg cosine theta.",
-          ink: [
-            { type: "erase" },
-            {
-              type: "write",
-              text: "Σ F_y = 0  →  N = mg·cosθ",
-              color: "yellow",
-              size: "md",
-            },
-          ],
+          "type": "write",
+          "text": "Wₓ = m g sin(30°)",
+          "color": "orange",
+          "size": "md",
+          "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
         },
         {
-          say: "In the x direction, the downhill pull mg sine theta minus static friction f s equals zero, so f s equals mg sine theta.",
-          ink: [
-            { type: "newline", n: 1 },
-            {
-              type: "write",
-              text: "Σ F_x = 0  →  f_s = mg·sinθ",
-              color: "white",
-              size: "md",
-            },
-          ],
+          "type": "write",
+          "text": "W_y = m g cos(30°)",
+          "color": "orange",
+          "size": "md",
+          "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
         },
         {
-          say: "The static friction force adjusts itself to exactly match the downhill pull, up to its maximum threshold.",
-          ink: [
-            {
-              type: "point",
-              target: "text:f_s = mg·sinθ",
-              ms: 1400,
-            },
-          ],
+          "type": "write",
+          "text": "F_y = N − m g cos(30°) = 0",
+          "color": "white",
+          "size": "md",
+          "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
         },
+        {
+          "type": "write",
+          "text": "N = m g cos(30°)",
+          "color": "green",
+          "size": "md",
+          "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
+        },
+        {
+          "type": "write",
+          "text": "Your turn: what is f_k?",
+          "color": "yellow",
+          "size": "md",
+          "say": "Pause here: what does that make our friction force?"
+        },
+        {
+          "type": "write",
+          "text": "f_k = μ_k N",
+          "color": "white",
+          "size": "md",
+          "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
+        },
+        {
+          "type": "point",
+          "ms": 1400,
+          "target": "text:N = m g cos(30°)",
+          "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
+        }
       ],
-      beats: [
-        { type: "erase" },
+      "segments": [
         {
-          type: "write",
-          text: "Σ F_y = 0  →  N = mg·cosθ",
-          color: "yellow",
-          size: "md",
-          say: "In the y direction, the normal force N minus mg cosine theta equals zero, so N equals mg cosine theta.",
-        },
-        { type: "newline", n: 1 },
-        {
-          type: "write",
-          text: "Σ F_x = 0  →  f_s = mg·sinθ",
-          color: "white",
-          size: "md",
-          say: "In the x direction, the downhill pull mg sine theta minus static friction f s equals zero, so f s equals mg sine theta.",
+          "say": "Before calculating downhill forces, we have to determine how hard the surface presses back against the block.",
+          "ink": []
         },
         {
-          type: "point",
-          target: "text:f_s = mg·sinθ",
-          ms: 1400,
+          "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
+            },
+            {
+              "type": "write",
+              "text": "Wₓ = m g sin(30°)",
+              "color": "orange",
+              "size": "md",
+              "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
+            },
+            {
+              "type": "write",
+              "text": "W_y = m g cos(30°)",
+              "color": "orange",
+              "size": "md",
+              "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
+            }
+          ]
         },
+        {
+          "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "F_y = N − m g cos(30°) = 0",
+              "color": "white",
+              "size": "md",
+              "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
+            },
+            {
+              "type": "write",
+              "text": "N = m g cos(30°)",
+              "color": "green",
+              "size": "md",
+              "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
+            }
+          ]
+        },
+        {
+          "say": "Pause here: what does that make our friction force?",
+          "ink": [
+            {
+              "type": "write",
+              "text": "Your turn: what is f_k?",
+              "color": "yellow",
+              "size": "md",
+              "say": "Pause here: what does that make our friction force?"
+            }
+          ]
+        },
+        {
+          "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "f_k = μ_k N",
+              "color": "white",
+              "size": "md",
+              "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
+            },
+            {
+              "type": "point",
+              "ms": 1400,
+              "target": "text:N = m g cos(30°)",
+              "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
+            }
+          ]
+        }
       ],
+      "intro": false,
+      "audio": {
+        "key": "70644d616af8089395966d2c066dd2d9d6897bcf7eef323943735e45fac35d5d",
+        "narration": "Before calculating downhill forces, we have to determine how hard the surface presses back against the block. Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp. Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees. Pause here: what does that make our friction force? Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty.",
+        "dur": 44.892,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 7.007
+          },
+          {
+            "i": 1,
+            "t0": 7.357,
+            "t1": 14.765
+          },
+          {
+            "i": 2,
+            "t0": 18.765,
+            "t1": 25.805
+          },
+          {
+            "i": 3,
+            "t0": 29.805,
+            "t1": 33.012
+          },
+          {
+            "i": 4,
+            "t0": 37.012,
+            "t1": 44.892
+          }
+        ]
+      }
     },
     {
-      chapter: "Applying Coulomb Friction & Solving for θ_c",
-      narration:
-        "At the verge of impending slip, the static friction reaches its absolute maximum possible value, given by Coulomb's law: f s max equals mu s times the normal force N. At the critical slipping threshold, static friction equals mu s times the normal force N. Substituting our equilibrium expressions gives mg sine theta c equals mu s times mg cosine theta c. Dividing both sides by mg cosine theta c, the mass m and gravity g cancel completely, leaving tangent theta c equals mu s. And there is our final critical angle equation: tangent of theta c equals mu s.",
-      segments: [
+      "chapter": "Equation of Motion for Acceleration",
+      "narration": "Now we can assemble the net force along the ramp and watch what happens to our mass. Downhill gravity minus opposing friction equals total mass times acceleration. Substitute our friction expression, and notice that every single term carries the mass m. Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!",
+      "beats": [
         {
-          say: "At the verge of impending slip, the static friction reaches its absolute maximum possible value, given by Coulomb's law: f s max equals mu s times the normal force N.",
-          ink: [],
+          "type": "erase",
+          "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
         },
         {
-          say: "At the critical slipping threshold, static friction equals mu s times the normal force N.",
-          ink: [
-            { type: "erase" },
-            {
-              type: "write",
-              text: "At slip threshold:  f_{s,max} = μ_s · N",
-              color: "orange",
-              size: "sm",
-            },
-          ],
+          "type": "write",
+          "text": "m g sin(30°) − f_{k} = m a",
+          "color": "white",
+          "size": "md",
+          "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
         },
         {
-          say: "Substituting our equilibrium expressions gives mg sine theta c equals mu s times mg cosine theta c.",
-          ink: [
-            { type: "newline", n: 1 },
-            {
-              type: "write",
-              text: "mg·sinθ_c = μ_s · (mg·cosθ_c)",
-              color: "white",
-              size: "md",
-            },
-          ],
+          "type": "write",
+          "text": "m g sin(30°) − μ_{k} m g cos(30°) = m a",
+          "color": "orange",
+          "size": "md",
+          "say": "Substitute our friction expression, and notice that every single term carries the mass m."
         },
         {
-          say: "Dividing both sides by mg cosine theta c, the mass m and gravity g cancel completely, leaving tangent theta c equals mu s.",
-          pauseAfter: 2.0,
-          ink: [
-            { type: "newline", n: 2 },
-            {
-              type: "write",
-              text: "tan(θ_c) = μ_s",
-              color: "green",
-              size: "lg",
-              keep: true,
-            },
-            {
-              type: "box",
-              target: "text:tan(θ_c) = μ_s",
-              color: "yellow",
-            },
-          ],
+          "type": "write",
+          "text": "a = g (sin(30°) − μ_{k} cos(30°))",
+          "color": "green",
+          "size": "md",
+          "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
         },
         {
-          say: "And there is our final critical angle equation: tangent of theta c equals mu s.",
-          ink: [],
-        },
+          "type": "point",
+          "ms": 1400,
+          "target": "text:a = g (sin(30°) − μ_{k} cos(30°))",
+          "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
+        }
       ],
-      beats: [
-        { type: "erase" },
+      "segments": [
         {
-          type: "write",
-          text: "At slip threshold:  f_{s,max} = μ_s · N",
-          color: "orange",
-          size: "sm",
-          say: "At the critical slipping threshold, static friction equals mu s times the normal force N.",
-        },
-        { type: "newline", n: 1 },
-        {
-          type: "write",
-          text: "mg·sinθ_c = μ_s · (mg·cosθ_c)",
-          color: "white",
-          size: "md",
-          say: "Substituting our equilibrium expressions gives mg sine theta c equals mu s times mg cosine theta c.",
-        },
-        { type: "newline", n: 2 },
-        {
-          type: "write",
-          text: "tan(θ_c) = μ_s",
-          color: "green",
-          size: "lg",
-          keep: true,
-          say: "Dividing both sides by mg cosine theta c, the mass m and gravity g cancel completely, leaving tangent theta c equals mu s.",
+          "say": "Now we can assemble the net force along the ramp and watch what happens to our mass.",
+          "ink": []
         },
         {
-          type: "box",
-          target: "text:tan(θ_c) = μ_s",
-          color: "yellow",
+          "say": "Downhill gravity minus opposing friction equals total mass times acceleration.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
+            },
+            {
+              "type": "write",
+              "text": "m g sin(30°) − f_{k} = m a",
+              "color": "white",
+              "size": "md",
+              "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
+            }
+          ]
         },
+        {
+          "say": "Substitute our friction expression, and notice that every single term carries the mass m.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "m g sin(30°) − μ_{k} m g cos(30°) = m a",
+              "color": "orange",
+              "size": "md",
+              "say": "Substitute our friction expression, and notice that every single term carries the mass m."
+            }
+          ]
+        },
+        {
+          "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!",
+          "ink": [
+            {
+              "type": "write",
+              "text": "a = g (sin(30°) − μ_{k} cos(30°))",
+              "color": "green",
+              "size": "md",
+              "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
+            },
+            {
+              "type": "point",
+              "ms": 1400,
+              "target": "text:a = g (sin(30°) − μ_{k} cos(30°))",
+              "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
+            }
+          ]
+        }
       ],
+      "intro": false,
+      "audio": {
+        "key": "7352b0e0c951eef8d3ea44a4cd463267abc362227f3b10625ed3c81b2f7866bb",
+        "narration": "Now we can assemble the net force along the ramp and watch what happens to our mass. Downhill gravity minus opposing friction equals total mass times acceleration. Substitute our friction expression, and notice that every single term carries the mass m. Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!",
+        "dur": 35.448,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 5.567
+          },
+          {
+            "i": 1,
+            "t0": 5.917,
+            "t1": 12.877
+          },
+          {
+            "i": 2,
+            "t0": 16.877,
+            "t1": 23.077
+          },
+          {
+            "i": 3,
+            "t0": 27.077,
+            "t1": 35.448
+          }
+        ]
+      }
     },
     {
-      chapter: "Physical Interpretation & Laboratory Significance",
-      narration:
-        "Let us reflect on why this result is so physically remarkable. Notice that the mass of the block m and the acceleration of gravity g both cancelled out completely. Whether you test a small wooden block or a massive concrete slab, on Earth or on the Moon, slipping begins at the exact same angle: theta c equals arctan of mu s. The critical angle theta c is simply the inverse tangent of mu s, completely independent of the mass or gravity. For instance, with a friction coefficient of zero point five seven seven, the critical angle is exactly thirty degrees. This provides one of the simplest laboratory methods to measure coefficients of static friction.",
-      segments: [
+      "chapter": "Final Answer & Verification",
+      "narration": "All that remains is feeding in our numbers to find our final downhill acceleration. Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six. Multiplying through gives nine point eight times zero point three two six eight. Our final acceleration is three point two zero meters per second squared. A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense.",
+      "beats": [
         {
-          say: "Let us reflect on why this result is so physically remarkable. Notice that the mass of the block m and the acceleration of gravity g both cancelled out completely. Whether you test a small wooden block or a massive concrete slab, on Earth or on the Moon, slipping begins at the exact same angle: theta c equals arctan of mu s.",
-          ink: [],
+          "type": "erase",
+          "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
         },
         {
-          say: "The critical angle theta c is simply the inverse tangent of mu s, completely independent of the mass or gravity.",
-          ink: [
-            { type: "erase", keep: ["tan(θ_c) = μ_s"] },
-            {
-              type: "write",
-              text: "θ_c = arctan(μ_s)   (Independent of mass m and g!)",
-              color: "yellow",
-              size: "sm",
-            },
-          ],
+          "type": "write",
+          "text": "a = 9.8 (0.50 - 0.20 · 0.866)",
+          "color": "white",
+          "size": "md",
+          "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
         },
         {
-          say: "For instance, with a friction coefficient of zero point five seven seven, the critical angle is exactly thirty degrees.",
-          ink: [
-            { type: "newline", n: 1 },
-            {
-              type: "write",
-              text: "Example: μ_s = 0.577  →  θ_c = 30° ✓",
-              color: "green",
-              size: "md",
-            },
-            {
-              type: "point",
-              target: "text:θ_c = 30° ✓",
-              ms: 1500,
-            },
-          ],
+          "type": "write",
+          "text": "= 9.8 (0.3268)",
+          "color": "white",
+          "size": "md",
+          "say": "Multiplying through gives nine point eight times zero point three two six eight."
         },
         {
-          say: "This provides one of the simplest laboratory methods to measure coefficients of static friction.",
-          ink: [],
+          "type": "write",
+          "text": "a = 3.20 m/s²",
+          "color": "green",
+          "size": "lg",
+          "say": "Our final acceleration is three point two zero meters per second squared.",
+          "keep": true
         },
+        {
+          "type": "box",
+          "color": "yellow",
+          "say": "Our final acceleration is three point two zero meters per second squared."
+        },
+        {
+          "type": "point",
+          "ms": 1400,
+          "target": "text:a = 3.20 m/s²",
+          "say": "A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense."
+        }
       ],
-      beats: [
-        { type: "erase", keep: ["tan(θ_c) = μ_s"] },
+      "segments": [
         {
-          type: "write",
-          text: "θ_c = arctan(μ_s)   (Independent of mass m and g!)",
-          color: "yellow",
-          size: "sm",
-          say: "The critical angle theta c is simply the inverse tangent of mu s, completely independent of the mass or gravity.",
-        },
-        { type: "newline", n: 1 },
-        {
-          type: "write",
-          text: "Example: μ_s = 0.577  →  θ_c = 30° ✓",
-          color: "green",
-          size: "md",
-          say: "For instance, with a friction coefficient of zero point five seven seven, the critical angle is exactly thirty degrees.",
+          "say": "All that remains is feeding in our numbers to find our final downhill acceleration.",
+          "ink": []
         },
         {
-          type: "point",
-          target: "text:θ_c = 30° ✓",
-          ms: 1500,
+          "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
+            },
+            {
+              "type": "write",
+              "text": "a = 9.8 (0.50 - 0.20 · 0.866)",
+              "color": "white",
+              "size": "md",
+              "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
+            }
+          ]
         },
+        {
+          "say": "Multiplying through gives nine point eight times zero point three two six eight.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "= 9.8 (0.3268)",
+              "color": "white",
+              "size": "md",
+              "say": "Multiplying through gives nine point eight times zero point three two six eight."
+            }
+          ]
+        },
+        {
+          "say": "Our final acceleration is three point two zero meters per second squared.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "a = 3.20 m/s²",
+              "color": "green",
+              "size": "lg",
+              "say": "Our final acceleration is three point two zero meters per second squared.",
+              "keep": true
+            },
+            {
+              "type": "box",
+              "color": "yellow",
+              "say": "Our final acceleration is three point two zero meters per second squared."
+            }
+          ],
+          "pauseAfter": 2
+        },
+        {
+          "say": "A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense.",
+          "ink": [
+            {
+              "type": "point",
+              "ms": 1400,
+              "target": "text:a = 3.20 m/s²",
+              "say": "A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense."
+            }
+          ]
+        }
       ],
-    },
-  ],
+      "intro": false,
+      "audio": {
+        "key": "0932f6c094fa279b597f9c6c953f57cd3a6ce8e27ebc9e0f11ea644e8c1c3108",
+        "narration": "All that remains is feeding in our numbers to find our final downhill acceleration. Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six. Multiplying through gives nine point eight times zero point three two six eight. Our final acceleration is three point two zero meters per second squared. A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense.",
+        "dur": 43.688,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 5.251
+          },
+          {
+            "i": 1,
+            "t0": 5.601,
+            "t1": 12.048
+          },
+          {
+            "i": 2,
+            "t0": 16.048,
+            "t1": 22.168
+          },
+          {
+            "i": 3,
+            "t0": 26.168,
+            "t1": 31.488
+          },
+          {
+            "i": 4,
+            "t0": 35.488,
+            "t1": 43.688
+          }
+        ]
+      }
+    }
+  ]
 };
 
 /** The curated showcase lesson list for demos and judge review */
 export const SAMPLE_LESSONS: SolveScript[] = [
+  SAMPLE_INCLINED_PLANE,
   SAMPLE_GAUSSIAN_INTEGRAL,
 ];
 
