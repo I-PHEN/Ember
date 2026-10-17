@@ -135,7 +135,7 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     }
   });
 
-  test("4. PCM Silence Audit Gate: stitched WAV files have digital silence (RMS < 0.001) across every inter-segment gap", () => {
+  test("4. PCM Silence & C2PA-Free Audit Gate: stitched WAV files have zero C2PA/inner-RIFF static and digital silence (RMS < 0.001) across every gap", () => {
     const cacheDir = path.join(process.cwd(), "public", "audio", "cache");
 
     for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
@@ -150,7 +150,15 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
 
         const wav = fs.readFileSync(wavPath);
         expect(wav.subarray(0, 4).toString("ascii")).toBe("RIFF");
+        expect(wav.includes(Buffer.from("C2PA"))).toBe(false);
+        expect(wav.includes(Buffer.from("jumb"))).toBe(false);
+        expect(wav.subarray(WAV_HEADER_BYTES).includes(Buffer.from("RIFF"))).toBe(false);
         const pcm = wav.subarray(WAV_HEADER_BYTES);
+
+        for (let i = 0; i < cues!.length; i++) {
+          const tailRms = rmsInWindow(pcm, Math.max(cues![i].t0, cues![i].t1 - 0.025), cues![i].t1);
+          expect(tailRms).toBeLessThan(0.05);
+        }
 
         for (let i = 0; i + 1 < cues!.length; i++) {
           const gapStart = cues![i].t1;

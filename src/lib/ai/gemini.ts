@@ -121,15 +121,75 @@ export async function geminiChat(
 }
 
 const TTS_FALLBACKS = [
-  TTS_MODEL,
-  "gemini-3.8-flash-lite-tts",
-  "gemini-2.5-flash-preview-tts",
-  "gemini-3.8-flash-tts",
   "gemini-3.1-flash-tts-preview",
+  TTS_MODEL,
+  "gemini-2.5-flash-preview-tts",
+  "gemini-3.8-flash-lite-tts",
+  "gemini-3.8-flash-tts",
 ];
 
-/** Gemini TTS → a WAV buffer (PCM is returned as base64 L16 mono; we
- *  wrap it with a RIFF header so the player keeps eating audio/wav). */
+/**
+ * Unwrap raw signed 16-bit LE mono PCM from a buffer that may be raw PCM
+ * or a full/nested RIFF WAVE container with trailing metadata chunks (e.g.
+ * Gemini 3.1 TTS attaches a 6,070-byte C2PA JUMBF watermark chunk after
+ * the `data` chunk, which plays as a loud 126ms static burst if not stripped).
+ */
+export function extractWavPcm(buf: Buffer): Buffer {
+  let cur = buf;
+  for (let depth = 0; depth < 3; depth++) {
+    if (
+      cur.length >= 44 &&
+      cur.subarray(0, 4).toString("ascii") === "RIFF" &&
+      cur.subarray(8, 12).toString("ascii") === "WAVE"
+    ) {
+      let offset = 12;
+      let foundData: Buffer | null = null;
+      while (offset + 8 <= cur.length) {
+        const chunkId = cur.subarray(offset, offset + 4).toString("ascii");
+        const chunkSize = cur.readUInt32LE(offset + 4);
+        if (chunkId === "data") {
+          const end = Math.min(cur.length, offset + 8 + chunkSize);
+          foundData = cur.subarray(offset + 8, end);
+          break;
+        }
+        offset += 8 + chunkSize + (chunkSize % 2);
+      }
+      if (foundData) {
+        cur = foundData;
+        continue;
+      }
+      cur = cur.subarray(44);
+    }
+    break;
+  }
+
+  // Defensive check: if any raw C2PA watermark trailer survived at the tail, strip it
+  const c2paIdx = cur.indexOf("C2PA", Math.max(0, cur.length - 8192), "ascii");
+  if (c2paIdx > 0) {
+    cur = cur.subarray(0, c2paIdx);
+  }
+
+  const evenLen = cur.length & ~1;
+  const out = Buffer.from(cur.subarray(0, evenLen));
+
+  // Smooth 10ms fade-in (240 samples) and 15ms fade-out (360 samples) to eliminate boundary clicks
+  const totalSamples = out.length >> 1;
+  const fadeIn = Math.min(240, Math.floor(totalSamples / 4));
+  const fadeOut = Math.min(360, Math.floor(totalSamples / 4));
+  for (let i = 0; i < fadeIn; i++) {
+    const s = out.readInt16LE(i * 2);
+    out.writeInt16LE(Math.round((s * i) / fadeIn), i * 2);
+  }
+  for (let i = 0; i < fadeOut; i++) {
+    const idx = (totalSamples - 1 - i) * 2;
+    const s = out.readInt16LE(idx);
+    out.writeInt16LE(Math.round((s * i) / fadeOut), idx);
+  }
+  return out;
+}
+
+/** Gemini TTS → a WAV buffer (PCM is extracted cleanly without C2PA trailers
+ *  and wrapped with a standard 44-byte RIFF header). */
 export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
   const models = [...new Set(TTS_FALLBACKS)];
   let lastError: unknown = null;
@@ -150,9 +210,11 @@ export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
         | undefined;
       const b64 = cand?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (!b64) throw new Error("tts returned no audio");
-      const pcm = Buffer.from(b64, "base64");
-      if (!pcm.length) throw new Error("empty audio");
-      return pcmToWav(pcm, 24000);
+      const rawBytes = Buffer.from(b64, "base64");
+      if (!rawBytes.length) throw new Error("empty audio");
+      const cleanPcm = extractWavPcm(rawBytes);
+      if (!cleanPcm.length) throw new Error("empty pcm after extraction");
+      return pcmToWav(cleanPcm, 24000);
     } catch (err) {
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);
@@ -174,11 +236,17 @@ export function pcmToWav(
   channels = 1,
   bits = 16
 ): Buffer {
+  const clean =
+    pcm.length >= 44 &&
+    pcm.subarray(0, 4).toString("ascii") === "RIFF" &&
+    pcm.subarray(8, 12).toString("ascii") === "WAVE"
+      ? extractWavPcm(pcm)
+      : pcm;
   const blockAlign = (channels * bits) / 8;
   const byteRate = sampleRate * blockAlign;
   const header = Buffer.alloc(44);
   header.write("RIFF", 0);
-  header.writeUInt32LE(36 + pcm.length, 4);
+  header.writeUInt32LE(36 + clean.length, 4);
   header.write("WAVE", 8);
   header.write("fmt ", 12);
   header.writeUInt32LE(16, 16);
@@ -189,6 +257,6 @@ export function pcmToWav(
   header.writeUInt16LE(blockAlign, 32);
   header.writeUInt16LE(bits, 34);
   header.write("data", 36);
-  header.writeUInt32LE(pcm.length, 40);
-  return Buffer.concat([header, pcm]);
+  header.writeUInt32LE(clean.length, 40);
+  return Buffer.concat([header, clean]);
 }

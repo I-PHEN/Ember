@@ -20,21 +20,42 @@ export function silenceSec(sec: number): Buffer {
   return Buffer.alloc(Math.max(0, Math.round(sec * SAMPLE_RATE * 2)));
 }
 
-/** scale a segment's peak toward targetPeak so independently synthesized
- *  sentences sit at one loudness — prevents audible splices */
+/** scale a segment's active speech RMS (with soft-knee peak limiting) so
+ *  independently synthesized sentences sit at one uniform vocal loudness */
 export function loudnessNormalize(pcm: Buffer, targetPeak = 26000): Buffer {
   let peak = 0;
+  let activeSumSq = 0;
+  let activeCnt = 0;
   for (let i = 0; i + 1 < pcm.length; i += 2) {
     const v = Math.abs(pcm.readInt16LE(i));
     if (v > peak) peak = v;
+    if (v > 300) {
+      activeSumSq += v * v;
+      activeCnt++;
+    }
   }
   if (peak < 100) return pcm; // silence — nothing to normalize
-  const scale = Math.min(4.0, Math.max(0.25, targetPeak / peak));
-  if (Math.abs(scale - 1) < 0.02) return pcm;
+
+  const targetActiveRms = 4400;
+  const rawScale =
+    activeCnt >= 100
+      ? targetActiveRms / Math.sqrt(activeSumSq / activeCnt)
+      : targetPeak / peak;
+  const scale = Math.min(4.0, Math.max(0.25, rawScale));
+  if (Math.abs(scale - 1) < 0.02 && peak * scale <= 29000) return pcm;
+
   const out = Buffer.alloc(pcm.length);
   for (let i = 0; i + 1 < pcm.length; i += 2) {
-    const v = Math.round(pcm.readInt16LE(i) * scale);
-    out.writeInt16LE(Math.max(-32768, Math.min(32767, v)), i);
+    const raw = pcm.readInt16LE(i) * scale;
+    const abs = Math.abs(raw);
+    const limited =
+      abs <= 24000
+        ? raw
+        : Math.sign(raw) * (24000 + 6000 * Math.tanh((abs - 24000) / 6000));
+    out.writeInt16LE(
+      Math.max(-32768, Math.min(32767, Math.round(limited))),
+      i
+    );
   }
   return out;
 }

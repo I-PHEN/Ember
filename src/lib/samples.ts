@@ -940,28 +940,27 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "intro": false,
       "audio": {
         "key": "1dc406af9c05347e106efb9956e1cf069b77d32bf4da34fd8333aa5e15b16206",
-        "narration": "Imagine releasing a wooden block onto an icy ramp; gravity pulls it down while friction drags its heels. Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero. Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp. By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis.",
-        "dur": 39.143,
+        "dur": 38.761,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 7.367
+            "t1": 7.24
           },
           {
             "i": 1,
-            "t0": 7.717,
-            "t1": 14.925
+            "t0": 7.59,
+            "t1": 14.67
           },
           {
             "i": 2,
-            "t0": 18.925,
-            "t1": 27.772
+            "t0": 18.67,
+            "t1": 27.39
           },
           {
             "i": 3,
-            "t0": 31.772,
-            "t1": 39.143
+            "t0": 31.39,
+            "t1": 38.761
           }
         ]
       }
@@ -1057,28 +1056,27 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "intro": false,
       "audio": {
         "key": "c772ada9e9bb8f14e7e99b376432619278214cf5bac4b0c52b519250ac49fcfd",
-        "narration": "Why do we tilt the coordinate system instead of using standard horizontal and vertical axes? Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis. Along y, perpendicular to the ramp, the forces perfectly balance out to zero. Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force.",
-        "dur": 34.903,
+        "dur": 34.521,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 5.487
+            "t1": 5.36
           },
           {
             "i": 1,
-            "t0": 5.837,
-            "t1": 12.008
+            "t0": 5.71,
+            "t1": 11.881
           },
           {
             "i": 2,
-            "t0": 16.008,
-            "t1": 21.736
+            "t0": 15.881,
+            "t1": 21.481
           },
           {
             "i": 3,
-            "t0": 25.736,
-            "t1": 34.903
+            "t0": 25.481,
+            "t1": 34.521
           }
         ]
       }
@@ -1193,33 +1191,32 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "intro": false,
       "audio": {
         "key": "70644d616af8089395966d2c066dd2d9d6897bcf7eef323943735e45fac35d5d",
-        "narration": "Before calculating downhill forces, we have to determine how hard the surface presses back against the block. Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp. Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees. Pause here: what does that make our friction force? Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty.",
-        "dur": 44.892,
+        "dur": 44.51,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 7.007
+            "t1": 6.88
           },
           {
             "i": 1,
-            "t0": 7.357,
-            "t1": 14.765
+            "t0": 7.23,
+            "t1": 14.51
           },
           {
             "i": 2,
-            "t0": 18.765,
-            "t1": 25.805
+            "t0": 18.51,
+            "t1": 25.55
           },
           {
             "i": 3,
-            "t0": 29.805,
-            "t1": 33.012
+            "t0": 29.55,
+            "t1": 32.63
           },
           {
             "i": 4,
-            "t0": 37.012,
-            "t1": 44.892
+            "t0": 36.63,
+            "t1": 44.51
           }
         ]
       }
@@ -1315,28 +1312,27 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "intro": false,
       "audio": {
         "key": "7352b0e0c951eef8d3ea44a4cd463267abc362227f3b10625ed3c81b2f7866bb",
-        "narration": "Now we can assemble the net force along the ramp and watch what happens to our mass. Downhill gravity minus opposing friction equals total mass times acceleration. Substitute our friction expression, and notice that every single term carries the mass m. Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!",
-        "dur": 35.448,
+        "dur": 35.321,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 5.567
+            "t1": 5.44
           },
           {
             "i": 1,
-            "t0": 5.917,
-            "t1": 12.877
+            "t0": 5.79,
+            "t1": 12.75
           },
           {
             "i": 2,
-            "t0": 16.877,
-            "t1": 23.077
+            "t0": 16.75,
+            "t1": 22.95
           },
           {
             "i": 3,
-            "t0": 27.077,
-            "t1": 35.448
+            "t0": 26.95,
+            "t1": 35.321
           }
         ]
       }
@@ -1450,8 +1446,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "intro": false,
       "audio": {
         "key": "0932f6c094fa279b597f9c6c953f57cd3a6ce8e27ebc9e0f11ea644e8c1c3108",
-        "narration": "All that remains is feeding in our numbers to find our final downhill acceleration. Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six. Multiplying through gives nine point eight times zero point three two six eight. Our final acceleration is three point two zero meters per second squared. A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense.",
-        "dur": 43.688,
+        "dur": 43.561,
         "segments": [
           {
             "i": 0,
@@ -1461,22 +1456,22 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           {
             "i": 1,
             "t0": 5.601,
-            "t1": 12.048
+            "t1": 11.921
           },
           {
             "i": 2,
-            "t0": 16.048,
-            "t1": 22.168
+            "t0": 15.921,
+            "t1": 22.041
           },
           {
             "i": 3,
-            "t0": 26.168,
-            "t1": 31.488
+            "t0": 26.041,
+            "t1": 31.361
           },
           {
             "i": 4,
-            "t0": 35.488,
-            "t1": 43.688
+            "t0": 35.361,
+            "t1": 43.561
           }
         ]
       }

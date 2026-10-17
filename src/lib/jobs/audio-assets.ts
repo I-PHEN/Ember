@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { normalizeVoice, TTS_MODEL } from "../ai/gemini";
+import { extractWavPcm, normalizeVoice, TTS_MODEL } from "../ai/gemini";
 import { normalizeSpokenMath } from "../ai/spoken-math";
 import { speak } from "../tts-queue";
 import {
@@ -27,7 +27,8 @@ function isRiffWav(buf: Buffer | null | undefined): buf is Buffer {
   return (
     !!buf &&
     buf.length >= 4 &&
-    buf.subarray(0, 4).toString("ascii") === "RIFF"
+    buf.subarray(0, 4).toString("ascii") === "RIFF" &&
+    !buf.includes(Buffer.from("C2PA"))
   );
 }
 
@@ -175,7 +176,7 @@ export async function ensureStitchedSceneAudio(
       const sKey = segmentAudioKey(seg.say, voice);
       const sWav = await store.readAudio(sKey);
       if (isRiffWav(sWav) && sWav.length > WAV_HEADER_BYTES) {
-        cachedPcms.push(sWav.subarray(WAV_HEADER_BYTES));
+        cachedPcms.push(extractWavPcm(sWav));
       } else {
         break;
       }
@@ -234,12 +235,7 @@ export async function ensureStitchedSceneAudio(
         cached: allCached,
       };
     }
-    const rawPcm = segWav.subarray(WAV_HEADER_BYTES);
-    // Ensure even byte length for Int16 PCM
-    const alignedPcm =
-      rawPcm.length % 2 === 0
-        ? rawPcm
-        : rawPcm.subarray(0, rawPcm.length - 1);
+    const alignedPcm = extractWavPcm(segWav);
     normPcms.push(loudnessNormalize(alignedPcm));
   }
 
