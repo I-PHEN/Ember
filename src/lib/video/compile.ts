@@ -2058,6 +2058,7 @@ function paceSceneToNarration(
       o1: number;
       n0: number;
       scale: number;
+      availEnd: number;
     }
     const map: MapEntry[] = [];
     let prevEnd = hasMeasuredCues ? 0 : sceneIdx === 0 ? 1.8 : 1.2;
@@ -2073,13 +2074,14 @@ function paceSceneToNarration(
         ? targetStart
         : Math.max(targetStart, si > 0 ? prevEnd + SAY_GAP : targetStart);
       let scale = 1.0;
-      if (hasMeasuredCues && si + 1 < segCount) {
-        const availEnd = segStarts[si + 1] - 0.02;
-        if (availEnd > n0 + 0.1 && n0 + oldDur > availEnd) {
-          scale = Math.max(0.25, (availEnd - n0) / oldDur);
-        }
+      const availEnd =
+        hasMeasuredCues && si + 1 < segCount
+          ? segStarts[si + 1] - 0.02
+          : Infinity;
+      if (hasMeasuredCues && availEnd > n0 + 0.1 && n0 + oldDur > availEnd) {
+        scale = Math.max(0.25, (availEnd - n0) / oldDur);
       }
-      map.push({ rawMin: raw[0], o0: old[0], o1: old[1], n0, scale });
+      map.push({ rawMin: raw[0], o0: old[0], o1: old[1], n0, scale, availEnd });
       prevEnd = n0 + oldDur * scale;
     }
     if (!map.length) return false;
@@ -2094,19 +2096,43 @@ function paceSceneToNarration(
       const e = map[0];
       return e.n0 + Math.max(0, t - e.o0) * e.scale;
     };
-    const mapScale = (t: number): number => {
+    const mapEntryFor = (t: number): MapEntry => {
       for (let i = map.length - 1; i >= 0; i--) {
-        if (t >= map[i].rawMin - 1e-6) return map[i].scale;
+        if (t >= map[i].rawMin - 1e-6) return map[i];
       }
-      return map[0].scale;
+      return map[0];
     };
 
     const origWriteEnd = scene.writeEnd;
+    const strokeEntries = scene.strokes.map((st) =>
+      st.t0 < HEAD - 1e-6 ? null : mapEntryFor(st.t0)
+    );
     for (const st of scene.strokes) {
       if (st.t0 < HEAD - 1e-6) continue; // preserve pre-mounted banner at t=0
-      const sc = mapScale(st.t0);
       st.t0 = mapTime(st.t0);
-      if (sc !== 1.0) st.dur = Math.max(0.03, st.dur * sc);
+    }
+    for (let idx = 0; idx < scene.strokes.length; idx++) {
+      const st = scene.strokes[idx];
+      const entry = strokeEntries[idx];
+      if (!entry) continue;
+      const nextSt = scene.strokes[idx + 1];
+      const segLimit = entry.availEnd - st.t0;
+      if (hasMeasuredCues && st.kind === "path" && st.len > 1.0) {
+        const slot =
+          nextSt && nextSt.t0 > st.t0
+            ? (nextSt.t0 - st.t0) * 0.82
+            : st.dur * 1.65;
+        st.dur = Math.max(
+          0.06,
+          Math.min(st.dur * 1.75, slot, segLimit)
+        );
+      } else if (entry.scale !== 1.0) {
+        const nextLimit =
+          nextSt && nextSt.t0 > st.t0
+            ? Math.max(st.dur * entry.scale, nextSt.t0 - st.t0 - 0.02)
+            : st.dur;
+        st.dur = Math.max(0.05, Math.min(st.dur, nextLimit, segLimit));
+      }
     }
     for (const g of groups) {
       for (const st of g.strokes) {
