@@ -17,7 +17,8 @@ export type StrokeTag =
   | "word-start"
   | "char-start"
   | "glyph-stroke"
-  | "ballistic-line";
+  | "ballistic-line"
+  | "deictic-point";
 
 export interface KinematicProfile {
   totalLength: number;
@@ -480,11 +481,14 @@ export function strokeProgressAt(s: PathStroke, rawP: number): number {
     const scaled = rawP * (n - 1);
     const idx = Math.floor(scaled);
     const frac = scaled - idx;
-    if (idx >= n - 1) return lut[n - 1];
-    return lut[idx] + (lut[idx + 1] - lut[idx]) * frac;
+    const lutVal =
+      idx >= n - 1 ? lut[n - 1] : lut[idx] + (lut[idx + 1] - lut[idx]) * frac;
+    // Constant-flow blend eliminates 2x mid-stroke whip while preserving natural turn deceleration
+    return 0.42 * rawP + 0.58 * lutVal;
   }
-  // Fallback to cubic smoothstep
-  return rawP * rawP * (3 - 2 * rawP);
+  // Fallback to blended cubic smoothstep
+  const smooth = rawP * rawP * (3 - 2 * rawP);
+  return 0.42 * rawP + 0.58 * smooth;
 }
 
 /**

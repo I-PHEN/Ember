@@ -694,6 +694,22 @@ function enforceFourBeatSegments(
     const { pauseAfter: _p, ...rest } = seg;
     return rest;
   });
+  // Phase 3 Deictic Pointing: any explanation-only segment after board ink exists gets a point beat
+  let hasPriorInk = false;
+  segs = segs.map((seg, si) => {
+    if (seg.ink && seg.ink.length > 0) {
+      hasPriorInk = true;
+      return seg;
+    }
+    if (si >= 1 && hasPriorInk && seg.pauseAfter === undefined) {
+      return {
+        ...seg,
+        mode: "point",
+        ink: [{ type: "point", target: "last", ms: 1800 }],
+      };
+    }
+    return seg;
+  });
   return segs;
 }
 

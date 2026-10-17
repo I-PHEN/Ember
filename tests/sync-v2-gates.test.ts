@@ -233,4 +233,32 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     expect(captionAtTime(sc0, 31.527 + CAPTION_TAIL_HOLD_SEC + 0.1)).toBeNull();
     expect(captionAtTime(sc0, 33.5)).toBeNull();
   });
+
+  test("7. 3-Phase Step Rhythm & Multi-Waypoint Deictic Pointer Gate: every scene emits term-to-term deictic waypoints with active point mode", async () => {
+    const { computePen } = await import("../src/lib/video/render");
+    const { THEMES, sceneStart } = await import("../src/lib/video/types");
+
+    for (const script of [SAMPLE_INCLINED_PLANE, SAMPLE_GAUSSIAN_INTEGRAL]) {
+      const tl = compileTimeline(script);
+      for (let si = 0; si < tl.scenes.length; si++) {
+        const sc = tl.scenes[si];
+        const scStart = sceneStart(tl, si);
+        for (const g of sc.groups) {
+          if (g.id === "banner") continue;
+          expect(g.waypoints).toBeDefined();
+          expect(g.waypoints!.length).toBeGreaterThanOrEqual(1);
+        }
+        const deicticStrokes = sc.strokes.filter(
+          (s) => s.kind === "path" && s.strokeTag === "deictic-point",
+        );
+        expect(deicticStrokes.length).toBeGreaterThanOrEqual(2);
+        for (const ds of deicticStrokes) {
+          if (ds.kind !== "path") continue;
+          const pen = computePen(tl, scStart + ds.t0 + ds.dur * 0.5, THEMES.blackboard);
+          expect(pen).not.toBeNull();
+          expect(pen!.mode).toBe("point");
+        }
+      }
+    }
+  });
 });

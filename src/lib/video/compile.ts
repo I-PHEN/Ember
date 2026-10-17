@@ -129,6 +129,55 @@ interface BeatMark {
   say?: string;
 }
 
+/** Extract 2–3 ordered sub-term or diagram-element anchor coordinates below a group
+ *  so deictic pointing glides from term to term across an equation or diagram. */
+function computeGroupWaypoints(strokes: Stroke[], bbox: BBox): Pt[] {
+  const paths = strokes.filter(
+    (s): s is PathStroke => s.kind === "path" && s.len >= 0.5 && s.pts.length >= 2
+  );
+  const defaultY = bbox.y + bbox.h + 15;
+  if (!paths.length || bbox.w < 110) {
+    return [{ x: bbox.x + bbox.w * 0.42, y: defaultY }];
+  }
+
+  // Diagrams (freebody, graph, table): extract up to 3 spatially distinct focal zones
+  if (bbox.h > 95) {
+    const zones = [0.25, 0.54, 0.78];
+    return zones.map((zf, idx) => ({
+      x: bbox.x + bbox.w * zf,
+      y: bbox.y + bbox.h * (idx === 1 ? 0.48 : 0.68),
+    }));
+  }
+
+  // Equation / text line: split horizontally into 2 or 3 sub-term clusters (e.g. LHS1, LHS2, RHS)
+  const numWaypoints = bbox.w >= 250 ? 3 : 2;
+  const sliceW = bbox.w / numWaypoints;
+  const waypoints: Pt[] = [];
+
+  for (let k = 0; k < numWaypoints; k++) {
+    const x0 = bbox.x + k * sliceW;
+    const x1 = x0 + sliceW;
+    let sumX = 0;
+    let maxY = bbox.y + bbox.h * 0.75;
+    let cnt = 0;
+    for (const st of paths) {
+      for (const pt of st.pts) {
+        if (pt.x >= x0 - 4 && pt.x <= x1 + 4) {
+          sumX += pt.x;
+          if (pt.y > maxY) maxY = pt.y;
+          cnt++;
+        }
+      }
+    }
+    const cx = cnt > 0 ? sumX / cnt : x0 + sliceW * 0.5;
+    waypoints.push({
+      x: Math.max(bbox.x + 12, Math.min(bbox.x + bbox.w - 12, cx)),
+      y: Math.min(bbox.y + bbox.h + 16, maxY + 14),
+    });
+  }
+  return waypoints;
+}
+
 function makeGroup(
   ctx: Ctx,
   strokes: Stroke[],
@@ -145,6 +194,7 @@ function makeGroup(
     strokes,
     bbox,
     born: strokes.length ? strokes[0].t0 : ctx.now,
+    waypoints: computeGroupWaypoints(strokes, bbox),
     anchor,
   };
   ctx.groups.push(g);
@@ -423,6 +473,9 @@ function reflowAfterErase(
         });
       }
       g.bbox = { ...g.bbox, x: g.bbox.x + dx, y: g.bbox.y + dy };
+      if (g.waypoints) {
+        g.waypoints = g.waypoints.map((wp) => ({ x: wp.x + dx, y: wp.y + dy }));
+      }
     }
     // bboxes are already updated → unitBottom reads the new positions
     bottomY = unitBottom(u);
@@ -1023,32 +1076,54 @@ function buildEmphasis(
   }
 }
 
-/* Deictic gesture: the pen travels to a term already on the board and
-   holds there (with a subtle hand sway) — like a professor pointing at
-   the step they are talking about. No ink is left; the hold advances the
-   clock so narration can reference it. */
+/* Deictic gesture: the pen travels across the sub-terms or diagram forces of a
+   group already on the board and points at each one in turn — like a professor
+   guiding the student's eye across LHS → operator → RHS while explaining. */
 function buildPoint(ctx: Ctx, beat: Extract<Beat, { type: "point" }>): void {
   const g = resolveTarget(ctx, beat.target);
   if (!g) return;
   const b = movedBBox(ctx, g);
-  // point FROM BESIDE the term (just under its left third) — a finger
-  // pointing at a line, never covering the glyphs themselves
-  const c = { x: b.x + b.w * 0.32, y: b.y + b.h + 18 };
-  const dur = Math.max(0.5, Math.min(1.8, (beat.ms ?? 1000) / 1000));
+  const allWaypoints =
+    g.waypoints && g.waypoints.length > 0
+      ? g.waypoints
+      : [{ x: b.x + b.w * 0.35, y: b.y + b.h + 15 }];
+
+  // If target quotes a specific sub-term on the right side of the line, start at the matching waypoint
+  let waypoints = allWaypoints;
+  const rawTarget = (beat.target ?? "").trim();
+  if (
+    rawTarget.toLowerCase().startsWith("text:") &&
+    g.text &&
+    allWaypoints.length >= 2
+  ) {
+    const needle = rawTarget.slice(5).trim().toLowerCase();
+    const idx = g.text.toLowerCase().indexOf(needle);
+    if (idx > g.text.length * 0.42 && needle.length < g.text.length * 0.65) {
+      waypoints = allWaypoints.slice(Math.floor(allWaypoints.length / 2));
+    }
+  }
+
+  const totalDur = Math.max(0.8, Math.min(3.6, (beat.ms ?? 1600) / 1000));
   const inkColor: MarkerName =
     (g.strokes.find((s) => s.kind === "path") as PathStroke | undefined)
       ?.color ?? "white";
-  ctx.scene.strokes.push({
-    kind: "path",
-    pts: [c, { x: c.x + 0.01, y: c.y }],
-    color: inkColor,
-    width: 0.01,
-    t0: ctx.now,
-    dur,
-    cum: [0, 0.01],
-    len: 0.01,
-  });
-  ctx.now += dur + 0.12;
+  const perDur = Math.max(0.35, totalDur / waypoints.length);
+
+  for (let i = 0; i < waypoints.length; i++) {
+    const c = waypoints[i];
+    ctx.scene.strokes.push({
+      kind: "path",
+      pts: [c, { x: c.x + 0.01, y: c.y }],
+      color: inkColor,
+      width: 0.01,
+      t0: ctx.now,
+      dur: perDur,
+      cum: [0, 0.01],
+      len: 0.01,
+      strokeTag: "deictic-point",
+    });
+    ctx.now += perDur + (i + 1 < waypoints.length ? 0.14 : 0.1);
+  }
 }
 
 function buildArrow(ctx: Ctx, beat: Extract<Beat, { type: "arrow" }>): void {
@@ -2139,6 +2214,7 @@ function paceSceneToNarration(
       st.t0 = mapTime(st.t0);
     }
     if (hasMeasuredCues) {
+      const autoDeicticStrokes: PathStroke[] = [];
       for (const entry of map) {
         const entryStrokes = scene.strokes.filter(
           (_, idx) => strokeEntries[idx] === entry
@@ -2146,13 +2222,33 @@ function paceSceneToNarration(
         if (!entryStrokes.length) continue;
         const startT = entryStrokes[0].t0;
         const maxSpan = Math.max(0.12, entry.availEnd - startT - 0.03);
-        const weights = entryStrokes.map((st) => {
-          if (st.kind !== "path") {
-            return { draw: 0.25, lift: 0.05, total: 0.3 };
+
+        const realInkStrokes = entryStrokes.filter(
+          (s) => !(s.kind === "path" && s.len < 0.5)
+        );
+        const pointStrokes = entryStrokes.filter(
+          (s): s is PathStroke => s.kind === "path" && s.len < 0.5
+        );
+
+        if (realInkStrokes.length === 0) {
+          // Pure Phase 3 Deictic Point & Explain segment: sweep waypoints across 88% of spoken window
+          const targetSpan = Math.max(0.6, maxSpan * 0.88);
+          const slot = targetSpan / Math.max(1, pointStrokes.length);
+          for (let i = 0; i < pointStrokes.length; i++) {
+            const st = pointStrokes[i];
+            const glideGap = i + 1 < pointStrokes.length ? 0.16 : 0.04;
+            st.t0 = startT + i * slot;
+            st.dur = Math.max(
+              0.35,
+              Math.min(slot - glideGap, entry.availEnd - st.t0)
+            );
           }
-          if (st.len < 0.5) {
-            const d = Math.max(0.6, Math.min(1.5, st.dur));
-            return { draw: d, lift: 0.04, total: d + 0.04 };
+          continue;
+        }
+
+        const weights = realInkStrokes.map((st) => {
+          if (st.kind !== "path") {
+            return { draw: 0.28, lift: 0.05, total: 0.33 };
           }
           const rawEff =
             st.len > 140 ? 140 + (st.len - 140) * 0.45 : st.len;
@@ -2160,47 +2256,115 @@ function paceSceneToNarration(
             st.strokeTag === "ballistic-line"
               ? Math.min(160, rawEff * 0.65)
               : rawEff;
-          const draw = Math.max(0.09, effLen / 105);
+          const draw = Math.max(0.1, effLen / 96);
           const lift =
             st.strokeTag === "operator"
-              ? 0.08
+              ? 0.085
               : st.strokeTag === "word-start"
-                ? 0.065
+                ? 0.068
                 : st.strokeTag === "char-start"
-                  ? 0.04
-                  : 0.022;
+                  ? 0.042
+                  : 0.024;
           return { draw, lift, total: draw + lift };
         });
-        const naturalSpan = weights.reduce((acc, w) => acc + w.total, 0);
-        const hasRealInk = entryStrokes.some(
-          (s) => s.kind === "path" && s.len >= 0.5
+        const naturalWriteSpan = weights.reduce((acc, w) => acc + w.total, 0);
+        const totalWriteLen = realInkStrokes.reduce(
+          (acc, s) => acc + (s.kind === "path" ? s.len : 0),
+          0
         );
-        const targetSpan = hasRealInk
-          ? Math.min(maxSpan, Math.max(naturalSpan * 1.15, maxSpan * 0.94))
-          : Math.min(maxSpan, naturalSpan);
+
+        // Ensure writing speed stays in the sweet spot (~110–145 px/s: neither rushed nor boring),
+        // while reserving 1.5s–3.5s at the end of roomy segments for Phase 3 deictic term-to-term pointing
+        const minCalmWriteSpan = totalWriteLen / 132;
+        const idealWriteSpan = Math.max(
+          minCalmWriteSpan,
+          Math.min(naturalWriteSpan, totalWriteLen / 114),
+          maxSpan * 0.68
+        );
+        const canReservePointPhase =
+          maxSpan >= 6.0 && minCalmWriteSpan + 1.4 <= maxSpan;
+
+        const writeSpan = canReservePointPhase
+          ? Math.min(maxSpan - 1.4, idealWriteSpan)
+          : pointStrokes.length > 0
+            ? Math.min(maxSpan - 0.65, Math.max(minCalmWriteSpan, maxSpan * 0.84))
+            : Math.min(maxSpan, Math.max(minCalmWriteSpan, maxSpan * 0.94));
+
         let curT = startT;
-        for (let i = 0; i < entryStrokes.length; i++) {
-          const st = entryStrokes[i];
+        for (let i = 0; i < realInkStrokes.length; i++) {
+          const st = realInkStrokes[i];
           const w = weights[i];
-          const slot = (w.total / Math.max(1e-6, naturalSpan)) * targetSpan;
+          const slot = (w.total / Math.max(1e-6, naturalWriteSpan)) * writeSpan;
           st.t0 = curT;
-          if (st.kind === "path" && st.len < 0.5) {
-            st.dur = Math.max(
-              0.5,
-              Math.min(slot * 0.95, entry.availEnd - curT)
-            );
-          } else {
-            const drawRatio = w.draw / w.total;
-            st.dur = Math.max(
-              0.06,
-              Math.min(
-                slot * Math.max(0.78, drawRatio),
-                entry.availEnd - curT
-              )
-            );
-          }
+          const drawRatio = w.draw / w.total;
+          st.dur = Math.max(
+            0.06,
+            Math.min(
+              slot * Math.max(0.8, drawRatio),
+              entry.availEnd - curT
+            )
+          );
           curT += slot;
         }
+
+        // Phase 3 (Point & Explain): schedule explicit or automatic deictic sub-term waypoints
+        // across the remaining segment explanation window [curT + 0.14 .. availEnd - 0.05]
+        const pointStart = curT + 0.14;
+        const pointAvail = entry.availEnd - 0.05 - pointStart;
+        if (pointStrokes.length > 0 && pointAvail >= 0.5) {
+          const slot = pointAvail / pointStrokes.length;
+          for (let k = 0; k < pointStrokes.length; k++) {
+            const st = pointStrokes[k];
+            const glideGap = k + 1 < pointStrokes.length ? 0.15 : 0.04;
+            st.t0 = pointStart + k * slot;
+            st.dur = Math.max(
+              0.32,
+              Math.min(slot - glideGap, entry.availEnd - st.t0)
+            );
+          }
+        } else if (pointStrokes.length === 0 && pointAvail >= 1.15) {
+          const lastWriteStroke = realInkStrokes[realInkStrokes.length - 1];
+          const ownerGrp = scene.groups.find(
+            (g) => g.id !== "banner" && g.strokes.includes(lastWriteStroke)
+          );
+          const wps = ownerGrp?.waypoints;
+          if (wps && wps.length > 0) {
+            const inkColor: MarkerName =
+              (
+                realInkStrokes.find((s) => s.kind === "path") as
+                  | PathStroke
+                  | undefined
+              )?.color ?? "white";
+            const wpSlice = wps.slice(
+              0,
+              Math.min(wps.length, pointAvail >= 2.1 ? 3 : 2)
+            );
+            const slot = pointAvail / wpSlice.length;
+            for (let k = 0; k < wpSlice.length; k++) {
+              const c = wpSlice[k];
+              const ptT0 = pointStart + k * slot;
+              const ptDur = Math.max(
+                0.35,
+                slot - (k + 1 < wpSlice.length ? 0.15 : 0.04)
+              );
+              autoDeicticStrokes.push({
+                kind: "path",
+                pts: [c, { x: c.x + 0.01, y: c.y }],
+                color: inkColor,
+                width: 0.01,
+                t0: ptT0,
+                dur: ptDur,
+                cum: [0, 0.01],
+                len: 0.01,
+                strokeTag: "deictic-point",
+              });
+            }
+          }
+        }
+      }
+      if (autoDeicticStrokes.length > 0) {
+        scene.strokes.push(...autoDeicticStrokes);
+        scene.strokes.sort((a, b) => a.t0 - b.t0);
       }
     } else {
       for (let idx = 0; idx < scene.strokes.length; idx++) {
@@ -2488,16 +2652,21 @@ export function compileTimeline(script: SolveScript): Timeline {
       const segIndices: number[] = [];
       scene.segments.forEach((seg, sIdx) => {
         if (!seg.ink || seg.ink.length === 0) {
-          if (
+          const hasDeicticCue =
             /\b(this|these|here|notice|look at|see how|observe|Looking at)\b/i.test(
               seg.say
-            )
+            );
+          if (
+            hasDeicticCue ||
+            (sIdx > 0 && seg.pauseAfter === undefined && segBeats.length > 0)
           ) {
-            if (seg.pauseAfter === undefined) seg.mode ??= "speak_ahead";
+            if (seg.pauseAfter === undefined) {
+              seg.mode ??= sIdx === 0 ? "speak_ahead" : "point";
+            }
             const pointBeat: Beat & { say?: string } = {
               type: "point",
               target: "last",
-              ms: 1500,
+              ms: 1800,
               say: seg.say,
             };
             seg.ink = [pointBeat];

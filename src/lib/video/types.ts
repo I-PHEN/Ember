@@ -359,6 +359,8 @@ export interface Group {
   strokes: Stroke[];
   bbox: BBox;
   born: number;
+  /** ordered sub-term or diagram element coordinates for deictic pointing */
+  waypoints?: Pt[];
   /** for emphasis strokes: the group they decorate (kept/erased together) */
   anchor?: Group;
 }

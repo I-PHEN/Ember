@@ -225,17 +225,17 @@ export function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState
     const p = strokeProgressAt(active, rawP);
     const pt = pointAtLen(active, p * active.len);
     // deictic hold (point beat): marker hovers LIFTED off the board pointing toward the term
-    if (active.len < 0.5) {
-      const swayX = Math.sin(t * 1.5) * 1.2;
-      const swayY = Math.cos(t * 1.2) * 0.8;
+    if (active.len < 0.5 || active.strokeTag === "deictic-point") {
+      const swayX = Math.sin(t * 2.2) * 1.4;
+      const swayY = Math.cos(t * 1.8) * 0.9;
       return {
         x: pt.x + swayX,
         y: pt.y + swayY,
         color: markerColor(theme, active.color),
         mode: "point",
         alpha: 1,
-        lift: 18 + Math.sin(t * 1.5) * 1.5,
-        angle: -0.52 + Math.sin(t * 1.5) * 0.03,
+        lift: 18 + Math.sin(t * 2.0) * 1.5,
+        angle: -0.52 + Math.sin(t * 1.8) * 0.03,
       };
     }
     // writing stroke: dynamic wrist tilt along the stroke tangent
@@ -282,6 +282,21 @@ export function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState
     const gp = Math.min(1, Math.max(0, (rel - gapStart) / gapDur));
     const e = easeInOut(gp);
     const arcH = Math.sin(Math.PI * gp);
+    const isDeicticGlide =
+      next.len < 0.5 ||
+      next.strokeTag === "deictic-point" ||
+      (prev && (prev.len < 0.5 || prev.strokeTag === "deictic-point"));
+    if (isDeicticGlide) {
+      return {
+        x: from.x + (to.x - from.x) * e,
+        y: from.y + (to.y - from.y) * e - 4 * arcH,
+        color: markerColor(theme, next.color),
+        mode: "point",
+        alpha: 1,
+        lift: 18 + 4 * arcH,
+        angle: -0.52 + arcH * 0.05,
+      };
+    }
     const lift = 22 * arcH;
     const lateralArc = arcH * 6;
     return {
@@ -340,29 +355,41 @@ export function drawPen(
   ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha));
 
   if (isPoint) {
-    // Lifted deictic pointer: marker hovers in 3D above the board (z >= 16px)
+    // Lifted deictic tutor pointer: angled glowing marker nib + pulsing halo
     // 1. Soft ground shadow cast onto the board
     ctx.save();
-    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
     ctx.beginPath();
-    ctx.ellipse(pen.x + 5, pen.y + 12, 9, 3.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(pen.x + 6, pen.y + 13, 10, 3.8, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // 2. Translucent hover ring indicating elevated pointer
+    // 2. Pulsing translucent focus halo ring
+    const pulseR = 7.4 + Math.sin(t * 4.2) * 1.5;
     ctx.save();
     ctx.strokeStyle = pen.color;
-    ctx.lineWidth = 1.3;
-    ctx.globalAlpha = pen.alpha * 0.55;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = pen.alpha * 0.62;
     ctx.beginPath();
-    ctx.arc(pen.x, pen.y, 6.0, 0, Math.PI * 2);
+    ctx.arc(pen.x, pen.y, pulseR, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 3. Central marker tip beacon
-    ctx.fillStyle = pen.color;
-    ctx.globalAlpha = pen.alpha * 0.90;
+    // 3. Angled tapered tutor marker/stylus shaft pointing up-left at the term
+    ctx.strokeStyle = pen.color;
+    ctx.lineWidth = 3.4;
+    ctx.globalAlpha = pen.alpha * 0.85;
     ctx.beginPath();
-    ctx.arc(pen.x, pen.y, 2.6, 0, Math.PI * 2);
+    ctx.moveTo(pen.x + 3.0, pen.y + 3.2);
+    ctx.lineTo(pen.x + 16.5, pen.y + 18.0);
+    ctx.stroke();
+
+    // 4. Glowing central marker tip beacon
+    ctx.fillStyle = pen.color;
+    ctx.shadowColor = pen.color;
+    ctx.shadowBlur = 10;
+    ctx.globalAlpha = pen.alpha * 0.96;
+    ctx.beginPath();
+    ctx.arc(pen.x, pen.y, 3.1, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
     ctx.restore();
