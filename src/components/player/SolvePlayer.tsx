@@ -56,28 +56,215 @@ const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
  *  late voice before it plays that scene silent (3500ms = buffer like YouTube) */
 const VOICE_HOLD_MS = 3500;
 
-/** split narration into caption-sized sentences (merge tiny ones so a
- *  caption never flashes for a fraction of a second) */
-function captionChunks(text: string): string[] {
-  const parts: string[] = [];
+/** Maximum characters per caption card so it never wraps beyond 2 lines */
+export const MAX_CAPTION_CHARS = 84;
+
+/** Grace period after a segment's speech ends before hiding the caption during a silent gap */
+export const CAPTION_TAIL_HOLD_SEC = 0.25;
+
+function splitLongSentenceIntoCards(sentence: string, maxChars: number): string[] {
+  const trimmed = sentence.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= maxChars) return [trimmed];
+
+  // Split at natural clause boundaries (: ; — – ,) keeping punctuation on the left piece
+  const clauses = trimmed
+    .split(/(?<=[,;:\u2014\u2013])\s+/)
+    .map((c) => c.trim())
+    .filter(Boolean);
+
+  const rawCards: string[] = [];
+  let cur = "";
+
+  const pushWords = (chunk: string) => {
+    const words = chunk.split(/\s+/).filter(Boolean);
+    for (const w of words) {
+      if (!cur) {
+        cur = w;
+      } else if (cur.length + 1 + w.length <= maxChars) {
+        cur += " " + w;
+      } else {
+        rawCards.push(cur);
+        cur = w;
+      }
+    }
+  };
+
+  for (const clause of clauses) {
+    if (!cur) {
+      if (clause.length <= maxChars) {
+        cur = clause;
+      } else {
+        pushWords(clause);
+      }
+    } else if (cur.length + 1 + clause.length <= maxChars) {
+      cur += " " + clause;
+    } else {
+      rawCards.push(cur);
+      cur = "";
+      if (clause.length <= maxChars) {
+        cur = clause;
+      } else {
+        pushWords(clause);
+      }
+    }
+  }
+  if (cur) rawCards.push(cur);
+
+  // Rebalance if the trailing card is a short orphan (< 20 chars) and can be balanced with the previous card
+  if (rawCards.length >= 2) {
+    const last = rawCards[rawCards.length - 1];
+    const prev = rawCards[rawCards.length - 2];
+    if (last.length < 20 && prev.length + 1 + last.length > maxChars) {
+      const combinedWords = (prev + " " + last).split(/\s+/);
+      if (combinedWords.length >= 4) {
+        const targetHalf = Math.ceil((prev.length + 1 + last.length) / 2);
+        let firstPart = "";
+        let splitIdx = 0;
+        for (let i = 0; i < combinedWords.length - 1; i++) {
+          const next = firstPart ? firstPart + " " + combinedWords[i] : combinedWords[i];
+          if (next.length <= maxChars && (i === 0 || Math.abs(next.length - targetHalf) <= Math.abs(firstPart.length - targetHalf))) {
+            firstPart = next;
+            splitIdx = i + 1;
+          } else {
+            break;
+          }
+        }
+        const secondPart = combinedWords.slice(splitIdx).join(" ");
+        if (firstPart.length <= maxChars && secondPart.length <= maxChars) {
+          rawCards[rawCards.length - 2] = firstPart;
+          rawCards[rawCards.length - 1] = secondPart;
+        }
+      }
+    }
+  }
+
+  return rawCards;
+}
+
+function rebalanceTwoCards(a: string, b: string, maxChars: number): [string, string] | [string] {
+  const combined = `${a} ${b}`.trim();
+  if (combined.length <= maxChars) return [combined];
+  const words = combined.split(/\s+/).filter(Boolean);
+  if (words.length < 4) return [a, b];
+  const targetHalf = Math.ceil(combined.length / 2);
+  let bestSplit = 1;
+  let bestDiff = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const left = words.slice(0, i).join(" ");
+    const right = words.slice(i).join(" ");
+    if (left.length <= maxChars && right.length <= maxChars) {
+      const diff = Math.abs(left.length - targetHalf);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestSplit = i;
+      }
+    }
+  }
+  const first = words.slice(0, bestSplit).join(" ");
+  const second = words.slice(bestSplit).join(" ");
+  if (first.length <= maxChars && second.length <= maxChars) {
+    return [first, second];
+  }
+  return [a, b];
+}
+
+/** Split narration or segment speech into <=2-line caption cards (max ~84 chars) */
+export function captionChunks(text: string, maxChars = MAX_CAPTION_CHARS): string[] {
+  const sentences: string[] = [];
   let cur = "";
   for (const ch of text) {
     cur += ch;
     if (ch === "." || ch === "!" || ch === "?") {
-      if (cur.trim()) parts.push(cur.trim());
+      if (cur.trim()) sentences.push(cur.trim());
       cur = "";
     }
   }
-  if (cur.trim()) parts.push(cur.trim());
-  const out: string[] = [];
-  for (const p of parts) {
-    if (out.length && (out[out.length - 1].length < 25 || p.length < 25)) {
-      out[out.length - 1] += " " + p;
-    } else {
-      out.push(p);
+  if (cur.trim()) sentences.push(cur.trim());
+
+  const cards: string[] = [];
+  for (const s of sentences) {
+    for (const c of splitLongSentenceIntoCards(s, maxChars)) {
+      cards.push(c);
     }
   }
-  return out;
+
+  // Rebalance or merge any short card (< 22 chars) with an adjacent card
+  for (let i = 0; i < cards.length && cards.length > 1; i++) {
+    if (cards[i].length < 22) {
+      if (i > 0) {
+        const reb = rebalanceTwoCards(cards[i - 1], cards[i], maxChars);
+        cards.splice(i - 1, 2, ...reb);
+        i = Math.max(0, i - 1);
+      } else if (i + 1 < cards.length) {
+        const reb = rebalanceTwoCards(cards[i], cards[i + 1], maxChars);
+        cards.splice(i, 2, ...reb);
+      }
+    }
+  }
+  return cards;
+}
+
+/** Resolve the active <=2-line caption card at scene-local timestamp `localT` */
+export function captionAtTime(
+  scene: Timeline["scenes"][number] | undefined,
+  localT: number
+): string | null {
+  if (!scene?.narration) return null;
+  if (
+    scene.segments &&
+    scene.segments.length > 0 &&
+    scene.audioCues &&
+    scene.audioCues.length === scene.segments.length
+  ) {
+    const cues = scene.audioCues;
+    for (let ci = cues.length - 1; ci >= 0; ci--) {
+      const cue = cues[ci];
+      if (localT >= cue.t0) {
+        // Hide the caption after the segment's speech finishes (+0.25s grace) so silent writing gaps are unobstructed
+        if (localT > cue.t1 + CAPTION_TAIL_HOLD_SEC) return null;
+        const rawSay =
+          scene.segments[cue.i]?.say ?? scene.segments[ci]?.say ?? "";
+        const cards = captionChunks(rawSay);
+        if (!cards.length) return null;
+        if (cards.length === 1) return cards[0];
+        const segDur = Math.max(0.1, cue.t1 - cue.t0);
+        const rel = Math.max(0, Math.min(segDur - 1e-4, localT - cue.t0));
+        const totalChars = Math.max(
+          1,
+          cards.reduce((a, c) => a + c.length, 0)
+        );
+        let acc = 0;
+        for (const card of cards) {
+          const cStart = (acc / totalChars) * segDur;
+          acc += card.length;
+          const cEnd = (acc / totalChars) * segDur;
+          if (rel >= cStart && rel <= cEnd + 1e-4) return card;
+        }
+        return cards[cards.length - 1];
+      }
+    }
+    return null;
+  }
+
+  // Fallback for scenes without measured segment cues
+  const t0 = scene.head;
+  const t1 = Math.max(scene.dur - 0.15, t0 + 1);
+  if (localT < t0 || localT > t1 + CAPTION_TAIL_HOLD_SEC) return null;
+  const off = Math.max(0, Math.min(localT, t1 - 1e-4) - t0);
+  const chunks = captionChunks(scene.narration);
+  const totalChars = Math.max(
+    1,
+    chunks.reduce((a, c) => a + c.length, 0)
+  );
+  let acc = 0;
+  for (const c of chunks) {
+    const cStart = (acc / totalChars) * (t1 - t0);
+    acc += c.length;
+    const cEnd = (acc / totalChars) * (t1 - t0);
+    if (off >= cStart && off < cEnd) return c;
+  }
+  return chunks[chunks.length - 1] ?? null;
 }
 
 export interface SolvePlayerHandle {
@@ -710,44 +897,13 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
     const inIntro = scene?.intro === true;
     const playedFrac = total > 0 ? uiT / total : 0;
 
-    /* caption for the current moment — segment cues when stitched audio cues
-       are present (Spec §8), otherwise sentence chunks distributed
-       proportionally across the scene's narration window */
+    /* caption for the current moment — <=2-line phrase cards synced to segment
+       cues [cue.t0, cue.t1] and hidden during silent writing gaps */
     const captionText = (() => {
       if (!captions || mini || !scene?.narration) return null;
       const start = sceneStart(tl, currentScene);
       const localT = Math.max(0, uiT - start);
-      if (
-        scene.segments &&
-        scene.segments.length > 0 &&
-        scene.audioCues &&
-        scene.audioCues.length === scene.segments.length
-      ) {
-        const cues = scene.audioCues;
-        for (let ci = cues.length - 1; ci >= 0; ci--) {
-          if (localT >= cues[ci].t0) {
-            return (
-              scene.segments[cues[ci].i]?.say ??
-              scene.segments[ci]?.say ??
-              null
-            );
-          }
-        }
-        return scene.segments[0]?.say ?? null;
-      }
-      const t0 = start + scene.head;
-      const t1 = start + Math.max(scene.dur - 0.15, t0 + 1);
-      const off = Math.max(0, Math.min(uiT, t1) - t0);
-      const chunks = captionChunks(scene.narration);
-      const totalChars = chunks.reduce((a, c) => a + c.length, 0);
-      let acc = 0;
-      for (const c of chunks) {
-        const cStart = (acc / totalChars) * (t1 - t0);
-        acc += c.length;
-        const cEnd = (acc / totalChars) * (t1 - t0);
-        if (off >= cStart && off < cEnd) return c;
-      }
-      return null;
+      return captionAtTime(scene, localT);
     })();
 
     const ctrlBtn =
@@ -787,11 +943,11 @@ const SolvePlayer = forwardRef<SolvePlayerHandle, SolvePlayerProps>(
           </div>
         )}
 
-        {/* captions (CC) */}
+        {/* captions (CC) — strictly 2 lines or fewer */}
         {captionText && (
           <div
             className={cn(
-              "pointer-events-none absolute left-1/2 z-[5] max-w-[82%] -translate-x-1/2 rounded-lg bg-black/75 px-3.5 py-1.5 text-center text-[15px] leading-snug text-white transition-all duration-200",
+              "pointer-events-none absolute left-1/2 z-[5] line-clamp-2 max-w-[78%] -translate-x-1/2 rounded-lg bg-black/75 px-3.5 py-1.5 text-center text-balance text-[15px] leading-snug text-white transition-all duration-200",
               controlsOn || !playing ? "bottom-[68px]" : "bottom-5"
             )}
           >

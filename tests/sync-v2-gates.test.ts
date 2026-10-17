@@ -166,4 +166,47 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     expect(nonBannerGroups[0].born).toBeCloseTo(cues0[1].t0 + SAY_T0, 2);
     expect(nonBannerGroups[0].born).toBeGreaterThan(24.0);
   });
+
+  test("6. 2-Line Caption & Silent-Gap Gate: every caption card is <= 84 chars (<=2 lines) and hides during silent writing gaps", async () => {
+    const {
+      captionAtTime,
+      captionChunks,
+      MAX_CAPTION_CHARS,
+      CAPTION_TAIL_HOLD_SEC,
+    } = await import("../src/components/player/SolvePlayer");
+
+    for (const { script } of lessons) {
+      for (const sc of script.scenes) {
+        for (const seg of sc.segments ?? []) {
+          const cards = captionChunks(seg.say);
+          expect(cards.length).toBeGreaterThanOrEqual(1);
+          for (const card of cards) {
+            expect(card.length).toBeLessThanOrEqual(MAX_CAPTION_CHARS);
+            if (cards.length > 1) {
+              expect(card.length).toBeGreaterThanOrEqual(18);
+            }
+          }
+        }
+      }
+    }
+
+    const tl = compileTimeline(SAMPLE_GAUSSIAN_INTEGRAL);
+    // Scene 0 Segment 0 is 418 chars -> splits into multiple <=84-char cards across [0, 23.721]
+    const sc0 = tl.scenes[0];
+    const firstCard = captionAtTime(sc0, 0.5);
+    const midCard = captionAtTime(sc0, 12.0);
+    const endCard = captionAtTime(sc0, 22.5);
+    expect(firstCard).toBeDefined();
+    expect(midCard).toBeDefined();
+    expect(endCard).toBeDefined();
+    expect(firstCard).not.toBe(midCard);
+    expect(midCard).not.toBe(endCard);
+    expect(firstCard!.length).toBeLessThanOrEqual(MAX_CAPTION_CHARS);
+    expect(midCard!.length).toBeLessThanOrEqual(MAX_CAPTION_CHARS);
+    expect(endCard!.length).toBeLessThanOrEqual(MAX_CAPTION_CHARS);
+
+    // During silent writing gap after Segment 1 [31.527, 35.527], caption hides after CAPTION_TAIL_HOLD_SEC
+    expect(captionAtTime(sc0, 31.527 + CAPTION_TAIL_HOLD_SEC + 0.1)).toBeNull();
+    expect(captionAtTime(sc0, 33.5)).toBeNull();
+  });
 });
