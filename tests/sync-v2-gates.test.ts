@@ -121,6 +121,14 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
             for (const st of grp!.strokes) {
               expect(st.t0 + st.dur).toBeLessThanOrEqual(nextCueT0 + 0.05);
             }
+            const firstSt = grp!.strokes[0];
+            const lastSt = grp!.strokes[grp!.strokes.length - 1];
+            const span = lastSt.t0 + lastSt.dur - firstSt.t0;
+            const totalLen = grp!.strokes.reduce(
+              (a, s) => a + (s.kind === "path" ? s.len : 0),
+              0,
+            );
+            expect(totalLen / Math.max(0.1, span)).toBeLessThanOrEqual(195);
           }
         });
       });

@@ -611,6 +611,64 @@ function enforceFourBeatSegments(
       ink: undefined,
     };
   }
+  // Enforce at most 1 write or diagram beat per segment so the pen never rushes
+  segs = segs.map((seg) => {
+    if (!seg.ink || seg.ink.length === 0) return seg;
+    const cleanedInk = seg.ink.map((b) => {
+      if (b.type === "freebody" && b.forces && b.forces.length > 3) {
+        const hasDown = b.forces.some((f) => f.dir === "down");
+        if (hasDown) {
+          return {
+            ...b,
+            forces: b.forces.filter((f) => f.dir !== "downslope"),
+          };
+        }
+      }
+      return b;
+    });
+    const hasDiagram = cleanedInk.some(
+      (b) =>
+        b.type === "freebody" ||
+        b.type === "graph" ||
+        b.type === "table" ||
+        b.type === "numberline"
+    );
+    if (hasDiagram) {
+      return {
+        ...seg,
+        ink: cleanedInk.filter((b) => b.type !== "write" && b.type !== "newline"),
+      };
+    }
+    const writes = cleanedInk.filter(
+      (b): b is Extract<typeof b, { type: "write" }> => b.type === "write"
+    );
+    if (writes.length <= 1) {
+      return { ...seg, ink: cleanedInk };
+    }
+    // Consolidate multiple writes in the same segment into a single clean line
+    const combinedText =
+      writes.length === 2 &&
+      writes[0].text.length + writes[1].text.length + 4 <= 44
+        ? `${writes[0].text},   ${writes[1].text}`
+        : writes.reduce((best, cur) =>
+            cur.text.length >= best.text.length ? cur : best
+          ).text;
+    const keptWrite = {
+      ...writes[writes.length - 1],
+      text: combinedText,
+    };
+    let writeEmitted = false;
+    const consolidated = cleanedInk.flatMap((b) => {
+      if (b.type === "newline") return [];
+      if (b.type === "write") {
+        if (writeEmitted) return [];
+        writeEmitted = true;
+        return [keptWrite];
+      }
+      return [b];
+    });
+    return { ...seg, ink: consolidated };
+  });
   // Enforce pauseAfter only on the final scene's boxed-answer segment (at most 1)
   const boxSegIdx = segs.findIndex((seg) =>
     seg.ink?.some((b) => b.type === "box")

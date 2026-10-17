@@ -956,15 +956,16 @@ function buildEmphasis(
     raw.push({ pts: roughLine({ x: x0, y: y1 }, { x: x1, y: y0 }, 1.2, rng), color: "red", width: 2.8, tag: "ballistic-line" });
     crossedAnchor = t;
   } else if (beat.type === "box") {
-    for (const s of roughRect(
+    const rects = roughRect(
       b.x - pad,
       b.y - pad,
       b.w + pad * 2,
       b.h + pad * 2,
       1.5,
       rng
-    )) {
-      raw.push({ pts: s, color, width });
+    );
+    if (rects.length) {
+      raw.push({ pts: rects[0], color, width, tag: "ballistic-line" });
     }
   } else if (beat.type === "circle") {
     raw.push({
@@ -1211,10 +1212,10 @@ function buildFreebody(ctx: Ctx, beat: Extract<Beat, { type: "freebody" }>): voi
   }
 
   /* 2 ─ the block, sitting on the surface */
-  const hw = 24;
-  const hh = 16;
-  const px = incline ? x0 + w * 0.4 : x0 + w / 2;
-  const py = incline ? yG - rise * 0.4 : yG;
+  const hw = 32;
+  const hh = 21;
+  const px = incline ? x0 + w * 0.54 : x0 + w / 2;
+  const py = incline ? yG - rise * 0.54 : yG;
   const n = fbDirVec("normal", th);
   const c: Pt = { x: px + n.x * (hh + 6), y: py + n.y * (hh + 6) };
   const rot = (vx: number, vy: number): Pt => ({
@@ -1224,17 +1225,15 @@ function buildFreebody(ctx: Ctx, beat: Extract<Beat, { type: "freebody" }>): voi
   const corners = [rot(-hw, -hh), rot(hw, -hh), rot(hw, hh), rot(-hw, hh)];
   const blockPts = [
     ...corners,
-    { x: corners[0].x + 7, y: corners[0].y + 2 }, // pen crosses the first corner
+    { x: corners[0].x + 5, y: corners[0].y + 2 }, // close the rectangle cleanly in one pass
   ];
   addPaths(
     ctx,
-    [jitterPolyline(blockPts, 1.1, rng), jitterPolyline(blockPts, 1.1, rng)].map(
-      (pts, i) => ({ pts, color: ink, width: i === 0 ? 3 : 2.1 })
-    ),
+    [{ pts: jitterPolyline(blockPts, 1.0, rng), color: ink, width: 3.0 }],
     { gap: 0.06, speedCap: 34, settle: 0.14 }
   );
   const blockLabel = beat.block ?? "m";
-  const fit = fitBlockLabel(blockLabel, hw, hh);
+  const fit = fitBlockLabel(blockLabel, 24, 16);
   if (fit.mode === "inside") {
     const lw = measureText(blockLabel, fit.cap);
     const laid = layoutText(blockLabel, c.x - lw / 2, c.y + fit.cap * 0.34, {
@@ -1245,7 +1244,7 @@ function buildFreebody(ctx: Ctx, beat: Extract<Beat, { type: "freebody" }>): voi
     });
     addPaths(ctx, laid.strokes, {});
   } else {
-    const laid = layoutText(blockLabel, c.x + 34, c.y - 30, {
+    const laid = layoutText(blockLabel, c.x + 38, c.y - 34, {
       cap: CAP.sm,
       color: ink,
       jitter: false,
@@ -1263,27 +1262,48 @@ function buildFreebody(ctx: Ctx, beat: Extract<Beat, { type: "freebody" }>): voi
         { label: "N", dir: "normal" },
       ];
   for (const f of forces) {
-    const d = fbDirVec(f.dir ?? "down", th);
-    const L = f.dir === "down" ? 74 : 62;
-    const start: Pt = { x: c.x + d.x * 26, y: c.y + d.y * 26 };
-    const tip: Pt = { x: c.x + d.x * (26 + L), y: c.y + d.y * (26 + L) };
+    const dir = f.dir ?? "down";
+    const d = fbDirVec(dir, th);
+    const L = dir === "down" ? 74 : 62;
+    const startDist = dir === "down" || dir === "up" || dir === "normal" ? hh + 6 : hw + 6;
+    const start: Pt = { x: c.x + d.x * startDist, y: c.y + d.y * startDist };
+    const tip: Pt = { x: c.x + d.x * (startDist + L), y: c.y + d.y * (startDist + L) };
     const arrowRaw: RawPath[] = roughArrow(start, tip, 0, 1.1, rng).map(
       (pts) => ({ pts, color: arrowColor, width: 3.1 })
     );
     addPaths(ctx, arrowRaw, { gap: 0.08, speedCap: 30, settle: 0.14 });
     if (f.label) {
-      const perp: Pt = { x: -d.y, y: d.x };
-      /* push the label clear past the arrowhead — the longer the label,
-         the further out along the arrow direction it goes, so wide
-         labels like "T = 40 N" never sit on the shaft */
       const lw = measureText(f.label, CAP.sm);
-      const lx = tip.x + d.x * (14 + lw * 0.3) + perp.x * 10;
-      const ly = tip.y + d.y * (14 + lw * 0.3) + perp.y * 10;
-      const laid = layoutText(f.label, lx - lw / 2, ly, {
+      let lx = tip.x - lw / 2;
+      let ly = tip.y;
+      if (dir === "down") {
+        lx = tip.x - lw / 2;
+        ly = tip.y + CAP.sm + 8;
+      } else if (dir === "up") {
+        lx = tip.x - lw / 2;
+        ly = tip.y - 12;
+      } else if (dir === "normal") {
+        lx = tip.x + d.x * 18 - lw / 2;
+        ly = tip.y + d.y * 18 - 6;
+      } else if (dir === "upslope") {
+        lx = tip.x + 12;
+        ly = tip.y + d.y * 6 + CAP.sm * 0.28;
+      } else if (dir === "downslope") {
+        // Place above-left of the arrow tip, away from the ramp surface and vertex angle θ
+        lx = tip.x - lw - 8;
+        ly = Math.min(tip.y - 16, yG - 46);
+      } else if (dir === "left") {
+        lx = tip.x - lw - 12;
+        ly = tip.y + CAP.sm * 0.32;
+      } else if (dir === "right") {
+        lx = tip.x + 12;
+        ly = tip.y + CAP.sm * 0.32;
+      }
+      const laid = layoutText(f.label, lx, ly, {
         cap: CAP.sm,
         color: arrowColor,
         jitter: false,
-        seed: `fbf${f.label}${f.dir}${ctx.beatNo}`,
+        seed: `fbf${f.label}${dir}${ctx.beatNo}`,
       });
       addPaths(ctx, laid.strokes, {});
     }
@@ -2118,22 +2138,77 @@ function paceSceneToNarration(
       if (st.t0 < HEAD - 1e-6) continue; // preserve pre-mounted banner at t=0
       st.t0 = mapTime(st.t0);
     }
-    for (let idx = 0; idx < scene.strokes.length; idx++) {
-      const st = scene.strokes[idx];
-      const entry = strokeEntries[idx];
-      if (!entry) continue;
-      const nextSt = scene.strokes[idx + 1];
-      const segLimit = entry.availEnd - st.t0;
-      if (hasMeasuredCues && st.kind === "path" && st.len > 1.0) {
-        const slot =
-          nextSt && nextSt.t0 > st.t0
-            ? (nextSt.t0 - st.t0) * 0.82
-            : st.dur * 1.65;
-        st.dur = Math.max(
-          0.06,
-          Math.min(st.dur * 1.75, slot, segLimit)
+    if (hasMeasuredCues) {
+      for (const entry of map) {
+        const entryStrokes = scene.strokes.filter(
+          (_, idx) => strokeEntries[idx] === entry
         );
-      } else if (entry.scale !== 1.0) {
+        if (!entryStrokes.length) continue;
+        const startT = entryStrokes[0].t0;
+        const maxSpan = Math.max(0.12, entry.availEnd - startT - 0.03);
+        const weights = entryStrokes.map((st) => {
+          if (st.kind !== "path") {
+            return { draw: 0.25, lift: 0.05, total: 0.3 };
+          }
+          if (st.len < 0.5) {
+            const d = Math.max(0.6, Math.min(1.5, st.dur));
+            return { draw: d, lift: 0.04, total: d + 0.04 };
+          }
+          const rawEff =
+            st.len > 140 ? 140 + (st.len - 140) * 0.45 : st.len;
+          const effLen =
+            st.strokeTag === "ballistic-line"
+              ? Math.min(160, rawEff * 0.65)
+              : rawEff;
+          const draw = Math.max(0.09, effLen / 105);
+          const lift =
+            st.strokeTag === "operator"
+              ? 0.08
+              : st.strokeTag === "word-start"
+                ? 0.065
+                : st.strokeTag === "char-start"
+                  ? 0.04
+                  : 0.022;
+          return { draw, lift, total: draw + lift };
+        });
+        const naturalSpan = weights.reduce((acc, w) => acc + w.total, 0);
+        const hasRealInk = entryStrokes.some(
+          (s) => s.kind === "path" && s.len >= 0.5
+        );
+        const targetSpan = hasRealInk
+          ? Math.min(maxSpan, Math.max(naturalSpan * 1.15, maxSpan * 0.94))
+          : Math.min(maxSpan, naturalSpan);
+        let curT = startT;
+        for (let i = 0; i < entryStrokes.length; i++) {
+          const st = entryStrokes[i];
+          const w = weights[i];
+          const slot = (w.total / Math.max(1e-6, naturalSpan)) * targetSpan;
+          st.t0 = curT;
+          if (st.kind === "path" && st.len < 0.5) {
+            st.dur = Math.max(
+              0.5,
+              Math.min(slot * 0.95, entry.availEnd - curT)
+            );
+          } else {
+            const drawRatio = w.draw / w.total;
+            st.dur = Math.max(
+              0.06,
+              Math.min(
+                slot * Math.max(0.78, drawRatio),
+                entry.availEnd - curT
+              )
+            );
+          }
+          curT += slot;
+        }
+      }
+    } else {
+      for (let idx = 0; idx < scene.strokes.length; idx++) {
+        const st = scene.strokes[idx];
+        const entry = strokeEntries[idx];
+        if (!entry || entry.scale === 1.0) continue;
+        const nextSt = scene.strokes[idx + 1];
+        const segLimit = entry.availEnd - st.t0;
         const nextLimit =
           nextSt && nextSt.t0 > st.t0
             ? Math.max(st.dur * entry.scale, nextSt.t0 - st.t0 - 0.02)
@@ -2158,7 +2233,11 @@ function paceSceneToNarration(
       if (g.id === "banner") continue;
       if (g.strokes.length) g.born = g.strokes[0].t0;
     }
-    scene.writeEnd = Math.max(SAY_T0, mapTime(origWriteEnd));
+    const maxStrokeEnd = scene.strokes.reduce(
+      (m, st) => Math.max(m, st.t0 + st.dur),
+      SAY_T0
+    );
+    scene.writeEnd = Math.max(SAY_T0, mapTime(origWriteEnd), maxStrokeEnd);
     return true;
   }
 

@@ -849,21 +849,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "beats": [
         {
           "type": "write",
-          "text": "GIVEN: m = 5 kg, θ = 30°",
-          "color": "blue",
-          "size": "md",
-          "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
-        },
-        {
-          "type": "write",
-          "text": "μ_k = 0.20, g = 9.8 m/s²",
-          "color": "blue",
-          "size": "md",
-          "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
-        },
-        {
-          "type": "write",
-          "text": "FIND: a down slope",
+          "text": "m = 5 kg,  θ = 30°,  μ_k = 0.20",
           "color": "blue",
           "size": "md",
           "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
@@ -885,10 +871,6 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "dir": "upslope",
               "label": "f_k"
-            },
-            {
-              "dir": "downslope",
-              "label": "mg sin30°"
             }
           ],
           "say": "Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp."
@@ -910,21 +892,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "GIVEN: m = 5 kg, θ = 30°",
-              "color": "blue",
-              "size": "md",
-              "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
-            },
-            {
-              "type": "write",
-              "text": "μ_k = 0.20, g = 9.8 m/s²",
-              "color": "blue",
-              "size": "md",
-              "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
-            },
-            {
-              "type": "write",
-              "text": "FIND: a down slope",
+              "text": "m = 5 kg,  θ = 30°,  μ_k = 0.20",
               "color": "blue",
               "size": "md",
               "say": "Our given quantities are a five kilogram mass on a thirty degree incline, with friction coefficient zero point two zero."
@@ -951,10 +919,6 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
                 {
                   "dir": "upslope",
                   "label": "f_k"
-                },
-                {
-                  "dir": "downslope",
-                  "label": "mg sin30°"
                 }
               ],
               "say": "Here is our free-body diagram: gravity pulls straight down, the surface pushes back perpendicular, and friction resists up the ramp."
@@ -1012,36 +976,29 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         },
         {
           "type": "write",
-          "text": "Tilted Axes: x down slope, y normal",
-          "color": "yellow",
+          "text": "Axes:  x ∥ ramp,   y ⊥ ramp",
+          "color": "blue",
           "size": "md",
           "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
         },
         {
           "type": "write",
-          "text": "F_y = N − m·g·cosθ = 0",
+          "text": "ΣF_y = N − mg cosθ = 0",
           "color": "white",
           "size": "md",
           "say": "Along y, perpendicular to the ramp, the forces perfectly balance out to zero."
         },
         {
           "type": "write",
-          "text": "Fₓ = m·a",
-          "color": "yellow",
-          "size": "md",
-          "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
-        },
-        {
-          "type": "write",
-          "text": "f_k = μ_k · N",
-          "color": "yellow",
+          "text": "ΣF_x = ma,   f_k = μ_k N",
+          "color": "green",
           "size": "md",
           "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
         },
         {
           "type": "point",
-          "ms": 1200,
-          "target": "text:Fₓ = m·a",
+          "ms": 1400,
+          "target": "text:f_k = μ_k N",
           "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
         }
       ],
@@ -1059,8 +1016,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             },
             {
               "type": "write",
-              "text": "Tilted Axes: x down slope, y normal",
-              "color": "yellow",
+              "text": "Axes:  x ∥ ramp,   y ⊥ ramp",
+              "color": "blue",
               "size": "md",
               "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
             }
@@ -1071,7 +1028,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "F_y = N − m·g·cosθ = 0",
+              "text": "ΣF_y = N − mg cosθ = 0",
               "color": "white",
               "size": "md",
               "say": "Along y, perpendicular to the ramp, the forces perfectly balance out to zero."
@@ -1083,22 +1040,15 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "Fₓ = m·a",
-              "color": "yellow",
-              "size": "md",
-              "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
-            },
-            {
-              "type": "write",
-              "text": "f_k = μ_k · N",
-              "color": "yellow",
+              "text": "ΣF_x = ma,   f_k = μ_k N",
+              "color": "green",
               "size": "md",
               "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
             },
             {
               "type": "point",
-              "ms": 1200,
-              "target": "text:Fₓ = m·a",
+              "ms": 1400,
+              "target": "text:f_k = μ_k N",
               "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
             }
           ]
@@ -1143,50 +1093,36 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         },
         {
           "type": "write",
-          "text": "Wₓ = m g sin(30°)",
-          "color": "orange",
+          "text": "W_y = mg cos(30°)",
+          "color": "blue",
           "size": "md",
           "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
         },
         {
           "type": "write",
-          "text": "W_y = m g cos(30°)",
-          "color": "orange",
-          "size": "md",
-          "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
-        },
-        {
-          "type": "write",
-          "text": "F_y = N − m g cos(30°) = 0",
+          "text": "N = mg cos(30°) = 42.4 N",
           "color": "white",
           "size": "md",
           "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
         },
         {
           "type": "write",
-          "text": "N = m g cos(30°)",
-          "color": "green",
-          "size": "md",
-          "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
-        },
-        {
-          "type": "write",
-          "text": "Your turn: what is f_k?",
-          "color": "yellow",
+          "text": "f_k = 0.20 (42.4 N)",
+          "color": "orange",
           "size": "md",
           "say": "Pause here: what does that make our friction force?"
         },
         {
           "type": "write",
-          "text": "f_k = μ_k N",
-          "color": "white",
+          "text": "f_k = 8.49 N",
+          "color": "green",
           "size": "md",
           "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
         },
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:N = m g cos(30°)",
+          "target": "text:f_k = 8.49 N",
           "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
         }
       ],
@@ -1204,15 +1140,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             },
             {
               "type": "write",
-              "text": "Wₓ = m g sin(30°)",
-              "color": "orange",
-              "size": "md",
-              "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
-            },
-            {
-              "type": "write",
-              "text": "W_y = m g cos(30°)",
-              "color": "orange",
+              "text": "W_y = mg cos(30°)",
+              "color": "blue",
               "size": "md",
               "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
             }
@@ -1223,15 +1152,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "F_y = N − m g cos(30°) = 0",
+              "text": "N = mg cos(30°) = 42.4 N",
               "color": "white",
-              "size": "md",
-              "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
-            },
-            {
-              "type": "write",
-              "text": "N = m g cos(30°)",
-              "color": "green",
               "size": "md",
               "say": "Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees."
             }
@@ -1242,8 +1164,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "Your turn: what is f_k?",
-              "color": "yellow",
+              "text": "f_k = 0.20 (42.4 N)",
+              "color": "orange",
               "size": "md",
               "say": "Pause here: what does that make our friction force?"
             }
@@ -1254,15 +1176,15 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "f_k = μ_k N",
-              "color": "white",
+              "text": "f_k = 8.49 N",
+              "color": "green",
               "size": "md",
               "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
             },
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:N = m g cos(30°)",
+              "target": "text:f_k = 8.49 N",
               "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
             }
           ]
@@ -1312,21 +1234,21 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         },
         {
           "type": "write",
-          "text": "m g sin(30°) − f_{k} = m a",
-          "color": "white",
+          "text": "mg sinθ − f_k = ma",
+          "color": "blue",
           "size": "md",
           "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
         },
         {
           "type": "write",
-          "text": "m g sin(30°) − μ_{k} m g cos(30°) = m a",
-          "color": "orange",
+          "text": "mg sinθ − μ_k mg cosθ = ma",
+          "color": "white",
           "size": "md",
           "say": "Substitute our friction expression, and notice that every single term carries the mass m."
         },
         {
           "type": "write",
-          "text": "a = g (sin(30°) − μ_{k} cos(30°))",
+          "text": "a = g (sinθ − μ_k cosθ)",
           "color": "green",
           "size": "md",
           "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
@@ -1334,7 +1256,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:a = g (sin(30°) − μ_{k} cos(30°))",
+          "target": "text:a = g",
           "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
         }
       ],
@@ -1352,8 +1274,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             },
             {
               "type": "write",
-              "text": "m g sin(30°) − f_{k} = m a",
-              "color": "white",
+              "text": "mg sinθ − f_k = ma",
+              "color": "blue",
               "size": "md",
               "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
             }
@@ -1364,8 +1286,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "m g sin(30°) − μ_{k} m g cos(30°) = m a",
-              "color": "orange",
+              "text": "mg sinθ − μ_k mg cosθ = ma",
+              "color": "white",
               "size": "md",
               "say": "Substitute our friction expression, and notice that every single term carries the mass m."
             }
@@ -1376,7 +1298,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "a = g (sin(30°) − μ_{k} cos(30°))",
+              "text": "a = g (sinθ − μ_k cosθ)",
               "color": "green",
               "size": "md",
               "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
@@ -1384,7 +1306,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:a = g (sin(30°) − μ_{k} cos(30°))",
+              "target": "text:a = g",
               "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
             }
           ]
@@ -1429,14 +1351,14 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         },
         {
           "type": "write",
-          "text": "a = 9.8 (0.50 - 0.20 · 0.866)",
-          "color": "white",
+          "text": "a = 9.8 (0.50 − 0.173)",
+          "color": "blue",
           "size": "md",
           "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
         },
         {
           "type": "write",
-          "text": "= 9.8 (0.3268)",
+          "text": "a = 9.8 (0.3268)",
           "color": "white",
           "size": "md",
           "say": "Multiplying through gives nine point eight times zero point three two six eight."
@@ -1475,8 +1397,8 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             },
             {
               "type": "write",
-              "text": "a = 9.8 (0.50 - 0.20 · 0.866)",
-              "color": "white",
+              "text": "a = 9.8 (0.50 − 0.173)",
+              "color": "blue",
               "size": "md",
               "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
             }
@@ -1487,7 +1409,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "= 9.8 (0.3268)",
+              "text": "a = 9.8 (0.3268)",
               "color": "white",
               "size": "md",
               "say": "Multiplying through gives nine point eight times zero point three two six eight."
