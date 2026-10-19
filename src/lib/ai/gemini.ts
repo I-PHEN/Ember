@@ -58,7 +58,7 @@ async function call(model: string, body: unknown): Promise<Record<string, unknow
   }
   const r = await fetch(`${BASE}/${model}:generateContent`, {
     method: "POST",
-    signal: AbortSignal.timeout(60_000),
+    signal: AbortSignal.timeout(90_000),
     headers: {
       "Content-Type": "application/json",
       "x-goog-api-key": key,
@@ -217,9 +217,9 @@ export async function geminiTTS(text: string, voice: string): Promise<Buffer> {
       return pcmToWav(cleanPcm, 24000);
     } catch (err) {
       lastError = err;
-      const msg = err instanceof Error ? err.message : String(err);
-      // If it's a 404/429/503 on this model, try the next model in the fallback list
-      if (/404|429|503|UNAVAILABLE|not found|quota/i.test(msg)) {
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      // If it's a 404/429/503/timeout on this model, try the next model in the fallback list
+      if (/404|429|503|UNAVAILABLE|not found|quota|TimeoutError|timed out|abort/i.test(msg)) {
         continue;
       }
       throw err;

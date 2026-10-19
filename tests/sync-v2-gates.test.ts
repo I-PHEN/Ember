@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   SAMPLE_CALCULUS,
+  SAMPLE_CUBIC_EXTREMA,
   SAMPLE_GAUSSIAN_INTEGRAL,
   SAMPLE_INCLINED_PLANE,
 } from "../src/lib/samples";
@@ -28,9 +29,16 @@ function rmsInWindow(pcm: Buffer, t0: number, t1: number): number {
 
 describe("Sync V2 Verification Gates (Spec §9)", () => {
   const lessons = [
+    { name: "SAMPLE_CUBIC_EXTREMA", script: SAMPLE_CUBIC_EXTREMA },
     { name: "SAMPLE_GAUSSIAN_INTEGRAL", script: SAMPLE_GAUSSIAN_INTEGRAL },
     { name: "SAMPLE_INCLINED_PLANE", script: SAMPLE_INCLINED_PLANE },
     { name: "SAMPLE_CALCULUS", script: SAMPLE_CALCULUS },
+  ];
+
+  const stitchedLessons = [
+    SAMPLE_CUBIC_EXTREMA,
+    SAMPLE_GAUSSIAN_INTEGRAL,
+    SAMPLE_INCLINED_PLANE,
   ];
 
   test("1. Verbatim & Schema Gate: every curated lesson has verbatim segments and at most one pauseAfter", () => {
@@ -78,7 +86,7 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
   });
 
   test("3. Anchor Audit Gate: every segment in stitched lessons starts its ink at cue.t0 + SAY_T0 and finishes before nextCue.t0", () => {
-    for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
+    for (const script of stitchedLessons) {
       const tl = compileTimeline(script);
 
       tl.scenes.forEach((sc, sceneIdx) => {
@@ -138,7 +146,7 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
   test("4. PCM Silence & C2PA-Free Audit Gate: stitched WAV files have zero C2PA/inner-RIFF static and digital silence (RMS < 0.001) across every gap", () => {
     const cacheDir = path.join(process.cwd(), "public", "audio", "cache");
 
-    for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
+    for (const script of stitchedLessons) {
       script.scenes.forEach((sc) => {
         const key = sc.audio?.key;
         const cues = sc.audio?.segments;
@@ -175,10 +183,14 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     // Gaussian Scene 4 Segment 2 is the boxed final answer with pauseAfter: 2.0
     const gCues = SAMPLE_GAUSSIAN_INTEGRAL.scenes[4].audio!.segments!;
     expect(gCues[3].t0 - gCues[2].t1).toBeCloseTo(2.0, 2);
+
+    // Cubic Extrema Scene 3 Segment 3 is the boxed final answer with pauseAfter: 2.0
+    const cCues = SAMPLE_CUBIC_EXTREMA.scenes[3].audio!.segments!;
+    expect(cCues[4].t0 - cCues[3].t1).toBeGreaterThanOrEqual(2.0);
   });
 
   test("5. Golden Flagship Ink-Reveal Gate: Scene 0 speak-ahead holds writing until Segment 1 cue", () => {
-    for (const script of [SAMPLE_GAUSSIAN_INTEGRAL, SAMPLE_INCLINED_PLANE]) {
+    for (const script of stitchedLessons) {
       const tl = compileTimeline(script);
       const sc0 = tl.scenes[0];
       const cues0 = script.scenes[0].audio!.segments!;
@@ -238,7 +250,7 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     const { computePen } = await import("../src/lib/video/render");
     const { THEMES, sceneStart } = await import("../src/lib/video/types");
 
-    for (const script of [SAMPLE_INCLINED_PLANE, SAMPLE_GAUSSIAN_INTEGRAL]) {
+    for (const script of stitchedLessons) {
       const tl = compileTimeline(script);
       for (let si = 0; si < tl.scenes.length; si++) {
         const sc = tl.scenes[si];

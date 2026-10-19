@@ -1479,8 +1479,438 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
   ]
 };
 
+/** Flagship 3-Phase Step Rhythm + Multi-Waypoint Deictic Pointer Lesson */
+export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
+  "title": "Finding Local Extrema and Graphing f(x) = x³ − 3x",
+  "subject": "Calculus",
+  "question": "Find the local maximum and minimum values of f(x) = x³ − 3x on [−2, 2] and sketch the curve.",
+  "scenes": [
+    {
+      "chapter": "Problem Setup & Goal",
+      "narration": "We want to find the local maximum and minimum values of a cubic polynomial on a closed interval. Let's write down our function f of x equals x cubed minus three x, on the interval from negative two to two. Local peaks and valleys occur where the tangent slope is horizontal, meaning the first derivative f prime of x equals zero. So our roadmap is simple: find where the derivative vanishes, evaluate the function at those points, and sketch the curve.",
+      "beats": [
+        {
+          "type": "write",
+          "text": "f(x) = x³ − 3x,   x ∈ [−2, 2]",
+          "color": "blue",
+          "size": "md"
+        },
+        {
+          "type": "write",
+          "text": "At extrema:  f'(x) = 0",
+          "color": "yellow",
+          "size": "md"
+        },
+        {
+          "type": "point",
+          "target": "text:f'(x) = 0",
+          "ms": 1800
+        }
+      ],
+      "segments": [
+        {
+          "say": "We want to find the local maximum and minimum values of a cubic polynomial on a closed interval.",
+          "mode": "speak_ahead"
+        },
+        {
+          "say": "Let's write down our function f of x equals x cubed minus three x, on the interval from negative two to two.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "f(x) = x³ − 3x,   x ∈ [−2, 2]",
+              "color": "blue",
+              "size": "md",
+              "say": "Let's write down our function f of x equals x cubed minus three x, on the interval from negative two to two."
+            }
+          ]
+        },
+        {
+          "say": "Local peaks and valleys occur where the tangent slope is horizontal, meaning the first derivative f prime of x equals zero.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "At extrema:  f'(x) = 0",
+              "color": "yellow",
+              "size": "md",
+              "say": "Local peaks and valleys occur where the tangent slope is horizontal, meaning the first derivative f prime of x equals zero."
+            }
+          ]
+        },
+        {
+          "say": "So our roadmap is simple: find where the derivative vanishes, evaluate the function at those points, and sketch the curve.",
+          "ink": [
+            {
+              "type": "point",
+              "target": "text:f'(x) = 0",
+              "ms": 1800,
+              "say": "So our roadmap is simple: find where the derivative vanishes, evaluate the function at those points, and sketch the curve."
+            }
+          ]
+        }
+      ],
+      "audio": {
+        "key": "f9cd3e6cc0828c7c67087c85b3b209d1d307f749caf68f71590481d26dc4e9be",
+        "dur": 36.325,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 6.096
+          },
+          {
+            "i": 1,
+            "t0": 6.446,
+            "t1": 13.813
+          },
+          {
+            "i": 2,
+            "t0": 17.813,
+            "t1": 25.332
+          },
+          {
+            "i": 3,
+            "t0": 29.332,
+            "t1": 36.325
+          }
+        ]
+      }
+    },
+    {
+      "chapter": "First Derivative & Critical Points",
+      "narration": "To locate those horizontal tangent points, let's differentiate f of x term by term using the power rule. Differentiating x cubed gives three x squared, and negative three x gives minus three, which factors into three times x minus one times x plus one. Setting this factored derivative equal to zero yields two critical points: x equals negative one and x equals positive one. Pause and check our domain—both negative one and positive one lie strictly inside the interval from negative two to two.",
+      "beats": [
+        {
+          "type": "erase"
+        },
+        {
+          "type": "write",
+          "text": "f'(x) = 3x² − 3 = 3(x − 1)(x + 1)",
+          "color": "white",
+          "size": "md"
+        },
+        {
+          "type": "write",
+          "text": "3(x − 1)(x + 1) = 0  →  x = −1, 1",
+          "color": "orange",
+          "size": "md"
+        },
+        {
+          "type": "point",
+          "target": "text:x = −1, 1",
+          "ms": 1800
+        }
+      ],
+      "segments": [
+        {
+          "say": "To locate those horizontal tangent points, let's differentiate f of x term by term using the power rule.",
+          "mode": "speak_ahead"
+        },
+        {
+          "say": "Differentiating x cubed gives three x squared, and negative three x gives minus three, which factors into three times x minus one times x plus one.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "Differentiating x cubed gives three x squared, and negative three x gives minus three, which factors into three times x minus one times x plus one."
+            },
+            {
+              "type": "write",
+              "text": "f'(x) = 3x² − 3 = 3(x − 1)(x + 1)",
+              "color": "white",
+              "size": "md",
+              "say": "Differentiating x cubed gives three x squared, and negative three x gives minus three, which factors into three times x minus one times x plus one."
+            }
+          ]
+        },
+        {
+          "say": "Setting this factored derivative equal to zero yields two critical points: x equals negative one and x equals positive one.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "3(x − 1)(x + 1) = 0  →  x = −1, 1",
+              "color": "orange",
+              "size": "md",
+              "say": "Setting this factored derivative equal to zero yields two critical points: x equals negative one and x equals positive one."
+            }
+          ]
+        },
+        {
+          "say": "Pause and check our domain—both negative one and positive one lie strictly inside the interval from negative two to two.",
+          "ink": [
+            {
+              "type": "point",
+              "target": "text:x = −1, 1",
+              "ms": 1800,
+              "say": "Pause and check our domain—both negative one and positive one lie strictly inside the interval from negative two to two."
+            }
+          ]
+        }
+      ],
+      "audio": {
+        "key": "6d609a35f052d336591a0ef1605f67310a3a884ed28d8eb9bb72f6229caee228",
+        "dur": 41.041,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 6.93
+          },
+          {
+            "i": 1,
+            "t0": 7.28,
+            "t1": 17.781
+          },
+          {
+            "i": 2,
+            "t0": 21.781,
+            "t1": 29.612
+          },
+          {
+            "i": 3,
+            "t0": 33.612,
+            "t1": 41.041
+          }
+        ]
+      }
+    },
+    {
+      "chapter": "Evaluating Extrema & Curve Graph",
+      "narration": "Now we substitute our critical points and interval endpoints back into the original function to find their heights on the curve. At the critical points, f of negative one equals positive two, while f of positive one drops to negative two. Plotting y equals x cubed minus three x reveals a smooth cubic wave rising to a peak at negative one, two and dipping to a valley at one, negative two. Notice how the tangent slope flattens out completely at the top of the crest and at the bottom of the trough.",
+      "beats": [
+        {
+          "type": "erase"
+        },
+        {
+          "type": "write",
+          "text": "f(−1) = 2 (Peak),   f(1) = −2 (Valley)",
+          "color": "yellow",
+          "size": "md"
+        },
+        {
+          "type": "graph",
+          "expr": "x^3 - 3*x",
+          "color": "blue",
+          "xMin": -2.2,
+          "xMax": 2.2,
+          "label": "y = x³ − 3x"
+        },
+        {
+          "type": "point",
+          "target": "text:y = x³ − 3x",
+          "ms": 1800
+        }
+      ],
+      "segments": [
+        {
+          "say": "Now we substitute our critical points and interval endpoints back into the original function to find their heights on the curve.",
+          "mode": "speak_ahead"
+        },
+        {
+          "say": "At the critical points, f of negative one equals positive two, while f of positive one drops to negative two.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "At the critical points, f of negative one equals positive two, while f of positive one drops to negative two."
+            },
+            {
+              "type": "write",
+              "text": "f(−1) = 2 (Peak),   f(1) = −2 (Valley)",
+              "color": "yellow",
+              "size": "md",
+              "say": "At the critical points, f of negative one equals positive two, while f of positive one drops to negative two."
+            }
+          ]
+        },
+        {
+          "say": "Plotting y equals x cubed minus three x reveals a smooth cubic wave rising to a peak at negative one, two and dipping to a valley at one, negative two.",
+          "ink": [
+            {
+              "type": "graph",
+              "expr": "x^3 - 3*x",
+              "color": "blue",
+              "xMin": -2.2,
+              "xMax": 2.2,
+              "label": "y = x³ − 3x",
+              "say": "Plotting y equals x cubed minus three x reveals a smooth cubic wave rising to a peak at negative one, two and dipping to a valley at one, negative two."
+            }
+          ]
+        },
+        {
+          "say": "Notice how the tangent slope flattens out completely at the top of the crest and at the bottom of the trough.",
+          "ink": [
+            {
+              "type": "point",
+              "target": "text:y = x³ − 3x",
+              "ms": 1800,
+              "say": "Notice how the tangent slope flattens out completely at the top of the crest and at the bottom of the trough."
+            }
+          ]
+        }
+      ],
+      "audio": {
+        "key": "3297bcf5d1a578132144c5a5b9633b6cd5c4ed59f26fafb6500631c7fcfd149d",
+        "dur": 42.271,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 9.228
+          },
+          {
+            "i": 1,
+            "t0": 9.578,
+            "t1": 17.183
+          },
+          {
+            "i": 2,
+            "t0": 21.183,
+            "t1": 32.044
+          },
+          {
+            "i": 3,
+            "t0": 36.044,
+            "t1": 42.271
+          }
+        ]
+      }
+    },
+    {
+      "chapter": "Verification & Final Answer",
+      "narration": "Finally, let's confirm which turning point is a maximum and which is a minimum using the second-derivative concavity test. Differentiating a second time gives f double prime of x equals six x, which tells us how the curve bends. At x equals negative one, f double prime is negative six—concave down, confirming a local maximum—while at positive one it is positive six, a local minimum. This locks in our final answer: a local maximum of two at x equals negative one, and a local minimum of negative two at x equals one. Both turning points match the peak and valley on our cubic graph, completing our analysis.",
+      "beats": [
+        {
+          "type": "erase"
+        },
+        {
+          "type": "write",
+          "text": "f''(x) = 6x",
+          "color": "white",
+          "size": "md"
+        },
+        {
+          "type": "write",
+          "text": "f''(−1) = −6 < 0 (Max),   f''(1) = 6 > 0 (Min)",
+          "color": "orange",
+          "size": "md"
+        },
+        {
+          "type": "write",
+          "text": "Max: (−1, 2)   |   Min: (1, −2)",
+          "color": "green",
+          "size": "lg",
+          "keep": true
+        },
+        {
+          "type": "box",
+          "color": "yellow"
+        },
+        {
+          "type": "point",
+          "target": "text:Max: (−1, 2)",
+          "ms": 1600
+        }
+      ],
+      "segments": [
+        {
+          "say": "Finally, let's confirm which turning point is a maximum and which is a minimum using the second-derivative concavity test.",
+          "mode": "speak_ahead"
+        },
+        {
+          "say": "Differentiating a second time gives f double prime of x equals six x, which tells us how the curve bends.",
+          "ink": [
+            {
+              "type": "erase",
+              "say": "Differentiating a second time gives f double prime of x equals six x, which tells us how the curve bends."
+            },
+            {
+              "type": "write",
+              "text": "f''(x) = 6x",
+              "color": "white",
+              "size": "md",
+              "say": "Differentiating a second time gives f double prime of x equals six x, which tells us how the curve bends."
+            }
+          ]
+        },
+        {
+          "say": "At x equals negative one, f double prime is negative six—concave down, confirming a local maximum—while at positive one it is positive six, a local minimum.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "f''(−1) = −6 < 0 (Max),   f''(1) = 6 > 0 (Min)",
+              "color": "orange",
+              "size": "md",
+              "say": "At x equals negative one, f double prime is negative six—concave down, confirming a local maximum—while at positive one it is positive six, a local minimum."
+            }
+          ]
+        },
+        {
+          "say": "This locks in our final answer: a local maximum of two at x equals negative one, and a local minimum of negative two at x equals one.",
+          "ink": [
+            {
+              "type": "write",
+              "text": "Max: (−1, 2)   |   Min: (1, −2)",
+              "color": "green",
+              "size": "lg",
+              "keep": true,
+              "say": "This locks in our final answer: a local maximum of two at x equals negative one, and a local minimum of negative two at x equals one."
+            },
+            {
+              "type": "box",
+              "color": "yellow",
+              "say": "This locks in our final answer: a local maximum of two at x equals negative one, and a local minimum of negative two at x equals one."
+            }
+          ],
+          "pauseAfter": 2
+        },
+        {
+          "say": "Both turning points match the peak and valley on our cubic graph, completing our analysis.",
+          "ink": [
+            {
+              "type": "point",
+              "target": "text:Max: (−1, 2)",
+              "ms": 1600,
+              "say": "Both turning points match the peak and valley on our cubic graph, completing our analysis."
+            }
+          ]
+        }
+      ],
+      "audio": {
+        "key": "f4cb5355353fddc220e1c01b283658a9a137f9617189eea33f9e276518560c90",
+        "dur": 51.474,
+        "segments": [
+          {
+            "i": 0,
+            "t0": 0,
+            "t1": 7.702
+          },
+          {
+            "i": 1,
+            "t0": 8.052,
+            "t1": 14.914
+          },
+          {
+            "i": 2,
+            "t0": 18.914,
+            "t1": 29.412
+          },
+          {
+            "i": 3,
+            "t0": 33.412,
+            "t1": 42.658
+          },
+          {
+            "i": 4,
+            "t0": 46.658,
+            "t1": 51.474
+          }
+        ]
+      }
+    }
+  ]
+};
+
 /** The curated showcase lesson list for demos and judge review */
 export const SAMPLE_LESSONS: SolveScript[] = [
+  SAMPLE_CUBIC_EXTREMA,
   SAMPLE_INCLINED_PLANE,
   SAMPLE_GAUSSIAN_INTEGRAL,
 ];
