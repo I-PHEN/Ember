@@ -7,6 +7,7 @@
 import {
   BOARD_H,
   BOARD_W,
+  type BBox,
   type BoardTheme,
   type PathStroke,
   type Pt,
@@ -187,6 +188,10 @@ interface PenState {
   alpha: number;
   lift: number;
   angle: number;
+  /** point mode: exact sub-term / landmark being spoken about */
+  spotBBox?: BBox;
+  /** 0..1 fade of the spotlight (eases in as the pen arrives) */
+  spotAlpha?: number;
 }
 
 function easeInOut(t: number): number {
@@ -228,14 +233,21 @@ export function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState
     if (active.len < 0.5 || active.strokeTag === "deictic-point") {
       const swayX = Math.sin(t * 2.2) * 1.4;
       const swayY = Math.cos(t * 1.8) * 0.9;
+      const d = strokeDelta(tl, active, t);
+      const sb = active.spotBBox
+        ? { ...active.spotBBox, x: active.spotBBox.x + d.dx, y: active.spotBBox.y + d.dy }
+        : undefined;
+      const held = t - activeAbs0;
       return {
-        x: pt.x + swayX,
-        y: pt.y + swayY,
+        x: pt.x + d.dx + swayX,
+        y: pt.y + d.dy + swayY,
         color: markerColor(theme, active.color),
         mode: "point",
         alpha: 1,
         lift: 18 + Math.sin(t * 2.0) * 1.5,
         angle: -0.52 + Math.sin(t * 1.8) * 0.03,
+        spotBBox: sb,
+        spotAlpha: sb ? Math.min(1, 0.55 + held / 0.4) : 0,
       };
     }
     // writing stroke: dynamic wrist tilt along the stroke tangent
@@ -272,42 +284,62 @@ export function computePen(tl: Timeline, t: number, theme: BoardTheme): PenState
     }
   }
 
-  if (next && next.t0 - rel < 0.85) {
+  const isDeictic = (s: PathStroke | null): boolean =>
+    !!s && (s.len < 0.5 || s.strokeTag === "deictic-point");
+
+  if (next) {
     const from = prev
       ? prev.pts[prev.pts.length - 1]
       : { x: next.pts[0].x - 30, y: next.pts[0].y + 20 };
     const to = next.pts[0];
-    const gapStart = prev ? prev.t0 + prev.dur : Math.max(0, next.t0 - 0.7);
-    const gapDur = Math.max(0.04, next.t0 - gapStart);
-    const gp = Math.min(1, Math.max(0, (rel - gapStart) / gapDur));
-    const e = easeInOut(gp);
-    const arcH = Math.sin(Math.PI * gp);
+    const prevEnd = prev ? prev.t0 + prev.dur : Math.max(0, next.t0 - 0.7);
+    const fullGap = Math.max(0.04, next.t0 - prevEnd);
+    // A short hop between consecutive pointer stops is one continuous glide.
     const isDeicticGlide =
-      next.len < 0.5 ||
-      next.strokeTag === "deictic-point" ||
-      (prev && (prev.len < 0.5 || prev.strokeTag === "deictic-point"));
-    if (isDeicticGlide) {
+      (isDeictic(next) || isDeictic(prev)) && fullGap <= 0.6;
+    // Line / segment boundary: the pen STOPS and parks at the end of the
+    // finished line, and only lifts off for the next line in the final
+    // travel window (scaled by distance). Short intra-line gaps (between
+    // letters/words) keep the continuous flight.
+    const dist = Math.hypot(to.x - from.x, to.y - from.y);
+    const travelWin =
+      fullGap > 0.24 && !isDeicticGlide
+        ? Math.min(fullGap, Math.max(0.22, Math.min(0.42, dist / 1600)))
+        : fullGap;
+    const travelStart = next.t0 - travelWin;
+    if (rel >= travelStart) {
+      const gp = Math.min(1, Math.max(0, (rel - travelStart) / travelWin));
+      const e = easeInOut(gp);
+      const arcH = Math.sin(Math.PI * gp);
+      if (isDeicticGlide) {
+        const spot = isDeictic(next) ? next.spotBBox : undefined;
+        return {
+          x: from.x + (to.x - from.x) * e,
+          y: from.y + (to.y - from.y) * e - 4 * arcH,
+          color: markerColor(theme, next.color),
+          mode: "point",
+          alpha: 1,
+          lift: 18 + 4 * arcH,
+          angle: -0.52 + arcH * 0.05,
+          spotBBox: spot,
+          spotAlpha: spot ? Math.max(0, (gp - 0.55) / 0.45) : 0,
+        };
+      }
+      // pen was idle long enough to fade out → fade back in as it lifts off
+      const idleBefore = prev ? travelStart - prevEnd : 0;
+      const alpha = idleBefore > 1.3 ? Math.min(1, gp / 0.35) : 1;
+      const lift = 22 * arcH;
+      const lateralArc = arcH * 6;
       return {
-        x: from.x + (to.x - from.x) * e,
-        y: from.y + (to.y - from.y) * e - 4 * arcH,
+        x: from.x + (to.x - from.x) * e + lateralArc,
+        y: from.y + (to.y - from.y) * e,
         color: markerColor(theme, next.color),
-        mode: "point",
-        alpha: 1,
-        lift: 18 + 4 * arcH,
-        angle: -0.52 + arcH * 0.05,
+        mode: "travel",
+        alpha,
+        lift,
+        angle: -0.66 + arcH * 0.08,
       };
     }
-    const lift = 22 * arcH;
-    const lateralArc = arcH * 6;
-    return {
-      x: from.x + (to.x - from.x) * e + lateralArc,
-      y: from.y + (to.y - from.y) * e,
-      color: markerColor(theme, next.color),
-      mode: "travel",
-      alpha: 1,
-      lift,
-      angle: -0.66 + arcH * 0.08,
-    };
   }
 
   // calm ready hover before the first stroke starts in the scene
@@ -355,8 +387,42 @@ export function drawPen(
   ctx.globalAlpha = Math.max(0, Math.min(1, pen.alpha));
 
   if (isPoint) {
-    // Lifted deictic tutor pointer: angled glowing marker nib + pulsing halo
-    // 1. Soft ground shadow cast onto the board
+    // Synchronized sub-term spotlight: a soft translucent under-glow behind
+    // ONLY the term being spoken + a crisp underline beneath it. Never
+    // covers the chalk, never pulses — it simply lands with the word.
+    const sb = pen.spotBBox;
+    const sa = Math.max(0, Math.min(1, pen.spotAlpha ?? 0)) * pen.alpha;
+    if (sb && sa > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = 0.16 * sa;
+      ctx.fillStyle = pen.color;
+      ctx.beginPath();
+      const gx = sb.x - 6;
+      const gy = sb.y - 5;
+      const gw = sb.w + 12;
+      const gh = sb.h + 10;
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(gx, gy, gw, gh, Math.min(10, gh / 2));
+      } else {
+        ctx.rect(gx, gy, gw, gh);
+      }
+      ctx.fill();
+
+      const uy = sb.y + sb.h + 5;
+      ctx.globalAlpha = 0.95 * sa;
+      ctx.strokeStyle = pen.color;
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.shadowColor = pen.color;
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      ctx.moveTo(sb.x + 2, uy);
+      ctx.lineTo(sb.x + sb.w - 2, uy);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // Soft ground shadow cast onto the board by the lifted marker
     ctx.save();
     ctx.fillStyle = "rgba(0, 0, 0, 0.24)";
     ctx.beginPath();
@@ -364,29 +430,20 @@ export function drawPen(
     ctx.fill();
     ctx.restore();
 
-    // 2. Pulsing translucent focus halo ring
-    const pulseR = 7.4 + Math.sin(t * 4.2) * 1.5;
+    // Clean angled tutor marker: tapered shaft + bright tip
     ctx.save();
     ctx.strokeStyle = pen.color;
-    ctx.lineWidth = 1.5;
-    ctx.globalAlpha = pen.alpha * 0.62;
-    ctx.beginPath();
-    ctx.arc(pen.x, pen.y, pulseR, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // 3. Angled tapered tutor marker/stylus shaft pointing up-left at the term
-    ctx.strokeStyle = pen.color;
     ctx.lineWidth = 3.4;
+    ctx.lineCap = "round";
     ctx.globalAlpha = pen.alpha * 0.85;
     ctx.beginPath();
     ctx.moveTo(pen.x + 3.0, pen.y + 3.2);
     ctx.lineTo(pen.x + 16.5, pen.y + 18.0);
     ctx.stroke();
 
-    // 4. Glowing central marker tip beacon
     ctx.fillStyle = pen.color;
     ctx.shadowColor = pen.color;
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 6;
     ctx.globalAlpha = pen.alpha * 0.96;
     ctx.beginPath();
     ctx.arc(pen.x, pen.y, 3.1, 0, Math.PI * 2);

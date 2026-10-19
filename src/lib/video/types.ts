@@ -309,6 +309,12 @@ export interface StrokeMove {
   dy: number;
 }
 
+export interface SubTermSpan {
+  label?: string;
+  bbox: BBox;
+  anchor: Pt;
+}
+
 export interface PathStroke {
   kind: "path";
   pts: Pt[];
@@ -336,6 +342,12 @@ export interface PathStroke {
   velocities?: number[];
   /** hierarchical motor control tag */
   strokeTag?: string;
+  /** sub-term or diagram landmark bounding box for synchronized spotlighting */
+  spotBBox?: BBox;
+  /** deictic-point only: label of the sub-term / landmark being pointed at
+   *  (e.g. "Peak (-1, 2)", "mg") — used to time the pen's arrival to the
+   *  moment that word is spoken */
+  spotLabel?: string;
 }
 
 export interface HighlightStroke {
@@ -361,6 +373,8 @@ export interface Group {
   born: number;
   /** ordered sub-term or diagram element coordinates for deictic pointing */
   waypoints?: Pt[];
+  /** ordered sub-term or diagram landmark spans with exact bounding boxes for spotlighting */
+  subTerms?: SubTermSpan[];
   /** for emphasis strokes: the group they decorate (kept/erased together) */
   anchor?: Group;
 }
