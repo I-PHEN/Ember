@@ -37,6 +37,7 @@ import {
 } from "./video/solver";
 import type {
   AudioSegmentCue,
+  Beat,
   SceneSegment,
   SolveScript,
 } from "./video/types";
@@ -574,14 +575,14 @@ function enforceFourBeatSegments(
   sceneIndex: number,
   isFinalScene: boolean
 ): SceneSegment[] {
-  const cleanBeat = (b: SceneSegment["ink"] extends Array<infer T> | undefined ? T : never) => {
+  const cleanBeat = (b: Beat): Beat => {
     if (b.type === "write") {
       const { x: _x, y: _y, below: _below, keep, ...rest } = b;
       return isFinalScene && keep ? { ...rest, keep: true } : rest;
     }
     return b;
   };
-  let segs = inputSegs.map((s) => ({
+  let segs: SceneSegment[] = inputSegs.map((s) => ({
     ...s,
     ink: s.ink ? s.ink.map(cleanBeat) : undefined,
   }));
@@ -612,9 +613,9 @@ function enforceFourBeatSegments(
     };
   }
   // Enforce at most 1 write or diagram beat per segment so the pen never rushes
-  segs = segs.map((seg) => {
+  segs = segs.map((seg): SceneSegment => {
     if (!seg.ink || seg.ink.length === 0) return seg;
-    const cleanedInk = seg.ink.map((b) => {
+    const cleanedInk: Beat[] = seg.ink.map((b) => {
       if (b.type === "freebody" && b.forces && b.forces.length > 3) {
         const hasDown = b.forces.some((f) => f.dir === "down");
         if (hasDown) {
@@ -653,12 +654,12 @@ function enforceFourBeatSegments(
         : writes.reduce((best, cur) =>
             cur.text.length >= best.text.length ? cur : best
           ).text;
-    const keptWrite = {
+    const keptWrite: Beat = {
       ...writes[writes.length - 1],
       text: combinedText,
     };
     let writeEmitted = false;
-    const consolidated = cleanedInk.flatMap((b) => {
+    const consolidated: Beat[] = cleanedInk.flatMap((b): Beat[] => {
       if (b.type === "newline") return [];
       if (b.type === "write") {
         if (writeEmitted) return [];
@@ -1252,7 +1253,7 @@ async function runJob(
                 results[idx] = {
                   narration: results[idx]?.narration,
                   beats: nextSegments
-                    ? nextSegments.flatMap((s) => s.ink || [])
+                    ? (nextSegments as SceneSegment[]).flatMap((s: SceneSegment) => s.ink || [])
                     : outcome.beats,
                   segments: nextSegments,
                 };

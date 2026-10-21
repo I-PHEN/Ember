@@ -168,11 +168,20 @@ function computeGroupSubTerms(
   let tokenLabels: string[] = [];
   if (text && text.trim().length > 0) {
     const clean = text.trim();
-    const majorParts = clean
+    let prefix = "";
+    let expr = clean;
+    const colonIdx = clean.indexOf(":");
+    if (colonIdx > 0 && colonIdx < clean.length - 2) {
+      prefix = clean.slice(0, colonIdx).trim();
+      expr = clean.slice(colonIdx + 1).trim();
+    }
+    const majorParts = expr
       .split(/\s*(?:\||,|→|⇒|=|<|>|≤|≥)\s*/)
       .map((p) => p.trim())
       .filter((p) => p.length > 0);
-    if (majorParts.length >= 2) {
+    if (prefix && majorParts.length >= 1) {
+      tokenLabels = [prefix, ...majorParts].slice(0, 3);
+    } else if (majorParts.length >= 2) {
       tokenLabels = majorParts.slice(0, 3);
     }
   }
@@ -355,10 +364,23 @@ function movedBBox(_ctx: Ctx, g: Group): BBox {
   return g.bbox;
 }
 
-function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | null {
+function resolveTarget(
+  ctx: Ctx,
+  target?: string,
+  skipCrossed = false,
+  skipEmphasis = false
+): Group | null {
+  const isEmphasis = (g: Group) =>
+    g.anchor !== undefined || (!g.text && g.bbox.h <= 25);
   const t = (target ?? "last").trim();
   if (!t || t === "last") {
     // last group that is still on the board
+    for (let i = ctx.groups.length - 1; i >= 0; i--) {
+      const g = ctx.groups[i];
+      if (ctx.gone.has(g)) continue;
+      if (skipEmphasis && isEmphasis(g)) continue;
+      return g;
+    }
     for (let i = ctx.groups.length - 1; i >= 0; i--) {
       const g = ctx.groups[i];
       if (!ctx.gone.has(g)) return g;
@@ -366,7 +388,9 @@ function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | 
     return null;
   }
   if (t === "banner" || t === "question") {
-    const banner = ctx.groups.find((g) => g.id === "banner" || (g.bbox.y < 120 && !ctx.gone.has(g)));
+    const banner = ctx.groups.find(
+      (g) => g.id === "banner" || (g.bbox.y < 120 && !ctx.gone.has(g))
+    );
     if (banner) return banner;
   }
   if (t.toLowerCase().startsWith("text:")) {
@@ -375,6 +399,7 @@ function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | 
       const g = ctx.groups[i];
       if (ctx.gone.has(g)) continue; // erased — can't target ink that's gone
       if (skipCrossed && ctx.crossed.has(g)) continue;
+      if (skipEmphasis && isEmphasis(g)) continue;
       if (g.text && g.text.toLowerCase().includes(needle)) return g;
     }
     return null;
@@ -383,6 +408,12 @@ function resolveTarget(ctx: Ctx, target?: string, skipCrossed = false): Group | 
   if (byId) return byId;
 
   // fallback: last live group
+  for (let i = ctx.groups.length - 1; i >= 0; i--) {
+    const g = ctx.groups[i];
+    if (ctx.gone.has(g)) continue;
+    if (skipEmphasis && isEmphasis(g)) continue;
+    return g;
+  }
   for (let i = ctx.groups.length - 1; i >= 0; i--) {
     const g = ctx.groups[i];
     if (!ctx.gone.has(g)) return g;
@@ -1148,8 +1179,9 @@ function buildEmphasis(
    group already on the board and points at each one in turn — like a professor
    guiding the student's eye across LHS → operator → RHS while explaining. */
 function buildPoint(ctx: Ctx, beat: Extract<Beat, { type: "point" }>): void {
-  const g = resolveTarget(ctx, beat.target);
-  if (!g) return;
+  const rawG = resolveTarget(ctx, beat.target, false, true);
+  if (!rawG) return;
+  const g = rawG.anchor ?? rawG;
   const b = movedBBox(ctx, g);
   const allSubTerms: SubTermSpan[] =
     g.subTerms && g.subTerms.length > 0
@@ -1163,7 +1195,7 @@ function buildPoint(ctx: Ctx, beat: Extract<Beat, { type: "point" }>): void {
           anchor: wp,
         }));
 
-  // If target quotes a specific sub-term on the right side of the line, start at the matching sub-term
+  // If target quotes a specific sub-term or equation part, isolate matching sub-terms
   let activeSubTerms = allSubTerms;
   const rawTarget = (beat.target ?? "").trim();
   if (
@@ -1172,27 +1204,41 @@ function buildPoint(ctx: Ctx, beat: Extract<Beat, { type: "point" }>): void {
     allSubTerms.length >= 2
   ) {
     const needle = rawTarget.slice(5).trim().toLowerCase();
-    const matchedIdx = allSubTerms.findIndex(
-      (st) => st.label && st.label.toLowerCase().includes(needle)
+    const matchedExact = allSubTerms.filter(
+      (st) => st.label && st.label.toLowerCase() === needle
     );
-    if (matchedIdx > 0) {
-      activeSubTerms = allSubTerms.slice(matchedIdx);
+    if (matchedExact.length === 1) {
+      activeSubTerms = matchedExact;
     } else {
-      const idx = g.text.toLowerCase().indexOf(needle);
-      if (idx > g.text.length * 0.42 && needle.length < g.text.length * 0.65) {
-        activeSubTerms = allSubTerms.slice(Math.floor(allSubTerms.length / 2));
+      const matchingSubTerms = allSubTerms.filter(
+        (st) =>
+          st.label &&
+          (needle.includes(st.label.toLowerCase()) ||
+            st.label.toLowerCase().includes(needle))
+      );
+      if (matchingSubTerms.length >= 2) {
+        activeSubTerms = matchingSubTerms;
+      } else {
+        const firstIdx = allSubTerms.findIndex(
+          (st) =>
+            st.label &&
+            (st.label.toLowerCase().includes(needle) ||
+              needle.includes(st.label.toLowerCase()))
+        );
+        if (firstIdx >= 0) {
+          activeSubTerms = allSubTerms.slice(firstIdx);
+        }
       }
     }
   }
 
-  // Deictic pointing is fundamentally relational (term-to-term). If a single
-  // sub-term was isolated, split it into two distinct anchor waypoints (e.g.
-  // formula LHS/operator to RHS, or factor start to finish) so the tutor marker
-  // glides across the targeted structure.
+  // Deictic pointing is relational (term-to-term). If a single sub-term was isolated:
+  // - If it's a wide span (>= 70px), glide across it from left to right.
+  // - If it's a tiny single token (< 70px) and the group has multiple terms, glide across allSubTerms.
   if (activeSubTerms.length === 1) {
     const single = activeSubTerms[0];
     const sb = single.bbox;
-    if (sb.w >= 44) {
+    if (sb.w >= 70) {
       activeSubTerms = [
         {
           label: single.label,
@@ -1628,8 +1674,8 @@ function buildGraph(ctx: Ctx, beat: Extract<Beat, { type: "graph" }>): void {
       }).strokes
     );
   }
-  addPaths(ctx, tickRaw, { gap: 0.035, speedCap: 30, settle: 0.05 });
-  addPaths(ctx, labelRaw, { gap: 0.02, speedCap: 24, settle: 0.1 });
+  addPaths(ctx, tickRaw, { gap: 0.02, speedCap: 80, settle: 0.02 });
+  addPaths(ctx, labelRaw, { gap: 0.015, speedCap: 75, settle: 0.03 });
 
   const curveRaw: RawPath[] = [];
   let cur: Pt[] = [];
@@ -2016,6 +2062,9 @@ const SAY_SCALE_MAX = 1.35; // legacy fallback clamp
 export const SAY_T0 = 0.08;
 /** trailing breath after the stitched WAV ends (spec §8) */
 export const SCENE_TAIL_SEC = 0.4;
+/** After a line is written the pen STOPS and parks for at least this long
+ *  before the next segment begins — the "pen knows how to stop" rule. */
+export const PEN_PARK_SEC = 0.65;
 
 const DEICTIC_PATTERN =
   /\b(this (?:integral|problem|equation|term|formula|expression|value|result|curve|ramp|incline|block)|the (?:integral|equation|term|formula|expression|denominator|numerator|exponent|curve|ramp|incline|diagram))\b/i;
@@ -2213,9 +2262,6 @@ function rawRangeFor(
 const POINT_MIN_DWELL = 0.38;
 /** Pen glide between consecutive pointed-at terms (s). */
 const POINT_GLIDE = 0.16;
-/** After a line is written the pen STOPS and parks for at least this long
- *  before the next segment begins — the "pen knows how to stop" rule. */
-export const PEN_PARK_SEC = 0.65;
 
 /** Time each deictic pointer stop so the pen ARRIVES just before its label
  *  is spoken. Stops whose label words appear in the sentence get a
@@ -2278,7 +2324,7 @@ export function paceDeicticToSpeech(
   for (let i = 0; i < n; i++) {
     const stopAt = i + 1 < n ? t[i + 1] - POINT_GLIDE : end;
     pts[i].t0 = t[i];
-    pts[i].dur = Math.max(0.3, stopAt - t[i]);
+    pts[i].dur = Math.max(0.3, Math.min(3.5, stopAt - t[i]));
   }
 }
 

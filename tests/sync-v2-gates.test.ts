@@ -184,9 +184,13 @@ describe("Sync V2 Verification Gates (Spec §9)", () => {
     const gCues = SAMPLE_GAUSSIAN_INTEGRAL.scenes[4].audio!.segments!;
     expect(gCues[3].t0 - gCues[2].t1).toBeCloseTo(2.0, 2);
 
-    // Cubic Extrema Scene 3 Segment 3 is the boxed final answer with pauseAfter: 2.0
+    // Cubic Extrema Scene 3 has the boxed final answer with pauseAfter: 2.0
     const cCues = SAMPLE_CUBIC_EXTREMA.scenes[3].audio!.segments!;
-    expect(cCues[4].t0 - cCues[3].t1).toBeGreaterThanOrEqual(2.0);
+    const cBoxIdx = SAMPLE_CUBIC_EXTREMA.scenes[3].segments!.findIndex(
+      (s) => s.pauseAfter !== undefined
+    );
+    expect(cBoxIdx).toBeGreaterThanOrEqual(0);
+    expect(cCues[cBoxIdx + 1].t0 - cCues[cBoxIdx].t1).toBeGreaterThanOrEqual(2.0);
   });
 
   test("5. Golden Flagship Ink-Reveal Gate: Scene 0 speak-ahead holds writing until Segment 1 cue", () => {

@@ -878,8 +878,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:m = 5 kg",
-          "say": "By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis."
+          "target": "text:m = 5 kg"
         }
       ],
       "segments": [
@@ -931,8 +930,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:m = 5 kg",
-              "say": "By tilting our coordinate axes along the slope, the entire acceleration lives neatly along just one axis."
+              "target": "text:m = 5 kg"
             }
           ]
         }
@@ -970,8 +968,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "narration": "Why do we tilt the coordinate system instead of using standard horizontal and vertical axes? Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis. Along y, perpendicular to the ramp, the forces perfectly balance out to zero. Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force.",
       "beats": [
         {
-          "type": "erase",
-          "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
+          "type": "erase"
         },
         {
           "type": "write",
@@ -997,8 +994,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:f_k = μ_k N",
-          "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+          "target": "text:f_k = μ_k N"
         }
       ],
       "segments": [
@@ -1010,8 +1006,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis.",
           "ink": [
             {
-              "type": "erase",
-              "say": "Because the block never lifts off the incline, so motion occurs strictly along our tilted x-axis."
+              "type": "erase"
             },
             {
               "type": "write",
@@ -1047,8 +1042,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:f_k = μ_k N",
-              "say": "Along x, downhill gravity battles uphill friction according to Newton's second law, where friction equals mu-k times the normal force."
+              "target": "text:f_k = μ_k N"
             }
           ]
         }
@@ -1086,8 +1080,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "narration": "Before calculating downhill forces, we have to determine how hard the surface presses back against the block. Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp. Perpendicular equilibrium gives us normal force N equals m g cosine thirty degrees. Pause here: what does that make our friction force? Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty.",
       "beats": [
         {
-          "type": "erase",
-          "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
+          "type": "erase"
         },
         {
           "type": "write",
@@ -1120,8 +1113,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:f_k = 8.49 N",
-          "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
+          "target": "text:f_k = 8.49 N"
         }
       ],
       "segments": [
@@ -1133,8 +1125,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp.",
           "ink": [
             {
-              "type": "erase",
-              "say": "Gravity splits into components: m g sine thirty pulling downhill, and m g cosine thirty pressing into the ramp."
+              "type": "erase"
             },
             {
               "type": "write",
@@ -1182,8 +1173,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:f_k = 8.49 N",
-              "say": "Multiplying by our friction coefficient, friction is exactly mu-k times m g cosine thirty."
+              "target": "text:f_k = 8.49 N"
             }
           ]
         }
@@ -1226,8 +1216,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "narration": "Now we can assemble the net force along the ramp and watch what happens to our mass. Downhill gravity minus opposing friction equals total mass times acceleration. Substitute our friction expression, and notice that every single term carries the mass m. Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!",
       "beats": [
         {
-          "type": "erase",
-          "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
+          "type": "erase"
         },
         {
           "type": "write",
@@ -1253,8 +1242,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:a = g",
-          "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
+          "target": "text:a = g"
         }
       ],
       "segments": [
@@ -1266,8 +1254,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "say": "Downhill gravity minus opposing friction equals total mass times acceleration.",
           "ink": [
             {
-              "type": "erase",
-              "say": "Downhill gravity minus opposing friction equals total mass times acceleration."
+              "type": "erase"
             },
             {
               "type": "write",
@@ -1303,8 +1290,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:a = g",
-              "say": "Divide through by m, and mass disappears entirely: acceleration depends only on gravity, angle, and friction!"
+              "target": "text:a = g"
             }
           ]
         }
@@ -1342,8 +1328,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
       "narration": "All that remains is feeding in our numbers to find our final downhill acceleration. Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six. Multiplying through gives nine point eight times zero point three two six eight. Our final acceleration is three point two zero meters per second squared. A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense.",
       "beats": [
         {
-          "type": "erase",
-          "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
+          "type": "erase"
         },
         {
           "type": "write",
@@ -1369,14 +1354,12 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
         },
         {
           "type": "box",
-          "color": "yellow",
-          "say": "Our final acceleration is three point two zero meters per second squared."
+          "color": "yellow"
         },
         {
           "type": "point",
           "ms": 1400,
-          "target": "text:a = 3.20 m/s²",
-          "say": "A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense."
+          "target": "text:a = 3.20 m/s²"
         }
       ],
       "segments": [
@@ -1388,8 +1371,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
           "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six.",
           "ink": [
             {
-              "type": "erase",
-              "say": "Sine of thirty degrees is zero point five, while cosine is approximately zero point eight six six."
+              "type": "erase"
             },
             {
               "type": "write",
@@ -1425,8 +1407,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             },
             {
               "type": "box",
-              "color": "yellow",
-              "say": "Our final acceleration is three point two zero meters per second squared."
+              "color": "yellow"
             }
           ],
           "pauseAfter": 2
@@ -1437,8 +1418,7 @@ export const SAMPLE_INCLINED_PLANE: SolveScript = {
             {
               "type": "point",
               "ms": 1400,
-              "target": "text:a = 3.20 m/s²",
-              "say": "A frictionless ramp gives four point nine meters per second squared, so three point two zero makes complete physical sense."
+              "target": "text:a = 3.20 m/s²"
             }
           ]
         }
@@ -1491,13 +1471,13 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
       "beats": [
         {
           "type": "write",
-          "text": "f(x) = x³ − 3x,   x ∈ [−2, 2]",
+          "text": "f(x) = x³ − 3x",
           "color": "blue",
           "size": "md"
         },
         {
           "type": "write",
-          "text": "At extrema:  f'(x) = 0",
+          "text": "f'(x) = 0",
           "color": "yellow",
           "size": "md"
         },
@@ -1517,7 +1497,7 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "f(x) = x³ − 3x,   x ∈ [−2, 2]",
+              "text": "f(x) = x³ − 3x",
               "color": "blue",
               "size": "md"
             }
@@ -1528,7 +1508,7 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "At extrema:  f'(x) = 0",
+              "text": "f'(x) = 0",
               "color": "yellow",
               "size": "md"
             }
@@ -1547,27 +1527,27 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
       ],
       "audio": {
         "key": "f9cd3e6cc0828c7c67087c85b3b209d1d307f749caf68f71590481d26dc4e9be",
-        "dur": 37.769,
+        "dur": 31.611,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 6.736
+            "t1": 6.445
           },
           {
             "i": 1,
-            "t0": 7.086,
-            "t1": 14.076
+            "t0": 6.795,
+            "t1": 14.054
           },
           {
             "i": 2,
-            "t0": 18.076,
-            "t1": 26.125
+            "t0": 14.404,
+            "t1": 23.68
           },
           {
             "i": 3,
-            "t0": 29.095,
-            "t1": 37.769
+            "t0": 24.03,
+            "t1": 31.611
           }
         ]
       }
@@ -1674,37 +1654,37 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
       ],
       "audio": {
         "key": "12058d26c27aabefd33cef126916969f88246634d8973bea9fcc4acb34523343",
-        "dur": 42.975,
+        "dur": 41.963,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 7.22
+            "t1": 6.686
           },
           {
             "i": 1,
-            "t0": 7.57,
-            "t1": 13.918
+            "t0": 7.036,
+            "t1": 13.118
           },
           {
             "i": 2,
-            "t0": 14.818,
-            "t1": 19.301
+            "t0": 14.368,
+            "t1": 18.781
           },
           {
             "i": 3,
-            "t0": 20.791,
-            "t1": 26.171
+            "t0": 20.991,
+            "t1": 26.46
           },
           {
             "i": 4,
-            "t0": 29.011,
-            "t1": 35.876
+            "t0": 29.86,
+            "t1": 35.012
           },
           {
             "i": 5,
-            "t0": 36.226,
-            "t1": 42.975
+            "t0": 35.363,
+            "t1": 41.963
           }
         ]
       }
@@ -1822,32 +1802,32 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
       ],
       "audio": {
         "key": "a2c17956589742ffe7eaedcb3d7f3c29ef09cf89e584da7b3992d33d57c6c3ab",
-        "dur": 44.492,
+        "dur": 47.775,
         "segments": [
           {
             "i": 0,
             "t0": 0,
-            "t1": 7.196
+            "t1": 6.689
           },
           {
             "i": 1,
-            "t0": 7.546,
-            "t1": 15.692
+            "t0": 7.039,
+            "t1": 14.331
           },
           {
             "i": 2,
-            "t0": 18.042,
-            "t1": 23.139
+            "t0": 18.181,
+            "t1": 23.913
           },
           {
             "i": 3,
-            "t0": 27.139,
-            "t1": 33.482
+            "t0": 28.743,
+            "t1": 34.942
           },
           {
             "i": 4,
-            "t0": 37.482,
-            "t1": 44.492
+            "t0": 40.942,
+            "t1": 47.775
           }
         ]
       }
@@ -1867,13 +1847,13 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
         },
         {
           "type": "write",
-          "text": "f''(−1) = −6 < 0  (Local Max)",
+          "text": "f''(−1) = −6 < 0",
           "color": "orange",
           "size": "md"
         },
         {
           "type": "write",
-          "text": "f''(1) = +6 > 0  (Local Min)",
+          "text": "f''(1) = +6 > 0",
           "color": "orange",
           "size": "md"
         },
@@ -1881,7 +1861,7 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
           "type": "write",
           "text": "Max: (−1, 2)   |   Min: (1, −2)",
           "color": "green",
-          "size": "lg",
+          "size": "md",
           "keep": true
         },
         {
@@ -1918,7 +1898,7 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "f''(−1) = −6 < 0  (Local Max)",
+              "text": "f''(−1) = −6 < 0",
               "color": "orange",
               "size": "md"
             }
@@ -1929,7 +1909,7 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
           "ink": [
             {
               "type": "write",
-              "text": "f''(1) = +6 > 0  (Local Min)",
+              "text": "f''(1) = +6 > 0",
               "color": "orange",
               "size": "md"
             }
@@ -1942,12 +1922,8 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
               "type": "write",
               "text": "Max: (−1, 2)   |   Min: (1, −2)",
               "color": "green",
-              "size": "lg",
+              "size": "md",
               "keep": true
-            },
-            {
-              "type": "box",
-              "color": "yellow"
             }
           ],
           "pauseAfter": 2
@@ -1955,6 +1931,10 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
         {
           "say": "Both values perfectly match the peak and valley on our graph, giving us a complete and verified solution.",
           "ink": [
+            {
+              "type": "box",
+              "color": "yellow"
+            },
             {
               "type": "point",
               "target": "last",
@@ -1965,7 +1945,7 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
       ],
       "audio": {
         "key": "faaf62c9ed5332136b4cc670a0b16d44c1d61576b75ab1c5ec0e5526aa56c133",
-        "dur": 49.406,
+        "dur": 46.076,
         "segments": [
           {
             "i": 0,
@@ -1979,23 +1959,23 @@ export const SAMPLE_CUBIC_EXTREMA: SolveScript = {
           },
           {
             "i": 2,
-            "t0": 12.015,
-            "t1": 18.216
+            "t0": 12.025,
+            "t1": 18.226
           },
           {
             "i": 3,
-            "t0": 22.216,
-            "t1": 28.248
+            "t0": 19.466,
+            "t1": 25.498
           },
           {
             "i": 4,
-            "t0": 32.248,
-            "t1": 39.308
+            "t0": 26.918,
+            "t1": 33.978
           },
           {
             "i": 5,
-            "t0": 43.308,
-            "t1": 49.406
+            "t0": 39.978,
+            "t1": 46.076
           }
         ]
       }
