@@ -81,34 +81,79 @@ export default function GalleryPage() {
     fetch("/api/gallery")
       .then((r) => r.json())
       .then((d) => {
-        if (Array.isArray(d.items)) {
-          setItems(d.items);
+        const serverItems: GalleryItem[] = Array.isArray(d?.items) ? d.items : [];
 
-          // Generate rich blackboard snapshot thumbnails & exact durations
-          const newThumbs: Record<string, string> = {};
-          const newDurs: Record<string, string> = {};
-          for (const item of d.items) {
-            if (item.script && item.script.scenes?.length) {
-              try {
-                const tl = compileTimeline(item.script);
-                const dur = totalDuration(tl);
-                newDurs[item.id] = fmtDur(dur);
-                const t = thumbnailTime(tl);
-                newThumbs[item.id] = renderToImage(tl, THEMES.blackboard, t, 480);
-              } catch {
-                newDurs[item.id] = "3:15";
+        // Also merge any locally published lessons from this browser for instant zero-latency feedback
+        let localItems: GalleryItem[] = [];
+        try {
+          const rawPub = window.localStorage.getItem("ember.community.published");
+          if (rawPub) {
+            const parsed = JSON.parse(rawPub);
+            if (Array.isArray(parsed)) localItems = parsed;
+          }
+
+          const rawHist = window.localStorage.getItem("ember.studio.history");
+          if (rawHist) {
+            const hist = JSON.parse(rawHist);
+            if (Array.isArray(hist)) {
+              for (const h of hist) {
+                if (h.isPublished && h.script?.scenes?.length) {
+                  const existing = localItems.find((l) => l.title === h.title);
+                  if (!existing) {
+                    localItems.push({
+                      id: h.publishedId || "local_" + h.id,
+                      title: h.title,
+                      description: h.script.question,
+                      publisher: user?.displayName || "You",
+                      upvotes: 1,
+                      views: 1,
+                      createdAt: h.createdAt || Date.now(),
+                      script: h.script,
+                    });
+                  }
+                }
               }
-            } else {
-              newDurs[item.id] = "3:00";
             }
           }
-          setThumbs(newThumbs);
-          setDurs(newDurs);
+        } catch {}
+
+        const seenIds = new Set<string>();
+        const combined: GalleryItem[] = [];
+        for (const item of [...localItems, ...serverItems]) {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            combined.push(item);
+          }
         }
+
+        setItems(combined);
+
+        // Generate rich blackboard snapshot thumbnails & exact durations
+        const newThumbs: Record<string, string> = {};
+        const newDurs: Record<string, string> = {};
+        for (const item of combined) {
+          if (item.script && item.script.scenes?.length) {
+            try {
+              const tl = compileTimeline(item.script);
+              const dur = totalDuration(tl);
+              newDurs[item.id] = fmtDur(dur);
+              const t = thumbnailTime(tl);
+              newThumbs[item.id] = renderToImage(tl, THEMES.blackboard, t, 480);
+            } catch {
+              newDurs[item.id] = "3:15";
+            }
+          } else {
+            newDurs[item.id] = "3:00";
+          }
+        }
+        setThumbs(newThumbs);
+        setDurs(newDurs);
       })
-      .catch((err) => console.error("Failed to load gallery:", err))
+      .catch((err) => {
+        console.error("Failed to load gallery:", err);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {

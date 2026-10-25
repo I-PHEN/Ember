@@ -1,10 +1,8 @@
 import { NextRequest } from "next/server";
 import { streamObject } from "ai";
 import { google } from "@ai-sdk/google";
-import { PrismaClient } from "@prisma/client";
+import { db } from "@/lib/db";
 import { solveScriptSchema } from "@/lib/video/schema";
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,36 +12,40 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Fetch or create project
-    let project;
-    if (projectId === "new" || !projectId) {
-      // Find a default user or create one
-      let user = await prisma.user.findFirst();
-      if (!user) user = await prisma.user.create({ data: { email: "test@ember.app", name: "Test User" }});
-      
-      project = await prisma.project.create({
-        data: {
-          userId: user.id,
-          title: prompt.substring(0, 30)
-        },
-        include: { messages: true }
-      });
-    } else {
-      project = await prisma.project.findUnique({
-        where: { id: projectId },
-        include: { messages: { orderBy: { createdAt: "asc" } } }
-      });
-    }
+    let project: any = null;
+    if (db) {
+      try {
+        if (projectId === "new" || !projectId) {
+          let user = await db.user.findFirst();
+          if (!user) user = await db.user.create({ data: { email: "test@ember.app", name: "Test User" } });
 
-    if (!project) return new Response(JSON.stringify({ error: "Project not found" }), { status: 404 });
+          project = await db.project.create({
+            data: {
+              userId: user.id,
+              title: prompt.substring(0, 30),
+            },
+            include: { messages: true },
+          });
+        } else {
+          project = await db.project.findUnique({
+            where: { id: projectId },
+            include: { messages: { orderBy: { createdAt: "asc" } } },
+          });
+        }
 
-    // 2. Save the User's prompt to the database
-    const userMessage = await prisma.message.create({
-      data: {
-        projectId: project.id,
-        role: "user",
-        content: prompt
+        if (project) {
+          await db.message.create({
+            data: {
+              projectId: project.id,
+              role: "user",
+              content: prompt,
+            },
+          });
+        }
+      } catch (dbErr) {
+        console.warn("DB chat project creation warning:", dbErr);
       }
-    });
+    }
 
     // 3. Build the LLM context from history
     const coreMessages = [
@@ -58,23 +60,27 @@ export async function POST(req: NextRequest) {
       schema: solveScriptSchema,
       messages: coreMessages,
       onFinish: async ({ object }) => {
-        if (!object) return;
-        // 5. When the stream finishes, save the AI's response and the VideoVersion
-        const aiMessage = await prisma.message.create({
-          data: {
-            projectId: project.id,
-            role: "ai",
-            content: "Generated VideoVersion"
-          }
-        });
+        if (!object || !db || !project) return;
+        try {
+          // 5. When the stream finishes, save the AI's response and the VideoVersion
+          const aiMessage = await db.message.create({
+            data: {
+              projectId: project.id,
+              role: "ai",
+              content: "Generated VideoVersion",
+            },
+          });
 
-        await prisma.videoVersion.create({
-          data: {
-            projectId: project.id,
-            messageId: aiMessage.id,
-            script: JSON.stringify(object),
-          }
-        });
+          await db.videoVersion.create({
+            data: {
+              projectId: project.id,
+              messageId: aiMessage.id,
+              script: JSON.stringify(object),
+            },
+          });
+        } catch (dbErr) {
+          console.warn("DB chat onFinish persistence warning:", dbErr);
+        }
       }
     });
 

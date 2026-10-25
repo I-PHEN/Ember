@@ -21,17 +21,19 @@ export async function POST(req: NextRequest) {
 
     let userRecord: any = null;
     try {
-      userRecord = await db.user.findUnique({
-        where: { email: normalizedEmail },
-      });
-
-      if (!userRecord) {
-        userRecord = await db.user.create({
-          data: {
-            email: normalizedEmail,
-            name: fallbackName,
-          },
+      if (db) {
+        userRecord = await db.user.findUnique({
+          where: { email: normalizedEmail },
         });
+
+        if (!userRecord) {
+          userRecord = await db.user.create({
+            data: {
+              email: normalizedEmail,
+              name: fallbackName,
+            },
+          });
+        }
       }
     } catch (dbErr) {
       console.warn("Prisma database warning (fallback session issued):", dbErr);

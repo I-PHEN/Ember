@@ -48,6 +48,7 @@ import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import Wordmark from "@/components/Wordmark";
 import ChalkAvatar from "@/components/ChalkAvatar";
@@ -264,19 +265,6 @@ export default function Page() {
       .catch(() => {});
   }, []);
 
-  // Check for solve passed via /gallery or direct link
-  useEffect(() => {
-    try {
-      const activeRaw = window.localStorage.getItem("ember.watch.active");
-      if (activeRaw) {
-        window.localStorage.removeItem("ember.watch.active");
-        const activeScript = JSON.parse(activeRaw);
-        if (activeScript && activeScript.scenes) {
-          watch(activeScript);
-        }
-      }
-    } catch {}
-  }, []);
 
   // Render content-specific thumbnails after the lesson board has settled.
   useEffect(() => {
@@ -584,10 +572,21 @@ export default function Page() {
         saveChatForSolve(sc.title, initial);
       }
 
-      // Check if published in history
+      // Check if published in history or local community registry
       const existingHistory = loadHistory();
-      const matched = existingHistory.find((h) => h.title === sc.title && h.isPublished);
-      setPublished(!!matched);
+      let isPub = existingHistory.some((h) => h.title === sc.title && h.isPublished);
+      if (!isPub) {
+        try {
+          const rawPub = window.localStorage.getItem("ember.community.published");
+          if (rawPub) {
+            const parsed = JSON.parse(rawPub);
+            if (Array.isArray(parsed)) {
+              isPub = parsed.some((p: any) => p.title === sc.title);
+            }
+          }
+        } catch {}
+      }
+      setPublished(isPub);
 
       setPhase("watch");
       setSeekReq(null);
@@ -738,6 +737,12 @@ export default function Page() {
   const handlePublish = useCallback(async () => {
     if (!script || isPublishing) return;
     setIsPublishing(true);
+
+    const authorName =
+      user?.displayName?.trim() ||
+      (user?.email ? user.email.split("@")[0] : null) ||
+      "Community Scholar";
+
     try {
       const res = await fetch("/api/gallery", {
         method: "POST",
@@ -746,49 +751,132 @@ export default function Page() {
           title: script.title,
           description: script.question,
           script,
+          publisherName: authorName,
+          publisherEmail: user?.email || undefined,
         }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.postId) {
         setPublished(true);
+        const assignedId = data.postId;
+
+        // 1. Update studio history item
         setHistory((prev) => {
           const updated = prev.map((item) =>
             item.title === script.title
-              ? { ...item, isPublished: true, publishedId: data.postId }
+              ? { ...item, isPublished: true, publishedId: assignedId }
               : item
           );
           saveHistory(updated);
           return updated;
         });
+
+        // 2. Persist in local community published cache for instant UI feedback
+        try {
+          const raw = window.localStorage.getItem("ember.community.published");
+          const existing = raw ? JSON.parse(raw) : [];
+          const record = {
+            id: assignedId,
+            title: script.title,
+            description: script.question,
+            publisher: authorName,
+            upvotes: 1,
+            views: 1,
+            createdAt: Date.now(),
+            script,
+          };
+          const next = [
+            record,
+            ...(Array.isArray(existing)
+              ? existing.filter((e: any) => e.id !== assignedId)
+              : []),
+          ];
+          window.localStorage.setItem("ember.community.published", JSON.stringify(next));
+        } catch {}
+
+        // 3. Refresh community lessons in studio state
         fetch("/api/gallery")
           .then((r) => r.json())
           .then((d) => {
             if (Array.isArray(d.items)) setCommunityLessons(d.items);
-          });
+          })
+          .catch(() => {});
+
+        // 4. Fire rich toast confirmation
+        toast({
+          title: "Published to Community Gallery!",
+          description: `"${script.title}" is now live in the Library of Thought.`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Could not publish",
+          description:
+            data.error || "Unable to publish to gallery right now. Please try again.",
+        });
       }
     } catch (err) {
       console.error("Publish error:", err);
+      toast({
+        variant: "destructive",
+        title: "Publish failed",
+        description: "Failed to connect to the gallery server. Please try again.",
+      });
     } finally {
       setIsPublishing(false);
     }
-  }, [script, isPublishing]);
+  }, [script, isPublishing, user]);
 
-  const handleUnpublish = useCallback(async (item: HistoryItem) => {
-    if (!item.publishedId) return;
-    try {
-      await fetch(`/api/gallery?id=${item.publishedId}`, { method: "DELETE" });
-      setHistory((prev) => {
-        const updated = prev.map((h) =>
-          h.id === item.id ? { ...h, isPublished: false, publishedId: undefined } : h
-        );
-        saveHistory(updated);
-        return updated;
-      });
-      if (script?.title === item.title) setPublished(false);
-    } catch (err) {
-      console.error("Unpublish error:", err);
-    }
-  }, [script]);
+  const handleUnpublish = useCallback(
+    async (item: HistoryItem) => {
+      if (!item.publishedId) return;
+      try {
+        await fetch(`/api/gallery?id=${encodeURIComponent(item.publishedId)}`, {
+          method: "DELETE",
+        });
+
+        // Remove from local published cache
+        try {
+          const raw = window.localStorage.getItem("ember.community.published");
+          if (raw) {
+            const existing = JSON.parse(raw);
+            if (Array.isArray(existing)) {
+              const next = existing.filter((e: any) => e.id !== item.publishedId);
+              window.localStorage.setItem(
+                "ember.community.published",
+                JSON.stringify(next)
+              );
+            }
+          }
+        } catch {}
+
+        setHistory((prev) => {
+          const updated = prev.map((h) =>
+            h.id === item.id
+              ? { ...h, isPublished: false, publishedId: undefined }
+              : h
+          );
+          saveHistory(updated);
+          return updated;
+        });
+
+        if (script?.title === item.title) setPublished(false);
+
+        toast({
+          title: "Unpublished from Gallery",
+          description: `"${item.title}" was removed from the Community Gallery.`,
+        });
+      } catch (err) {
+        console.error("Unpublish error:", err);
+        toast({
+          variant: "destructive",
+          title: "Unpublish failed",
+          description: "Could not unpublish lesson. Please try again.",
+        });
+      }
+    },
+    [script]
+  );
 
   const persist = useCallback(
     (sc: SolveScript) => {
@@ -883,12 +971,67 @@ export default function Page() {
       }
       const solveParam = params.get("solve");
       if (solveParam) {
+        let loaded = false;
         const stored = window.localStorage.getItem("ember.watch.active");
         if (stored) {
           try {
             const sc = JSON.parse(stored);
-            watch(sc, solveParam);
+            if (sc && sc.scenes?.length) {
+              watch(sc, solveParam);
+              loaded = true;
+            }
           } catch {}
+          window.localStorage.removeItem("ember.watch.active");
+        }
+
+        if (!loaded) {
+          try {
+            const rawPub = window.localStorage.getItem("ember.community.published");
+            if (rawPub) {
+              const parsed = JSON.parse(rawPub);
+              const found = Array.isArray(parsed)
+                ? parsed.find((p: any) => p.id === solveParam)
+                : null;
+              if (found?.script?.scenes?.length) {
+                watch(found.script, solveParam);
+                loaded = true;
+              }
+            }
+          } catch {}
+        }
+
+        if (!loaded) {
+          const matchedSample = SAMPLE_LESSONS.find(
+            (s) =>
+              s.title.toLowerCase() === solveParam.toLowerCase() ||
+              solveParam.toLowerCase().includes(s.title.toLowerCase())
+          );
+          if (matchedSample) {
+            watch(matchedSample, solveParam);
+            loaded = true;
+          }
+        }
+
+        if (!loaded) {
+          fetch(`/api/gallery?id=${encodeURIComponent(solveParam)}`)
+            .then((r) => r.json())
+            .then((d) => {
+              if (d?.item?.script?.scenes?.length) {
+                watch(d.item.script, solveParam);
+              }
+            })
+            .catch(() => {});
+        }
+      } else {
+        const stored = window.localStorage.getItem("ember.watch.active");
+        if (stored) {
+          try {
+            const sc = JSON.parse(stored);
+            if (sc && sc.scenes?.length) {
+              watch(sc);
+            }
+          } catch {}
+          window.localStorage.removeItem("ember.watch.active");
         }
       }
     }
