@@ -247,14 +247,6 @@ export default function InteractiveComparison() {
               </span>
             </div>
 
-            {/* Continuous Smooth Scroll Fill Bar (Clean, no glow) */}
-            <div className="relative h-1 w-full rounded-full bg-white/[0.06] overflow-hidden mb-2.5">
-              <div
-                className="h-full bg-[#e6b784] transition-all duration-100 ease-out"
-                style={{ width: `${Math.round(scrollProgress * 100)}%` }}
-              />
-            </div>
-
             {/* Interactive Step Milestone Progress Bar */}
             <div className="mb-2.5">
               <div className="flex items-center justify-between text-xs mb-1.5">
