@@ -23,9 +23,10 @@ interface StepData {
   title: string;
   badge: string;
   stepNum: string;
-  previousChalk?: string;
-  chalkMath: string;
-  subMath?: string;
+  previousLatex?: string;
+  chalkLatex: string;
+  subLatex?: string;
+  subText?: string;
   explanation: string;
   teacherVoice: string;
 }
@@ -35,7 +36,8 @@ const STEPS: StepData[] = [
     title: "Problem Statement",
     badge: "Step 1 of 5",
     stepNum: "01",
-    chalkMath: "∫ x · e^(2x) dx",
+    chalkLatex: "\\int x e^{2x} \\, dx",
+    subText: "Integrand: polynomial x × exponential e^(2x)",
     explanation: "Identify the integrand as a product of two distinct families of functions: polynomial (x) and exponential (e^(2x)).",
     teacherVoice: "We have an integral that cannot be solved with basic substitution because of the product x · e^(2x). Integration by parts is our tool.",
   },
@@ -43,9 +45,9 @@ const STEPS: StepData[] = [
     title: "Choose u and dv",
     badge: "Step 2 of 5",
     stepNum: "02",
-    previousChalk: "∫ x · e^(2x) dx",
-    chalkMath: "u = x,   dv = e^(2x) dx",
-    subMath: "Rule: Choose u so differentiating it simplifies the polynomial (LIATE).",
+    previousLatex: "\\int x e^{2x} \\, dx",
+    chalkLatex: "u = x \\qquad dv = e^{2x} \\, dx",
+    subLatex: "\\text{LIATE: Algebra } (x) \\text{ before Exponential } (e^{2x})",
     explanation: "Using LIATE priority: Algebra (x) takes precedence for u over Exponential (e^(2x)) for dv.",
     teacherVoice: "We pick u = x because its derivative is simply 1, removing the polynomial factor entirely. dv takes the remaining e^(2x) dx.",
   },
@@ -53,9 +55,9 @@ const STEPS: StepData[] = [
     title: "Differentiate & Integrate",
     badge: "Step 3 of 5",
     stepNum: "03",
-    previousChalk: "u = x,   dv = e^(2x) dx",
-    chalkMath: "du = dx,   v = ½ e^(2x)",
-    subMath: "d/dx(x) = 1  ·  ∫ e^(2x) dx = ½ e^(2x)",
+    previousLatex: "u = x \\qquad dv = e^{2x} \\, dx",
+    chalkLatex: "du = dx \\qquad v = \\frac{1}{2} e^{2x}",
+    subLatex: "\\frac{d}{dx}[x] = 1 \\qquad \\int e^{2x} \\, dx = \\frac{1}{2} e^{2x}",
     explanation: "Compute the derivative of u and the antiderivative of dv to prepare all four terms for substitution.",
     teacherVoice: "Now we compute our pieces: du is dx. Integrating e^(2x) introduces a factor of one half, giving v = 1/2 e^(2x).",
   },
@@ -63,9 +65,9 @@ const STEPS: StepData[] = [
     title: "Apply Parts Formula",
     badge: "Step 4 of 5",
     stepNum: "04",
-    previousChalk: "∫ u dv = u·v − ∫ v du",
-    chalkMath: "x · (½ e^(2x)) − ∫ ½ e^(2x) dx",
-    subMath: "Formula: ∫ u dv = u·v − ∫ v du",
+    previousLatex: "\\int u \\, dv = u \\cdot v - \\int v \\, du",
+    chalkLatex: "x \\left(\\frac{1}{2} e^{2x}\\right) - \\int \\frac{1}{2} e^{2x} \\, dx",
+    subLatex: "\\text{Formula: } \\int u \\, dv = u \\cdot v - \\int v \\, du",
     explanation: "Substitute the four components into the standard integration by parts identity.",
     teacherVoice: "Now plug into u times v minus integral of v du. Notice how the new remaining integral no longer has the variable x inside!",
   },
@@ -73,9 +75,9 @@ const STEPS: StepData[] = [
     title: "Evaluate & Finalize",
     badge: "Step 5 of 5",
     stepNum: "05",
-    previousChalk: "x · (½ e^(2x)) − ½ ∫ e^(2x) dx",
-    chalkMath: "½ x e^(2x) − ¼ e^(2x) + C",
-    subMath: "Checked by differentiation: d/dx [½ x e^(2x) − ¼ e^(2x)] = x e^(2x) ✓",
+    previousLatex: "x \\left(\\frac{1}{2} e^{2x}\\right) - \\frac{1}{2} \\int e^{2x} \\, dx",
+    chalkLatex: "\\frac{1}{2} x e^{2x} - \\frac{1}{4} e^{2x} + C",
+    subLatex: "\\frac{d}{dx}\\left[\\frac{1}{2} x e^{2x} - \\frac{1}{4} e^{2x}\\right] = x e^{2x} \\quad \\checkmark",
     explanation: "Integrate the remaining exponential and attach the constant of integration C.",
     teacherVoice: "The integral of 1/2 e^(2x) is 1/4 e^(2x). We subtract it, add the constant C, and our derivation is complete.",
   },
@@ -315,31 +317,37 @@ export default function InteractiveComparison() {
               </div>
 
               {/* Dynamic Math Chalkboard Display */}
-              <div key={currentStep} className="py-2.5">
-                {step.previousChalk && (
-                  <div className="mb-1 font-hand text-sm text-[#7a8190]/70 tracking-wide line-through decoration-white/10">
-                    {step.previousChalk}
+              <div key={currentStep} className="py-2.5 flex flex-col items-center justify-center min-h-[100px]">
+                {step.previousLatex && (
+                  <div className="mb-1.5 text-xs text-[#8a919e] tracking-wide line-through decoration-white/20 opacity-60">
+                    <MathView math={step.previousLatex} />
                   </div>
                 )}
 
                 <div
-                  className={`font-hand text-2xl sm:text-3xl tracking-wide transition-all duration-200 ${
+                  className={`transition-all duration-200 ${
                     currentStep === 4
-                      ? "text-[#f8f9fa] inline-block rounded-xl border border-[#e6b784]/60 bg-[#e6b784]/10 px-4 py-2"
-                      : "text-[#f4f4f6]"
+                      ? "text-[#f8f9fa] inline-block rounded-xl border border-[#e6b784]/60 bg-[#e6b784]/10 px-5 py-2 text-lg sm:text-xl font-medium shadow-sm shadow-[#e6b784]/10"
+                      : "text-[#f4f4f6] text-lg sm:text-xl font-medium"
                   }`}
                 >
-                  {step.chalkMath}
+                  <MathView math={step.chalkLatex} display />
                 </div>
 
-                {step.subMath && (
-                  <div className="mt-1.5 text-xs font-mono text-[#e6b784]/90">
-                    {step.subMath}
+                {step.subLatex && (
+                  <div className="mt-2 text-xs text-[#e6b784]/95 tracking-wide">
+                    <MathView math={step.subLatex} />
+                  </div>
+                )}
+
+                {step.subText && (
+                  <div className="mt-1.5 text-[11px] font-mono text-[#a6adb9]">
+                    {step.subText}
                   </div>
                 )}
 
                 {currentStep === 4 && (
-                  <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#e6b784]/15 border border-[#e6b784]/30 px-2.5 py-0.5 text-[10px] font-mono font-medium text-[#e6b784]">
+                  <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-[#e6b784]/15 border border-[#e6b784]/30 px-3 py-0.5 text-[11px] font-mono font-medium text-[#e6b784]">
                     <CheckCircle2 className="h-3 w-3" />
                     Verified by differentiation ✓
                   </div>
@@ -347,12 +355,12 @@ export default function InteractiveComparison() {
               </div>
 
               {/* Teacher Narration Bubble */}
-              <div key={`narr-${currentStep}`} className="mt-auto pt-2 border-t border-white/[0.06] text-left">
+              <div key={`narr-${currentStep}`} className="mt-auto pt-2.5 border-t border-white/[0.08] text-left">
                 <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-[#e6b784]">
                   <MessageSquare className="h-3 w-3" />
                   Teacher Voiced Narration
                 </div>
-                <p className="mt-0.5 text-xs text-[#a6adb9] italic leading-relaxed">
+                <p className="mt-1 text-xs text-[#d8dde6] leading-relaxed">
                   “{step.teacherVoice}”
                 </p>
               </div>
@@ -374,8 +382,11 @@ export default function InteractiveComparison() {
                 </span>
               </button>
               {showOfficeHours && (
-                <p className="mt-1.5 text-[11px] leading-relaxed text-[#9aa1af] border-t border-white/[0.05] pt-1.5">
-                  If you chose <code className="font-mono text-[#e6b784]">u = e^(2x)</code> and <code className="font-mono text-[#e6b784]">dv = x dx</code>, integrating x would produce <code className="font-mono text-[#e6b784]">½x²</code>. The resulting integral would become <code className="font-mono text-[#e6b784]">∫ x² e^(2x) dx</code>—making the problem harder rather than simpler!
+                <p className="mt-2 text-xs leading-relaxed text-[#c6cbd6] border-t border-white/[0.06] pt-2">
+                  If you chose <MathView math="u = e^{2x}" className="text-[#e6b784] font-medium" /> and{" "}
+                  <MathView math="dv = x \, dx" className="text-[#e6b784] font-medium" />, integrating <MathView math="x" className="text-[#e6b784]" /> would produce{" "}
+                  <MathView math="\frac{1}{2} x^2" className="text-[#e6b784] font-medium" />. The resulting integral would become{" "}
+                  <MathView math="\int \frac{1}{2} x^2 e^{2x} \, dx" className="text-[#e6b784] font-medium" />—making the problem harder rather than simpler!
                 </p>
               )}
             </div>

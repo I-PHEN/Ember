@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useScroll, useSpring } from "framer-motion";
+import { useMotionValue, useSpring } from "framer-motion";
 import { ArrowRight, BookOpen } from "lucide-react";
 
 const HIGHLIGHT_WORDS = [
@@ -58,6 +58,7 @@ export default function GallerySection() {
   const stageRef = useRef<HTMLElement>(null);
   const phraseSlotRef = useRef<HTMLSpanElement>(null);
   const phraseFloatingRef = useRef<HTMLSpanElement>(null);
+  const blockContainerRef = useRef<HTMLDivElement>(null);
   const blockRef = useRef<HTMLParagraphElement>(null);
   const wordRefs = useRef<(HTMLSpanElement | null)[]>([]);
   const highlightRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -69,7 +70,7 @@ export default function GallerySection() {
 
   const [isEnabled, setIsEnabled] = useState(false);
 
-  // Cached layout geometry to eliminate reflows during RAF execution
+  // Cached layout geometry from static, untransformed container elements
   const geometryCache = useRef<{
     slot: { left: number; top: number; width: number; height: number };
     block: { left: number; top: number; width: number; height: number };
@@ -77,6 +78,17 @@ export default function GallerySection() {
     lines: LineGroup[];
     cta: { left: number; top: number; width: number; height: number };
   } | null>(null);
+
+  // Motion values for deterministic scroll tracking
+  const rawProgress = useMotionValue(0);
+
+  // Spring physics from animate skill: mass 0.25, stiffness 110, damping 22 (immediate, zero-jitter, weighty)
+  const smoothProgress = useSpring(rawProgress, {
+    stiffness: 110,
+    damping: 22,
+    mass: 0.25,
+    restDelta: 0.0001,
+  });
 
   // Gate motion behind desktop pointer + reduced motion check (better-ui & animate rules)
   useEffect(() => {
@@ -92,29 +104,15 @@ export default function GallerySection() {
     return () => window.removeEventListener("resize", checkCapabilities);
   }, []);
 
-  // Smooth scrubbed scroll progress across pinned runway
-  const { scrollYProgress } = useScroll({
-    target: trackRef,
-    offset: ["start 20%", "end 95%"],
-  });
-
-  // Spring physics from animate skill: mass 0.35, stiffness 120, damping 24 (silky smooth, slightly weighty)
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: 120,
-    damping: 24,
-    mass: 0.35,
-    restDelta: 0.0001,
-  });
-
-  // Measure geometry safely on mount and window resize
+  // Measure stable untransformed layout geometry safely
   const updateGeometryCache = useCallback(() => {
     const slot = phraseSlotRef.current;
-    const block = blockRef.current;
+    const blockContainer = blockContainerRef.current;
     const cta = ctaRef.current;
-    if (!slot || !block || !cta) return;
+    if (!slot || !blockContainer || !cta) return;
 
     const slotRect = slot.getBoundingClientRect();
-    const blockRect = block.getBoundingClientRect();
+    const blockRect = blockContainer.getBoundingClientRect();
     const ctaRect = cta.getBoundingClientRect();
 
     const words = wordRefs.current.map((w) => {
@@ -123,7 +121,7 @@ export default function GallerySection() {
       return { left: r.left, top: r.top, width: r.width, height: r.height };
     });
 
-    // Group words into lines for continuous, jump-free multiline sweeping
+    // Group words into lines for multiline-aware sweeping
     const lines: LineGroup[] = [];
     words.forEach((w, idx) => {
       if (idx === 0) {
@@ -162,16 +160,46 @@ export default function GallerySection() {
     };
   }, []);
 
+  // Pinned scroll calculation — locks progress exclusively to the sticky pin runway
+  useEffect(() => {
+    const handleScroll = () => {
+      const track = trackRef.current;
+      const stage = stageRef.current;
+      if (!track || !stage) return;
+
+      const trackRect = track.getBoundingClientRect();
+      const stageRect = stage.getBoundingClientRect();
+      const stickyTop = 88; // matches sticky top-20 / top-24
+
+      if (trackRect.top > stickyTop) {
+        rawProgress.set(0);
+        return;
+      }
+
+      const scrollableDistance = Math.max(1, trackRect.height - stageRect.height - stickyTop);
+      const scrolled = stickyTop - trackRect.top;
+      const p = clamp(scrolled / scrollableDistance, 0, 1);
+      rawProgress.set(p);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [rawProgress]);
+
   useEffect(() => {
     updateGeometryCache();
     window.addEventListener("resize", updateGeometryCache);
     return () => window.removeEventListener("resize", updateGeometryCache);
   }, [updateGeometryCache]);
 
-  // Main RAF rendering pipeline
+  // Main rendering loop directly subscribed to the spring
   useEffect(() => {
-    let rafId: number;
-
     const renderChoreography = (p: number) => {
       const phraseEl = phraseFloatingRef.current;
       const blockEl = blockRef.current;
@@ -205,15 +233,15 @@ export default function GallerySection() {
       if (!geo || !cursorEl || !cursorInner || !cursorPath) return;
 
       // -----------------------------------------------------------
-      // BEAT 1: DRAG_PHRASE (Heading) — Drag window: 0.12 -> 0.34
+      // BEAT 1: DRAG_PHRASE (Heading) — Window: 0.10 -> 0.32
       // -----------------------------------------------------------
-      const P_INIT_X = 40;
-      const P_INIT_Y = -16;
+      const P_INIT_X = 42;
+      const P_INIT_Y = -18;
       const P_INIT_ROT = -2;
       const P_INIT_BLUR = 2.5;
       const P_INIT_OPACITY = 0.45;
 
-      const b1T = clamp((p - 0.12) / 0.22, 0, 1);
+      const b1T = clamp((p - 0.10) / 0.22, 0, 1);
       const b1Ease = easeOutStrong(b1T);
 
       const pX = P_INIT_X * (1 - b1Ease);
@@ -229,10 +257,10 @@ export default function GallerySection() {
       }
 
       // -----------------------------------------------------------
-      // BEAT 2: DRAG_BLOCK (Paragraph) — Drag window: 0.50 -> 0.68
+      // BEAT 2: DRAG_BLOCK (Paragraph) — Window: 0.50 -> 0.68
       // -----------------------------------------------------------
-      const B_INIT_X = 46;
-      const B_INIT_Y = 16;
+      const B_INIT_X = 44;
+      const B_INIT_Y = 14;
       const B_INIT_ROT = 1.8;
       const B_INIT_BLUR = 2.2;
       const B_INIT_OPACITY = 0.45;
@@ -254,9 +282,9 @@ export default function GallerySection() {
       }
 
       // -----------------------------------------------------------
-      // BEAT 3: SELECT_TEXT Multiline Highlighting & Cursor Sweep (0.78 -> 0.94)
+      // BEAT 3: SELECT_TEXT Multiline Highlighting (0.80 -> 0.94)
       // -----------------------------------------------------------
-      const b3T = clamp((p - 0.78) / 0.16, 0, 1);
+      const b3T = clamp((p - 0.80) / 0.14, 0, 1);
       const lines = geo.lines;
       const lineCount = lines.length;
 
@@ -290,9 +318,8 @@ export default function GallerySection() {
       let b3CursorY = sentenceStartY;
       let b3Bank = 1.5;
 
-      // Allocate timeline among lines and carriage returns
+      // Multiline-aware sweeping
       if (lineCount <= 1) {
-        // Single line sweep
         const totalWords = HIGHLIGHT_WORDS.length;
         const exactWordFloat = b3T * totalWords;
 
@@ -309,8 +336,7 @@ export default function GallerySection() {
         b3CursorX = activeWord.left + activeWord.width * wFrac;
         b3CursorY = activeWord.top + activeWord.height * 0.52;
       } else {
-        // Multiline sweep with smooth carriage return
-        const crWeight = 0.16; // carriage return duration fraction
+        const crWeight = 0.16; // carriage return fraction
         const lineWeight = 1.0;
         const totalWeight = lineCount * lineWeight + (lineCount - 1) * crWeight;
 
@@ -324,23 +350,19 @@ export default function GallerySection() {
           const lineEndT = accumProgress + lineFraction;
           accumProgress = lineEndT;
 
-          // Process words in this line
           const lineWordCount = curLine.endIndex - curLine.startIndex + 1;
 
           if (b3T < lineStartT) {
-            // Words not yet reached
             for (let w = curLine.startIndex; w <= curLine.endIndex; w++) {
               const hl = highlightRefs.current[w];
               if (hl) hl.style.transform = "scaleX(0)";
             }
           } else if (b3T >= lineEndT) {
-            // Words fully highlighted
             for (let w = curLine.startIndex; w <= curLine.endIndex; w++) {
               const hl = highlightRefs.current[w];
               if (hl) hl.style.transform = "scaleX(1)";
             }
           } else {
-            // Actively sweeping this line
             activeLineFound = true;
             const lineLocalT = (b3T - lineStartT) / (lineEndT - lineStartT);
             const floatWord = lineLocalT * lineWordCount;
@@ -364,7 +386,6 @@ export default function GallerySection() {
             b3Bank = 1.8;
           }
 
-          // Check carriage return to next line
           if (l < lineCount - 1) {
             const crFraction = crWeight / totalWeight;
             const crStartT = accumProgress;
@@ -397,7 +418,7 @@ export default function GallerySection() {
       }
 
       // -----------------------------------------------------------
-      // GHOST CURSOR TRAJECTORY & SPRING-FED CONTINUOUS INTERPOLATION
+      // GHOST CURSOR TRAJECTORY WITH MATHEMATICAL CONTINUITY
       // -----------------------------------------------------------
       let cx = phraseHandleDisplacedX;
       let cy = phraseHandleDisplacedY;
@@ -406,33 +427,33 @@ export default function GallerySection() {
       let opacity = 1.0;
       let isGrabbing = false;
 
-      if (p < 0.08) {
+      if (p < 0.06) {
         // Entrance: Glides in smoothly from top-left to phrase handle
-        const t = easeOutStrong(p / 0.08);
+        const t = easeOutStrong(p / 0.06);
         const startX = geo.slot.left - 65;
         const startY = geo.slot.top - 55;
         cx = startX + (phraseHandleDisplacedX - startX) * t;
         cy = startY + (phraseHandleDisplacedY - startY) * t;
-        opacity = clamp(p / 0.035, 0, 1);
+        opacity = clamp(p / 0.03, 0, 1);
         bank = 7 * (1 - t);
-      } else if (p >= 0.08 && p < 0.12) {
+      } else if (p >= 0.06 && p < 0.10) {
         // Grab Hold Beat 1: Tactile press scale to 0.96 (better-ui rule)
-        const t = (p - 0.08) / 0.04;
+        const t = (p - 0.06) / 0.04;
         cx = phraseHandleDisplacedX;
         cy = phraseHandleDisplacedY;
         scale = 1.0 - 0.04 * t;
         bank = -1 * t;
         isGrabbing = true;
-      } else if (p >= 0.12 && p < 0.34) {
+      } else if (p >= 0.10 && p < 0.32) {
         // Beat 1: DRAG_PHRASE into reserved slot
         cx = phraseHandleCurrentX;
         cy = phraseHandleCurrentY;
         scale = 0.96;
         bank = -2 * (1 - b1Ease);
         isGrabbing = true;
-      } else if (p >= 0.34 && p < 0.38) {
-        // Release & Hold Beat 1
-        const t = (p - 0.34) / 0.04;
+      } else if (p >= 0.32 && p < 0.38) {
+        // Release & Hold Beat 1 (Generous hold so reader can absorb completed headline)
+        const t = (p - 0.32) / 0.06;
         cx = phraseHandleSettledX;
         cy = phraseHandleSettledY;
         scale = 0.96 + 0.04 * t;
@@ -443,7 +464,7 @@ export default function GallerySection() {
         const t = easeInOutStrong((p - 0.38) / 0.08);
         cx = phraseHandleSettledX + (blockHandleDisplacedX - phraseHandleSettledX) * t;
         cy = phraseHandleSettledY + (blockHandleDisplacedY - phraseHandleSettledY) * t;
-        bank = 6 * Math.sin(t * Math.PI); // Gentle organic banking mid-glide
+        bank = 6 * Math.sin(t * Math.PI); // Organic banking mid-flight
         scale = 1.0;
       } else if (p >= 0.46 && p < 0.50) {
         // Grab Hold Beat 2: Tactile press scale to 0.96
@@ -460,22 +481,22 @@ export default function GallerySection() {
         scale = 0.96;
         bank = -1.5 * (1 - b2Ease);
         isGrabbing = true;
-      } else if (p >= 0.68 && p < 0.72) {
-        // Release & Hold Beat 2
-        const t = (p - 0.68) / 0.04;
+      } else if (p >= 0.68 && p < 0.74) {
+        // Release & Hold Beat 2 (Generous hold so reader can absorb paragraph)
+        const t = (p - 0.68) / 0.06;
         cx = blockHandleSettledX;
         cy = blockHandleSettledY;
         scale = 0.96 + 0.04 * t;
         bank = 0;
         isGrabbing = false;
-      } else if (p >= 0.72 && p < 0.78) {
+      } else if (p >= 0.74 && p < 0.80) {
         // Glide from settled block to start of key sentence
-        const t = easeInOutStrong((p - 0.72) / 0.06);
+        const t = easeInOutStrong((p - 0.74) / 0.06);
         cx = blockHandleSettledX + (sentenceStartX - blockHandleSettledX) * t;
         cy = blockHandleSettledY + (sentenceStartY - blockHandleSettledY) * t;
         bank = -6 * Math.sin(t * Math.PI);
         scale = 1.0;
-      } else if (p >= 0.78 && p < 0.94) {
+      } else if (p >= 0.80 && p < 0.94) {
         // Beat 3: SELECT_TEXT sweeping sentence
         cx = b3CursorX;
         cy = b3CursorY;
@@ -516,32 +537,16 @@ export default function GallerySection() {
       );
     };
 
-    // Frame synchronization with Framer Motion useSpring
+    // Synchronous dispatch with Framer Motion spring updates
     const unsubscribe = smoothProgress.on("change", (latest) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => renderChoreography(latest));
+      renderChoreography(latest);
     });
-
-    // Update geometry on scroll/resize for continuous precision
-    const handleScrollOrResize = () => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        updateGeometryCache();
-        renderChoreography(smoothProgress.get());
-      });
-    };
-
-    window.addEventListener("scroll", handleScrollOrResize, { passive: true });
-    window.addEventListener("resize", handleScrollOrResize, { passive: true });
 
     // Initial render
     renderChoreography(smoothProgress.get());
 
     return () => {
       unsubscribe();
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("scroll", handleScrollOrResize);
-      window.removeEventListener("resize", handleScrollOrResize);
     };
   }, [isEnabled, smoothProgress, updateGeometryCache]);
 
@@ -588,12 +593,12 @@ export default function GallerySection() {
         </div>
       )}
 
-      {/* Pinned Runway for Editorial Gallery Section */}
-      <div ref={trackRef} className="relative w-full h-[165vh]">
+      {/* Pinned Scroll Runway for Editorial Gallery Section (Extended height for perfect choreography pacing) */}
+      <div ref={trackRef} className="relative w-full h-[260vh] sm:h-[280vh]">
         <section
           ref={stageRef}
           aria-labelledby="gallery-editorial-heading"
-          className="sticky top-24 z-10 mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-3xl flex-col items-center justify-center px-6 py-12 text-center"
+          className="sticky top-20 sm:top-24 z-10 mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-3xl flex-col items-center justify-center px-6 py-10 text-center"
         >
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1 text-xs text-[#e6b784]">
@@ -630,14 +635,16 @@ export default function GallerySection() {
             </span>
           </h2>
 
-          {/* BEAT 2: DRAG_BLOCK Paragraph */}
-          <p
-            ref={blockRef}
-            className="mt-6 max-w-2xl text-base leading-relaxed text-[#a2a8b4] sm:text-lg sm:leading-relaxed"
-            style={{ willChange: "transform, opacity, filter" }}
-          >
-            Step inside a living archive of university derivations across calculus, classical mechanics, electrodynamics, and quantum physics—each lesson planned like a lecture, hand-written on the blackboard, and spoken aloud step by step.
-          </p>
+          {/* BEAT 2: DRAG_BLOCK Paragraph inside stable untransformed container */}
+          <div ref={blockContainerRef} className="mt-6 max-w-2xl w-full">
+            <p
+              ref={blockRef}
+              className="text-base leading-relaxed text-[#a2a8b4] sm:text-lg sm:leading-relaxed"
+              style={{ willChange: "transform, opacity, filter" }}
+            >
+              Step inside a living archive of university derivations across calculus, classical mechanics, electrodynamics, and quantum physics—each lesson planned like a lecture, hand-written on the blackboard, and spoken aloud step by step.
+            </p>
+          </div>
 
           {/* BEAT 3: SELECT_TEXT Key Sentence */}
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-[#e8eaed] sm:text-base">
