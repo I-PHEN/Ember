@@ -127,7 +127,7 @@ export default function LandingPage() {
       </header>
 
       {/* 1. Hero Section: Focused Prompt Well */}
-      <section className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-4 pt-24 pb-8 text-center sm:px-6 sm:pt-28 sm:pb-12">
+      <section className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center px-4 pt-20 pb-4 text-center sm:px-6 sm:pt-22 sm:pb-6">
         {/* Eyebrow Badge */}
         <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] px-3.5 py-1 text-xs text-[#e6b784]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784] shadow-[0_0_8px_#e6b784]" />
@@ -135,7 +135,7 @@ export default function LandingPage() {
         </div>
 
         {/* Headline */}
-        <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-[#f4f4f6] sm:text-6xl sm:leading-[1.1]">
+        <h1 className="mt-3.5 max-w-3xl text-4xl font-semibold tracking-tight text-[#f4f4f6] sm:text-5xl sm:leading-[1.12]">
           Understand the steps.{" "}
           <br />
           <span className="font-hand font-medium text-[#e6b784]">
@@ -144,12 +144,18 @@ export default function LandingPage() {
         </h1>
 
         {/* Subline */}
-        <p className="mt-4 max-w-xl text-base text-[#9aa1af] sm:text-lg sm:leading-relaxed">
+        <p className="mt-2.5 max-w-xl text-sm text-[#9aa1af] sm:text-base sm:leading-relaxed">
           A lesson that writes, explains, and makes room for your questions. Follow the reasoning—and return to the step you need.
         </p>
 
+        {/* Motto directly above the input box */}
+        <div className="mt-5 mb-2 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-widest text-[#e6b784]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784] shadow-[0_0_8px_#e6b784]" />
+          Every problem, a lesson.
+        </div>
+
         {/* Prompt Composer Bar — Exact Studio Dimensions & Styling */}
-        <div className="mt-8 w-full max-w-[720px]">
+        <div className="w-full max-w-[720px]">
           <form
             ref={promptContainerRef}
             onSubmit={handlePromptSubmit}
@@ -220,7 +226,7 @@ export default function LandingPage() {
         </div>
 
         {/* 3 Starter Chips */}
-        <div className="mt-3.5 flex flex-wrap items-center justify-center gap-2 text-xs">
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2 text-xs">
           <span className="text-xs text-[#8b919e] mr-1">Try:</span>
           <button
             type="button"
@@ -246,7 +252,7 @@ export default function LandingPage() {
         </div>
 
         {/* Guest Demo Invitation in Hero */}
-        <div className="mt-5 flex items-center justify-center gap-2 text-xs text-[#8b919e]">
+        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[#8b919e]">
           <span>Evaluating Ember?</span>
           <button
             type="button"
@@ -260,7 +266,7 @@ export default function LandingPage() {
       </section>
 
       {/* 2. Product Demonstration Film (52s) */}
-      <section className="relative z-10 mx-auto w-full max-w-5xl px-4 pb-6 sm:px-6 sm:pb-12">
+      <section className="relative z-10 mx-auto w-full max-w-5xl px-4 py-1 sm:px-6 sm:py-2">
         <LaunchFilm />
       </section>
 
