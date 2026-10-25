@@ -258,6 +258,12 @@ export default function LandingPage() {
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
+
+        {/* Free Community AI Note */}
+        <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[11px] text-[#6b7280]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784]" />
+          <span>Open educational demo powered by free community AI tiers</span>
+        </div>
       </section>
 
       {/* 2. Product Demonstration Film (52s) */}

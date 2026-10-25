@@ -40,6 +40,7 @@ import {
   ArrowUpCircle,
   Info,
   ChevronRight,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/lib/firebase/auth-context";
@@ -2252,6 +2253,14 @@ export default function Page() {
               </button>
             ))}
           </div>
+
+          {/* Free Tier Model Notice */}
+          <div className="mt-3.5 flex items-center justify-center gap-1.5 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] px-3 py-1 text-[11px] text-[#8b919e]">
+              <Sparkles className="h-3 w-3 text-[#e6b784]" />
+              <span>Free Community Demo · Powered by Gemini & Groq free tiers · Limits refresh dynamically</span>
+            </span>
+          </div>
         </div>
 
         {/* Curated Starters Video Showcase */}
@@ -2364,45 +2373,116 @@ export default function Page() {
         <GenerateOverlay status={jobStatus} onLeave={leaveJob} />
       )}
 
-      {/* Error Overlay */}
-      {(formError || jobStatus?.phase === "error") && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="w-full max-w-md rounded-3xl border border-[#34383c] bg-[#171b1d] p-6 shadow-2xl">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#ff6b6b]/15 ring-1 ring-[#ff6b6b]/30">
-                <AlertTriangle className="h-5 w-5 text-[#ff6b6b]" />
-              </span>
-              <div className="text-base font-bold text-foreground">The marker slipped</div>
-            </div>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              {formError || jobStatus?.error}
-            </p>
-            <div className="mt-6 flex gap-3">
-              <Button
-                onClick={() =>
-                  void generate(
-                    planQuestionRef.current || jobStatus?.question || question
-                  )
-                }
-                className="rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]"
-              >
-                Try again
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={clearJob}
-                className="rounded-xl text-muted-foreground hover:bg-[#23262a] hover:text-[#f1eee7]"
-              >
-                Change question
-              </Button>
+      {/* Error / Rate Limit Overlay */}
+      {(formError || jobStatus?.phase === "error") && (() => {
+        const rawErr = formError || jobStatus?.error || "";
+        const isQuotaOrLimit =
+          /rate limit|429|quota|allowance|credit|free[- ]tier|community|capacity|RESOURCE_EXHAUSTED|Too Many/i.test(
+            rawErr
+          );
+
+        return (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="w-full max-w-md rounded-3xl border border-[#34383c] bg-[#16191f] p-6 shadow-2xl">
+              {isQuotaOrLimit ? (
+                <>
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#e6b784]/15 ring-1 ring-[#e6b784]/35">
+                      <Sparkles className="h-5 w-5 text-[#e6b784]" />
+                    </span>
+                    <div>
+                      <div className="text-base font-bold text-[#f4f4f6]">
+                        Free Community AI Limit Reached
+                      </div>
+                      <div className="text-[11px] font-mono text-[#e6b784]">
+                        Shared Model Quota (Gemini &amp; Groq)
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-sm leading-relaxed text-[#c6cbd6]">
+                    Ember is an open educational demonstration powered by free community AI tiers. When multiple learners generate lessons simultaneously, our shared free quota is reached quickly.
+                  </p>
+
+                  <div className="mt-4 rounded-2xl border border-white/[0.08] bg-[#0c0e12]/80 p-3.5 text-xs text-[#a6adb9] space-y-2">
+                    <div className="flex items-center gap-2 font-medium text-[#e6b784]">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      <span>Rate limits refresh dynamically every few minutes</span>
+                    </div>
+                    <p className="leading-relaxed text-[11px] text-[#8b919e]">
+                      You don&apos;t have to wait! You can explore full, interactive derivations across calculus, physics, and circuits in our Studio Gallery right now with zero AI waiting.
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex flex-col sm:flex-row gap-2.5">
+                    <Link
+                      href="/gallery"
+                      onClick={clearJob}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#e6b784] to-[#f2ca9e] px-4 py-2.5 text-xs font-semibold text-[#191816] shadow-md shadow-[#e6b784]/20 hover:shadow-[#e6b784]/35 transition-all"
+                    >
+                      <BookOpen className="h-3.5 w-3.5" />
+                      <span>Explore Gallery Lessons</span>
+                    </Link>
+                    <Button
+                      onClick={() =>
+                        void generate(
+                          planQuestionRef.current || jobStatus?.question || question
+                        )
+                      }
+                      variant="outline"
+                      className="rounded-xl border-white/[0.12] bg-white/[0.04] text-xs font-medium text-[#f4f4f6] hover:bg-white/[0.08]"
+                    >
+                      Retry generation
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={clearJob}
+                      className="rounded-xl text-xs text-[#8b919e] hover:bg-[#23262a] hover:text-[#f1eee7]"
+                    >
+                      Dismiss
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#ff6b6b]/15 ring-1 ring-[#ff6b6b]/30">
+                      <AlertTriangle className="h-5 w-5 text-[#ff6b6b]" />
+                    </span>
+                    <div className="text-base font-bold text-foreground">The marker slipped</div>
+                  </div>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {rawErr}
+                  </p>
+                  <div className="mt-6 flex gap-3">
+                    <Button
+                      onClick={() =>
+                        void generate(
+                          planQuestionRef.current || jobStatus?.question || question
+                        )
+                      }
+                      className="rounded-xl bg-[#e6b784] font-semibold text-[#191816] hover:bg-[#f2ca9e]"
+                    >
+                      Try again
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={clearJob}
+                      className="rounded-xl text-muted-foreground hover:bg-[#23262a] hover:text-[#f1eee7]"
+                    >
+                      Change question
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Global History Slide-over Drawer */}
       {renderHistoryDrawer()}

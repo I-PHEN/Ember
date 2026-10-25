@@ -15,7 +15,11 @@ export class LeaseLostError extends Error {
 }
 
 export class DailyLimitError extends Error {
-  constructor() { super("The studio's daily generation allowance is used. Please try again tomorrow."); }
+  constructor() {
+    super(
+      "Ember is powered by free community AI tiers (Gemini & Groq), and our shared daily generation quota has been reached for now. Limits reset dynamically—please try again shortly, or explore the pre-rendered library in the Gallery!"
+    );
+  }
 }
 
 export class DurableJobStore {

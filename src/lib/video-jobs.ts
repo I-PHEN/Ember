@@ -987,7 +987,7 @@ async function runJob(
     if (!outline) {
       job.phase = "error";
       job.error = ctx.rateLimits.saw429 || lastChatWas429
-        ? "The AI studio is busy right now — wait a minute and try again."
+        ? "We've temporarily reached the rate limit on our free community AI models (Gemini & Groq). Free quota resets dynamically every few minutes—please try again shortly, or explore our pre-made derivations in the Gallery!"
         : "The tutor couldn't storyboard that one — try rephrasing the question.";
       await save();
       return;
@@ -1533,8 +1533,12 @@ async function runJob(
   } catch (err) {
     if (err instanceof LeaseLostError) throw err;
     console.error("video job crashed:", err);
+    const msg = err instanceof Error ? err.message : "";
+    const isRateLimit = /429|quota|RESOURCE_EXHAUSTED|rate limit|Too Many/i.test(msg) || ctx.rateLimits.saw429;
     job.phase = "error";
-    job.error = "Video generation hit a snag. Please try again.";
+    job.error = isRateLimit
+      ? "Our shared free AI model quota was temporarily exhausted. Rate limits reset automatically every few minutes—try again soon or check out the Gallery!"
+      : "Video generation hit a snag. Please try again.";
     await save();
   } finally {
     acceptingReviews = false;

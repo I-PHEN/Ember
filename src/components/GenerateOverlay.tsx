@@ -290,6 +290,15 @@ export default function GenerateOverlay({ status, onLeave }: Props) {
             Come back later
           </Button>
         </div>
+
+        {/* Free Community AI Note */}
+        <div className="mt-3.5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-[#7a8190]">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784]" />
+            Free Community Demo (Gemini & Groq)
+          </span>
+          <span>Shared rate limits refresh dynamically</span>
+        </div>
       </div>
     </div>
   );
