@@ -8,6 +8,7 @@ export default function AuthModal() {
   const {
     isAuthModalOpen,
     closeAuthModal,
+    continueAsGuest,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
@@ -160,6 +161,31 @@ export default function AuthModal() {
             {error}
           </div>
         )}
+
+        {/* Demo Guest Instant Access */}
+        <div className="mb-5 rounded-2xl border border-[#e6b784]/25 bg-[#e6b784]/[0.06] p-4 text-center">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              continueAsGuest();
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#e6b784] px-4 py-2.5 text-xs font-semibold text-[#14171a] shadow-lg shadow-[#e6b784]/15 hover:bg-[#d8a873] transition-all active:scale-[0.98]"
+          >
+            Continue as Guest (No Email Required)
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+          <p className="mt-2 text-[11px] text-[#9aa1af]">
+            Instant access for demo & evaluation. No signup required.
+          </p>
+        </div>
+
+        <div className="relative mb-5 flex items-center justify-center">
+          <div className="w-full border-t border-white/[0.08]" />
+          <span className="absolute bg-[#14171a] px-3 font-mono text-[10px] uppercase tracking-wider text-[#6b7280]">
+            or sign in
+          </span>
+        </div>
 
         {/* ================= GOOGLE FLOW ================= */}
         {mode === "google" ? (

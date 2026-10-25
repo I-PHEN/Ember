@@ -21,6 +21,7 @@ export interface FirebaseUser {
 export interface AuthContextType {
   user: FirebaseUser | null;
   loading: boolean;
+  continueAsGuest: () => void;
   signInWithGoogle: (googleEmail?: string, googleName?: string) => Promise<FirebaseUser>;
   signInWithEmail: (email: string, pass: string) => Promise<FirebaseUser>;
   signUpWithEmail: (email: string, pass: string, name?: string) => Promise<FirebaseUser>;
@@ -225,11 +226,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAuthModalCallback(null);
   }, []);
 
+  const continueAsGuest = useCallback(() => {
+    const guestUser: FirebaseUser = {
+      uid: "guest-" + Math.random().toString(36).slice(2, 9),
+      email: "guest@ember.local",
+      displayName: "Guest Scholar",
+      photoURL: null,
+      isAnonymous: true,
+      createdAt: Date.now(),
+    };
+    saveUserSession(guestUser);
+    setIsAuthModalOpen(false);
+    const cb = authModalCallback;
+    setAuthModalCallback(null);
+    if (cb) {
+      cb();
+    } else {
+      window.location.href = "/studio";
+    }
+  }, [authModalCallback, saveUserSession]);
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
+        continueAsGuest,
         signInWithGoogle,
         signInWithEmail,
         signUpWithEmail,

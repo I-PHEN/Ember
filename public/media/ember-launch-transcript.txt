@@ -1,0 +1,11 @@
+EMBER — EVERY PROBLEM, A LESSON
+52-second product film. Original instrumental score; no spoken narration.
+
+0–4: Some questions need more than an answer.
+4–8: Ember. A question becomes a lesson.
+8–14: Bring a question. The composer enters “Solve x + 2 = 5” beside “Create a lesson.” This is a prepared demonstration, edited for length; it does not show generation latency.
+14–28: See why each step works. Ember’s real handwriting renderer writes x + 2 = 5, then x + 2 − 2 = 5 − 2, then x = 3. Edited lesson excerpt.
+28–35: Go back to the moment it clicks. The board pulls into the chapter workspace and deliberately revisits “Subtract 2 from both sides.”
+35–43: And ask the next question. Prepared Office Hours example: “Why subtract 2 from both sides?” Answer: “To keep the two sides equal. Subtracting 2 undoes the + 2, so x is left on its own.”
+43–48: More questions. Same workspace. Gallery subject navigation includes Calculus, Mechanics, Physics, ODEs, Circuits, and Chemistry. The built-in sample is Integration by Parts. No community counts or fabricated lesson inventory are shown.
+48–52: Ember. Every problem, a lesson. Create your first lesson.

@@ -54,10 +54,10 @@ describe("Landing Page Requirements", () => {
   });
 
   it("includes correct hero headline, subline, starter chips and eyebrow", () => {
-    expect(pageContent).toContain("Every problem,");
-    expect(pageContent).toContain("a lesson.");
-    expect(pageContent).toContain("Paste any STEM problem. Ember plans the lesson, writes it on the board by hand, and explains it aloud.");
-    expect(pageContent).toContain("AI blackboard tutor");
+    expect(pageContent).toContain("Understand the steps.");
+    expect(pageContent).toContain("Not just the answer.");
+    expect(pageContent).toContain("A lesson that writes, explains, and makes room for your questions.");
+    expect(pageContent).toContain("Your question, taught on a blackboard.");
     expect(pageContent).toContain("∫ x · e^(2x) dx");
     expect(pageContent).toContain("RLC Underdamped Response");
     expect(pageContent).toContain("Kinetic Theory Derivation");
