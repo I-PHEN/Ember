@@ -135,11 +135,11 @@ export default function LandingPage() {
         </div>
 
         {/* Headline */}
-        <h1 className="mt-3.5 max-w-3xl text-4xl font-semibold tracking-tight text-[#f4f4f6] sm:text-5xl sm:leading-[1.12]">
-          Understand the steps.{" "}
+        <h1 className="mt-3.5 max-w-3xl text-4xl font-semibold tracking-tight text-[#f4f4f6] sm:text-6xl sm:leading-[1.1]">
+          Every problem,{" "}
           <br />
           <span className="font-hand font-medium text-[#e6b784]">
-            Not just the answer.
+            a lesson.
           </span>
         </h1>
 
@@ -148,14 +148,8 @@ export default function LandingPage() {
           A lesson that writes, explains, and makes room for your questions. Follow the reasoning—and return to the step you need.
         </p>
 
-        {/* Motto directly above the input box */}
-        <div className="mt-5 mb-2 flex items-center justify-center gap-2 font-mono text-xs uppercase tracking-widest text-[#e6b784]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784] shadow-[0_0_8px_#e6b784]" />
-          Every problem, a lesson.
-        </div>
-
         {/* Prompt Composer Bar — Exact Studio Dimensions & Styling */}
-        <div className="w-full max-w-[720px]">
+        <div className="mt-6 w-full max-w-[720px]">
           <form
             ref={promptContainerRef}
             onSubmit={handlePromptSubmit}

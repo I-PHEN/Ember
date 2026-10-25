@@ -1,7 +1,23 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import katex from "katex";
 import { ArrowLeft, ArrowRight, HelpCircle, MessageSquare, Sparkles, MoveDown, CheckCircle2 } from "lucide-react";
+
+function MathView({ math, display = false, className = "" }: { math: string; display?: boolean; className?: string }) {
+  const html = useMemo(() => {
+    try {
+      return katex.renderToString(math, {
+        displayMode: display,
+        throwOnError: false,
+      });
+    } catch {
+      return math;
+    }
+  }, [math, display]);
+
+  return <span className={className} dangerouslySetInnerHTML={{ __html: html }} />;
+}
 
 interface StepData {
   title: string;
@@ -115,10 +131,10 @@ export default function InteractiveComparison() {
         ref={sectionRef}
         className="sticky top-20 z-20 mx-auto flex w-full max-w-6xl flex-col justify-start px-4 py-3 sm:px-6"
       >
-        {/* Section Header (Compact, no redundant helper text) */}
+        {/* Section Header */}
         <div className="mx-auto max-w-2xl text-center mb-3 sm:mb-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3.5 py-1 text-xs text-[#e6b784]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784] shadow-[0_0_8px_#e6b784]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-[#e6b784]" />
             Same question, two different learning outcomes
           </div>
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[#f4f4f6] sm:text-3xl sm:leading-[1.15]">
@@ -131,7 +147,7 @@ export default function InteractiveComparison() {
 
         {/* Side-by-Side Comparison Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 items-stretch">
-          {/* LEFT COLUMN: Standard AI Chat (Dumps text immediately, static) */}
+          {/* LEFT COLUMN: Standard AI Chat (Properly formatted math & text) */}
           <div className="flex flex-col rounded-3xl border border-white/[0.08] bg-[#0c0e12]/95 p-4 sm:p-5 shadow-xl shadow-black/40 backdrop-blur-md">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5 mb-3">
@@ -149,39 +165,63 @@ export default function InteractiveComparison() {
             {/* User Chat Bubble */}
             <div className="mb-3 flex justify-end">
               <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-[#202124] px-3.5 py-2 text-xs leading-relaxed text-[#f1f3f4] border border-white/[0.04]">
-                Evaluate ∫ x · e^(2x) dx using integration by parts.
+                Evaluate <MathView math="\int x e^{2x} \, dx" /> using integration by parts.
               </div>
             </div>
 
-            {/* Bot Wall-of-Text Response */}
-            <div className="flex-1 space-y-2 font-sans text-xs leading-relaxed text-[#bdc1c6]">
+            {/* Bot Response with Beautiful Math Typesetting */}
+            <div className="flex-1 space-y-2.5 font-sans text-xs leading-relaxed text-[#bdc1c6]">
               <p>
-                To evaluate the integral <code className="font-mono text-[#e8eaed] bg-white/[0.05] px-1 py-0.5 rounded">∫ x · e^(2x) dx</code>, we apply the integration by parts formula:
+                To evaluate the integral <span className="text-[#f1f3f4] font-medium"><MathView math="\int x e^{2x} \, dx" /></span>, we apply the integration by parts formula:
               </p>
-              <div className="rounded-xl border border-white/[0.05] bg-black/30 p-2 font-mono text-xs text-[#e8eaed] text-center">
-                ∫ u dv = u·v − ∫ v du
+
+              {/* Integration by parts formula card */}
+              <div className="rounded-xl border border-white/[0.06] bg-black/40 py-2 px-3 text-center text-[#f1f3f4] text-xs">
+                <MathView math="\int u \, dv = u \cdot v - \int v \, du" display />
               </div>
 
-              <p className="font-medium text-[#f1f3f4]">
-                1. Choose u and dv using LIATE:
-              </p>
-              <ul className="list-disc list-inside pl-1 space-y-0.5 text-[#9aa0a6] font-mono text-[11px]">
-                <li>Let u = x ⟹ du = dx</li>
-                <li>Let dv = e^(2x) dx ⟹ v = (1/2) e^(2x)</li>
-              </ul>
-
-              <p className="font-medium text-[#f1f3f4]">
-                2. Substitute into formula:
-              </p>
-              <div className="rounded-xl border border-white/[0.05] bg-black/30 p-2 font-mono text-[11px] leading-relaxed text-[#bdc1c6]">
-                ∫ x · e^(2x) dx = x · (1/2) e^(2x) − ∫ (1/2) e^(2x) dx<br />
-                = (1/2) x e^(2x) − (1/2) ∫ e^(2x) dx<br />
-                = (1/2) x e^(2x) − (1/4) e^(2x) + C
+              {/* Step 1: LIATE */}
+              <div>
+                <p className="font-medium text-[#f1f3f4] mb-1">
+                  1. Choose <MathView math="u" /> and <MathView math="dv" /> using LIATE:
+                </p>
+                <ul className="space-y-1 pl-2 text-[#a8adb7] text-[11px]">
+                  <li className="flex items-center gap-1.5">
+                    <span className="text-[#6b7280]">•</span>
+                    <span>Let <MathView math="u = x \implies du = dx" /></span>
+                  </li>
+                  <li className="flex items-center gap-1.5">
+                    <span className="text-[#6b7280]">•</span>
+                    <span>Let <MathView math="dv = e^{2x} dx \implies v = \frac{1}{2} e^{2x}" /></span>
+                  </li>
+                </ul>
               </div>
 
-              <p>
-                <strong>Final Answer:</strong> <span className="font-mono text-[#e8eaed]">½ x e^(2x) − ¼ e^(2x) + C</span>
-              </p>
+              {/* Step 2: Derivation */}
+              <div>
+                <p className="font-medium text-[#f1f3f4] mb-1">
+                  2. Substitute into formula:
+                </p>
+                <div className="rounded-xl border border-white/[0.06] bg-black/40 px-3 py-2 text-left space-y-1 text-[#e2e4e8] text-[11px] overflow-x-auto">
+                  <div>
+                    <MathView math="\int x e^{2x} dx = x \left(\frac{1}{2} e^{2x}\right) - \int \frac{1}{2} e^{2x} dx" display />
+                  </div>
+                  <div className="pt-0.5">
+                    <MathView math="= \frac{1}{2} x e^{2x} - \frac{1}{2} \int e^{2x} dx" display />
+                  </div>
+                  <div className="pt-0.5">
+                    <MathView math="= \frac{1}{2} x e^{2x} - \frac{1}{4} e^{2x} + C" display />
+                  </div>
+                </div>
+              </div>
+
+              {/* Final Answer */}
+              <div className="flex items-center gap-2 pt-1 font-medium text-[#f1f3f4]">
+                <span>Final Answer:</span>
+                <span className="text-[#f4f4f6] font-semibold">
+                  <MathView math="\frac{1}{2} x e^{2x} - \frac{1}{4} e^{2x} + C" />
+                </span>
+              </div>
             </div>
 
             {/* Drawback Note */}
@@ -191,29 +231,26 @@ export default function InteractiveComparison() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Ember Synchronized Blackboard (Strong Scroll Animation) */}
-          <div
-            key={`box-${currentStep}`}
-            className="flex flex-col rounded-3xl border border-[#e6b784]/40 bg-gradient-to-b from-[#151922] via-[#10131a] to-[#0c0e13] p-4 sm:p-5 shadow-2xl shadow-black/70 relative overflow-hidden ring-1 ring-[#e6b784]/25 backdrop-blur-md animate-step-pulse transition-all duration-300"
-          >
+          {/* RIGHT COLUMN: Ember Synchronized Blackboard (Clean Matte Aesthetic, No Neon Glowing) */}
+          <div className="flex flex-col rounded-3xl border border-white/[0.12] bg-[#111317] p-4 sm:p-5 shadow-xl shadow-black/50 relative overflow-hidden backdrop-blur-md">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5 mb-2.5">
               <div className="flex items-center gap-2.5">
-                <span className="h-2 w-2 rounded-full bg-[#e6b784] shadow-[0_0_10px_#e6b784]" />
+                <span className="h-2 w-2 rounded-full bg-[#e6b784]" />
                 <span className="font-mono text-xs font-semibold text-[#e6b784] uppercase tracking-wider">
                   Ember Classroom
                 </span>
               </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e6b784]/30 bg-[#e6b784]/10 px-2.5 py-0.5 font-mono text-[10px] font-medium text-[#e6b784]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.12] bg-white/[0.03] px-2.5 py-0.5 font-mono text-[10px] font-medium text-[#e6b784]">
                 <Sparkles className="h-3 w-3" />
                 Live Blackboard Pacing
               </span>
             </div>
 
-            {/* Continuous Smooth Scroll Fill Bar */}
+            {/* Continuous Smooth Scroll Fill Bar (Clean, no glow) */}
             <div className="relative h-1 w-full rounded-full bg-white/[0.06] overflow-hidden mb-2.5">
               <div
-                className="h-full bg-gradient-to-r from-[#e6b784] via-[#f5c796] to-[#e6b784] shadow-[0_0_8px_#e6b784] transition-all duration-100 ease-out"
+                className="h-full bg-[#e6b784] transition-all duration-100 ease-out"
                 style={{ width: `${Math.round(scrollProgress * 100)}%` }}
               />
             </div>
@@ -257,16 +294,16 @@ export default function InteractiveComparison() {
                 </div>
               </div>
 
-              {/* Segmented Milestone Progress Pills */}
+              {/* Segmented Milestone Progress Pills (Matte, no glow shadow) */}
               <div className="grid grid-cols-5 gap-1.5">
                 {STEPS.map((s, idx) => (
                   <button
                     key={s.title}
                     type="button"
                     onClick={() => setCurrentStep(idx)}
-                    className={`group relative h-2 rounded-full transition-all duration-300 ${
+                    className={`group relative h-2 rounded-full transition-all duration-200 ${
                       idx === currentStep
-                        ? "bg-[#e6b784] ring-2 ring-[#e6b784]/60 shadow-[0_0_12px_#e6b784] scale-105"
+                        ? "bg-[#e6b784] scale-105"
                         : idx < currentStep
                         ? "bg-[#e6b784]/50 hover:bg-[#e6b784]/70"
                         : "bg-white/[0.08] hover:bg-white/[0.15]"
@@ -277,7 +314,7 @@ export default function InteractiveComparison() {
               </div>
             </div>
 
-            {/* Simulated Blackboard Canvas View */}
+            {/* Simulated Blackboard Canvas View (Matte slate aesthetic) */}
             <div className="flex-1 flex flex-col justify-center rounded-2xl border border-white/[0.08] bg-[#090b0e] p-3.5 sm:p-4 text-center relative shadow-inner min-h-[160px]">
               {/* Blackboard Header Indicator */}
               <div className="absolute top-2.5 left-3 flex items-center gap-1.5 text-[10px] font-mono text-[#6c7280]">
@@ -285,8 +322,8 @@ export default function InteractiveComparison() {
                 BLACKBOARD · STAGE {step.stepNum} OF 05
               </div>
 
-              {/* Dynamic Math Chalkboard Display with Strong Entrance Animation */}
-              <div key={currentStep} className="py-2.5 animate-chalk-reveal">
+              {/* Dynamic Math Chalkboard Display */}
+              <div key={currentStep} className="py-2.5">
                 {step.previousChalk && (
                   <div className="mb-1 font-hand text-sm text-[#7a8190]/70 tracking-wide line-through decoration-white/10">
                     {step.previousChalk}
@@ -294,9 +331,9 @@ export default function InteractiveComparison() {
                 )}
 
                 <div
-                  className={`font-hand text-2xl sm:text-3xl tracking-wide transition-all duration-300 ${
+                  className={`font-hand text-2xl sm:text-3xl tracking-wide transition-all duration-200 ${
                     currentStep === 4
-                      ? "text-[#f8f9fa] inline-block rounded-xl border border-[#e6b784]/70 bg-[#e6b784]/15 px-4 py-2 shadow-[0_0_24px_rgba(230,183,132,0.3)]"
+                      ? "text-[#f8f9fa] inline-block rounded-xl border border-[#e6b784]/60 bg-[#e6b784]/10 px-4 py-2"
                       : "text-[#f4f4f6]"
                   }`}
                 >
@@ -310,7 +347,7 @@ export default function InteractiveComparison() {
                 )}
 
                 {currentStep === 4 && (
-                  <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#e6b784]/20 border border-[#e6b784]/30 px-2.5 py-0.5 text-[10px] font-mono font-medium text-[#e6b784]">
+                  <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#e6b784]/15 border border-[#e6b784]/30 px-2.5 py-0.5 text-[10px] font-mono font-medium text-[#e6b784]">
                     <CheckCircle2 className="h-3 w-3" />
                     Verified by differentiation ✓
                   </div>
@@ -318,7 +355,7 @@ export default function InteractiveComparison() {
               </div>
 
               {/* Teacher Narration Bubble */}
-              <div key={`narr-${currentStep}`} className="mt-auto pt-2 border-t border-white/[0.06] text-left animate-float-in">
+              <div key={`narr-${currentStep}`} className="mt-auto pt-2 border-t border-white/[0.06] text-left">
                 <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-[#e6b784]">
                   <MessageSquare className="h-3 w-3" />
                   Teacher Voiced Narration

@@ -54,8 +54,8 @@ describe("Landing Page Requirements", () => {
   });
 
   it("includes correct hero headline, subline, starter chips and eyebrow", () => {
-    expect(pageContent).toContain("Understand the steps.");
-    expect(pageContent).toContain("Not just the answer.");
+    expect(pageContent).toContain("Every problem,");
+    expect(pageContent).toContain("a lesson.");
     expect(pageContent).toContain("A lesson that writes, explains, and makes room for your questions.");
     expect(pageContent).toContain("Your question, taught on a blackboard.");
     expect(pageContent).toContain("∫ x · e^(2x) dx");
